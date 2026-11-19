@@ -1,0 +1,25 @@
+@startuml 07_sequence_lateral_S05
+!include style.iuml
+title Scénario S-05 : mouvement latéral client-03 -> PostgreSQL, état A puis état B
+autonumber "<b>[0]"
+actor "client-03\n10.10.0.12" as X
+participant "Pont L2 (VLAN)" as SW
+participant "C3 Suricata" as S
+participant "C1 pf" as PF
+database "PostgreSQL\n10.10.0.70" as DB
+participant "C9 Collecte" as L
+
+== État A : LAN plat (10.10.0.0/24) ==
+X -> SW : ARP + SYN vers 10.10.0.70:5432
+SW -> DB : livraison directe (même domaine L2)
+DB --> X : SYN/ACK, connexion établie
+note right of PF : Le pare-feu ne voit jamais ce flux :\naucun log, aucune alerte possible.
+
+== État B : LAN-USERS (/26) et LAN-DB (/27) séparés ==
+X -> S : SYN vers 10.10.0.70:5432 via passerelle 10.10.0.1
+S -> S : inspection (si IPS actif sur le trunk)
+S -> PF : paquet transmis
+PF -> PF : aucune règle LAN-USERS -> LAN-DB\n(seule DMZ-APP -> LAN-DB:5432 existe)
+PF -> L : filterlog (block, 10.10.0.12 -> 10.10.0.70:5432)
+X -> X : délai expiré, connexion impossible
+@enduml

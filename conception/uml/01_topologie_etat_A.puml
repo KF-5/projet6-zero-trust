@@ -1,0 +1,40 @@
+@startuml 01_topologie_etat_A
+title Topologie de l'état A : pare-feu périmétrique, 3 zones
+nwdiag {
+  network wan {
+    address = "203.0.113.0/24"
+    description = "WAN simulé (Internet)"
+    color = "#FBEBEB"
+    kali [address = "203.0.113.66", description = "Kali\n(attaquant externe)"];
+    clientext [address = "203.0.113.10", description = "Client externe\nlégitime"];
+    opnsense [address = "203.0.113.1", description = "OPNsense\n(pf stateful)"];
+  }
+  network dmz {
+    address = "10.20.0.0/24 (VLAN 20)"
+    description = "DMZ (zone plate)"
+    color = "#F9EEDA"
+    opnsense [address = "10.20.0.1"];
+    nginx [address = "10.20.0.10", description = "nginx\n(reverse proxy)"];
+    pivot [address = "10.20.0.20", description = "dmz-pivot\n(hôte compromis simulé)"];
+    bind9 [address = "10.20.0.40", description = "bind9\n(DNS)"];
+    api [address = "10.20.0.70", description = "API Flask"];
+  }
+  network lan {
+    address = "10.10.0.0/24 (VLAN 10)"
+    description = "LAN (zone plate)"
+    color = "#E5F4E4"
+    opnsense [address = "10.10.0.1"];
+    client01 [address = "10.10.0.10", description = "client-01"];
+    client03 [address = "10.10.0.12", description = "client-03\n(poste compromis simulé)"];
+    db [address = "10.10.0.70", description = "PostgreSQL"];
+    admin [address = "10.10.0.100", description = "poste admin"];
+  }
+  network mgmt {
+    address = "10.99.0.0/24"
+    description = "MGMT (instrumentation · hors périmètre évalué)"
+    color = "#EFEDFF"
+    opnsense [address = "10.99.0.1"];
+    collecteur [address = "10.99.0.10", description = "Collecteur\n(logs · orchestration · analyse)"];
+  }
+}
+@enduml

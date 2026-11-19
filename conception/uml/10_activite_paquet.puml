@@ -1,0 +1,37 @@
+@startuml 10_activite_paquet
+!include style.iuml
+title Traitement d'un paquet entrant sur une interface protégée (état B)
+start
+:Réception sur la carte (vtnet0 ou vtnet1);
+partition "C3 Suricata (netmap, avant la pile IP)" {
+  :Décodage (Ethernet, VLAN, IP, TCP/UDP)\net rattachement au flux (5-uplet);
+  :Réassemblage TCP, analyse applicative (HTTP, DNS);
+  :Pré-filtre multi-motifs puis évaluation\ncomplète des signatures candidates;
+  if (Signature ou seuil déclenché ?) then (oui)
+    :Écrire l'alerte EVE JSON;
+    if (Règle en action drop ?) then (oui)
+      #FBEBEB:DROP (paquet non réinjecté);
+      stop
+    endif
+  endif
+  :Réinjecter le paquet vers la pile IP;
+}
+partition "C1 pf (OPNsense)" {
+  if (Entrée dans la table d'états ?) then (oui)
+    :Passer sans réévaluer les règles;
+  else (non)
+    :Évaluer les règles de l'interface\n(première correspondance);
+    if (Règle pass trouvée ?) then (oui)
+      :Appliquer NAT si besoin,\ncréer l'état;
+    else (non : défaut deny)
+      #FBEBEB:BLOCK;
+      :filterlog -> C9;
+      stop
+    endif
+  endif
+  :Routage vers l'interface VLAN de destination;
+}
+:Copie éventuelle vers C10 (capture);
+:Livraison au segment de destination;
+stop
+@enduml

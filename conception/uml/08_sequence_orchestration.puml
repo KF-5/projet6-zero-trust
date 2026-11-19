@@ -1,0 +1,30 @@
+@startuml 08_sequence_orchestration
+!include style.iuml
+title Orchestration d'une campagne (même procédure en état A et en état B)
+autonumber "<b>[0]"
+participant "C6 Orchestrateur" as O
+participant "C8 Trafic légitime\n+ sonde SLA" as T
+participant "C10 Capture" as P
+participant "C7 Attaquant" as K
+participant "C9 Collecte" as L
+participant "C11 Corrélation" as C
+
+O -> O : charger scenarios.yaml, état (A|B), N
+O -> T : démarrer (HTTPS 1 req/s, DNS toutes les 5 s)
+loop pour chaque scénario s, ordre aléatoire
+  loop i = 1..N
+    O -> P : démarrer tcpdump (fichier run_id.pcap)
+    O -> O : t0 = horloge NTP du collecteur
+    O -> K : exécuter commande(s) par SSH (MGMT)
+    K --> O : code retour, sortie
+    O -> O : t1 = horloge
+    O -> C : ajouter (run_id, s, i, état, t0, t1, src, cible)
+    O -> P : arrêter capture
+    O -> O : réinitialiser : pfctl -k <attaquant> (états pf),\nlevée des blocages Suricata, pause 30 s
+  end
+end
+O -> T : arrêter
+T -> C : sla.csv
+L -> C : events.csv
+O -> C : lancer l'analyse
+@enduml

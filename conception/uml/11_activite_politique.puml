@@ -1,0 +1,36 @@
+@startuml 11_activite_politique
+!include style.iuml
+title C2 Moteur de politique : de la matrice de flux aux règles et au plan de test
+start
+:Lire flows.csv (id, src, dst, proto, port, justification, état A|B);
+:Lire segments.csv (nom, sous-réseau, VLAN)\net hosts.csv (hôte -> segment);
+partition "Validation" {
+  if (Chaque flux a une justification\net des segments connus ?) then (non)
+    #FBEBEB:Erreur : flux refusé;
+    stop
+  endif
+  if (Deux flux se recouvrent ou un flux\nvaut "any" (hors F99) ?) then (oui)
+    :Avertissement à corriger\n(moindre privilège);
+  endif
+}
+partition "Génération des règles" {
+  :Grouper les flux par interface d'entrée (segment source);
+  :Trier du plus spécifique au plus général;
+  :Émettre une règle pass journalisée\npar flux autorisé (F99 exclu);
+  :Ajouter en dernière position "block any, log";
+}
+partition "Génération du plan de test" {
+  :Pour chaque flux autorisé : un test "doit passer";
+  :Pour chaque couple de segments sans flux :\nun test "doit être bloqué" (port représentatif);
+:Pour chaque flux autorisé : un test "mauvais port"\n"doit être bloqué" (ex. API -> BD:22);
+  :Écrire tests.csv;
+}
+:Appliquer les règles (API OPNsense ou saisie guidée);
+:test_flux : exécuter tests.csv depuis les conteneurs;
+if (Tous les tests conformes ?) then (oui)
+  :Exporter config.xml et marquer la version (Git);
+else (non)
+  :Rapport des écarts -> correction;
+endif
+stop
+@enduml

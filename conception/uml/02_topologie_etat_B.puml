@@ -1,0 +1,64 @@
+@startuml 02_topologie_etat_B
+title Topologie de l'état B : micro-segmentation + IDS/IPS (mêmes adresses d'hôtes qu'en A)
+nwdiag {
+  network wan {
+    address = "203.0.113.0/24"
+    description = "WAN simulé"
+    color = "#FBEBEB"
+    kali [address = "203.0.113.66", description = "Kali"];
+    clientext [address = "203.0.113.10", description = "Client externe"];
+    opnsense [address = "203.0.113.1", description = "OPNsense\npf + Suricata IPS"];
+  }
+  network dmz_web {
+    address = "10.20.0.0/27 (VLAN 21)"
+    description = "DMZ-WEB"
+    color = "#F9EEDA"
+    opnsense [address = "10.20.0.1"];
+    nginx [address = "10.20.0.10", description = "nginx"];
+    pivot [address = "10.20.0.20", description = "dmz-pivot"];
+  }
+  network dmz_dns {
+    address = "10.20.0.32/27 (VLAN 22)"
+    description = "DMZ-DNS"
+    color = "#F9EEDA"
+    opnsense [address = "10.20.0.33"];
+    bind9 [address = "10.20.0.40", description = "bind9"];
+  }
+  network dmz_app {
+    address = "10.20.0.64/27 (VLAN 23)"
+    description = "DMZ-APP"
+    color = "#F9EEDA"
+    opnsense [address = "10.20.0.65"];
+    api [address = "10.20.0.70", description = "API Flask"];
+  }
+  network lan_users {
+    address = "10.10.0.0/26 (VLAN 11)"
+    description = "LAN-USERS"
+    color = "#E5F4E4"
+    opnsense [address = "10.10.0.1"];
+    client01 [address = "10.10.0.10", description = "client-01"];
+    client03 [address = "10.10.0.12", description = "client-03"];
+  }
+  network lan_db {
+    address = "10.10.0.64/27 (VLAN 12)"
+    description = "LAN-DB"
+    color = "#E5F4E4"
+    opnsense [address = "10.10.0.65"];
+    db [address = "10.10.0.70", description = "PostgreSQL"];
+  }
+  network lan_admin {
+    address = "10.10.0.96/27 (VLAN 13)"
+    description = "LAN-ADMIN"
+    color = "#E5F4E4"
+    opnsense [address = "10.10.0.97"];
+    admin [address = "10.10.0.100", description = "poste admin"];
+  }
+  network mgmt {
+    address = "10.99.0.0/24"
+    description = "MGMT"
+    color = "#EFEDFF"
+    opnsense [address = "10.99.0.1"];
+    collecteur [address = "10.99.0.10", description = "Collecteur"];
+  }
+}
+@enduml

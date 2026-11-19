@@ -1,0 +1,22 @@
+@startuml 13_activite_correlation
+!include style.iuml
+title C11 Corrélation : de la vérité terrain aux indicateurs
+start
+:Charger runs.csv, events.csv, sla.csv\n(horloges synchronisées par NTP sur le collecteur);
+:Normaliser les horodatages (UTC, ms);
+partition "Pour chaque exécution r = (scénario, état, t0, t1, src, cible)" {
+  :Fenêtre W = [t0, t1 + 10 s];
+  :A_r = alertes Suricata dans W dont src ou dst\ncorrespond à l'attaquant ou à la cible;
+  :B_r = blocages (drop IPS ou block pf) dans W;
+  :detecte(r) = |A_r| > 0 ;\nTTD(r) = min(ts(A_r)) - t0;
+  :bloque(r) = l'objectif du scénario n'est pas atteint\n(sortie de l'outil + PCAP pris dans\nl'espace réseau du conteneur cible);
+}
+partition "Hors fenêtres d'attaque" {
+  :FP = alertes hors de toute fenêtre d'attaque\n(par heure de trafic légitime, par sid);
+  :Disponibilité = réponses OK / requêtes de la sonde;
+  :Latence = médiane et p95 du temps de réponse HTTPS ;\ndébit iperf3 (A, B sans IPS, B avec IPS);
+}
+:Agréger par scénario et par état :\ntaux de détection, taux de blocage, TTD médian;
+:Tableaux et graphiques A vs B (PNG + CSV);
+stop
+@enduml

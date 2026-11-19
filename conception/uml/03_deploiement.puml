@@ -1,0 +1,29 @@
+@startuml 03_deploiement
+title Déploiement sur l'hôte Proxmox VE (16 Go RAM min.) : 4 VM, 3 ponts virtuels, composants hébergés
+nwdiag {
+  network vmbr1 {
+    address = "203.0.113.0/24"
+    description = "vmbr1 · WAN simulé"
+    color = "#FBEBEB"
+    kali [description = "VM Kali · 2 vCPU · 2 Go\nC7 attaques (nmap · hping3 · nikto)"];
+    opnsense [description = "VM OPNsense · 2 vCPU · 4 Go\nC3 Suricata IPS (netmap)\nC1 pf stateful\nC4 jeu de règles"];
+    docker [description = "VM Hôte Docker · 2 vCPU · 3 Go\nC5 nginx · bind9 · API · PostgreSQL\nC8 client-ext (WAN) · clients LAN\nC7 client-03 · dmz-pivot\nC10 tcpdump (netns des conteneurs)"];
+  }
+  network vmbr2 {
+    address = "802.1Q : VLAN 10+20 (A) · 11-13 + 21-23 (B)"
+    description = "vmbr2 · trunk interne"
+    color = "#E5F4E4"
+    opnsense;
+    docker;
+  }
+  network vmbr9 {
+    address = "10.99.0.0/24"
+    description = "vmbr9 · MGMT (filtré : SSH, syslog, NTP depuis/vers le collecteur)"
+    color = "#EFEDFF"
+    opnsense;
+    kali;
+    docker;
+    collecteur [description = "VM Collecteur · 1 vCPU · 2 Go\nC2 politique · C6 orchestrateur\nC9 rsyslog · C11 corrélation"];
+  }
+}
+@enduml

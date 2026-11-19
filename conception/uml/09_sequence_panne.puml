@@ -1,0 +1,39 @@
+@startuml 09_sequence_panne
+!include style.iuml
+title Scénario de panne : arrêt de Suricata pendant un SYN flood (S-02, état B)
+autonumber "<b>[0]"
+actor "C7 Kali" as K
+participant "C3 Suricata" as S
+participant "C1 pf" as PF
+participant "nginx" as N
+participant "C8 Sonde SLA" as T
+participant "C11 Corrélation" as C
+
+K -> S : hping3 -S --flood -p 443 (60 s)
+S -> S : seuil SYN flood dépassé : drop
+T -> N : requêtes légitimes 1/s (client-ext, autre VM)
+N --> T : 200 OK (disponibilité mesurée)
+== Injection de la panne à t_p ==
+note over S : service suricata stop (ou kill -9)
+S -[#C0392B]x S : moteur arrêté
+alt Hypothèse 1 : le trafic continue sans inspection
+  K -> PF : flood transmis
+  PF -> N : SYN (règle F01)
+  T -> N : requêtes légitimes
+  N --> T : réponses ralenties ou perdues
+else Hypothèse 2 : l'interface netmap ne transmet plus rien
+  K -> S : flood perdu
+  T -> S : requêtes perdues : disponibilité 0 %
+end
+== Redémarrage de Suricata à t0 + 40 s (flood toujours actif) ==
+S -> S : rechargement des règles
+S -> S : seuil SYN flood : drop de nouveau
+T -> N : requêtes légitimes
+N --> T : temps de reprise mesuré
+note over C
+Le comportement réel n'est pas supposé : il est mesuré
+(disponibilité, latence, alertes avant / pendant / après la panne)
+puis comparé au temps de reprise après redémarrage.
+end note
+T -> C : sla.csv
+@enduml

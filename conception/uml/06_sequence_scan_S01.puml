@@ -1,0 +1,37 @@
+@startuml 06_sequence_scan_S01
+!include style.iuml
+title Scénario S-01 : scan SYN depuis le WAN (état B, Suricata avant pf sur l'interface WAN)
+autonumber "<b>[0]"
+participant "C6 Orchestrateur" as O
+actor "C7 Kali\n203.0.113.66" as K
+participant "C3 Suricata" as S
+participant "C1 pf" as PF
+participant "nginx" as N
+participant "C9 Collecte" as L
+participant "C11 Corrélation" as C
+
+O -> O : t0 = horloge
+O -> K : nmap -sS -p 1-1024 203.0.113.1
+loop pour chaque port sondé
+  K -> S : SYN
+  S -> S : seuil local (threshold by_src) :\n> 20 SYN en 5 s depuis la même source ?
+  alt seuil dépassé
+    S -> L : alerte EVE (sid 9000001, scan SYN)
+  end
+  alt règle en action drop (IPS) et seuil dépassé
+    S -> S : drop + blocage temporaire de la source (rate_filter)
+  else IDS seul, ou seuil non atteint
+    S -> PF : paquet transmis
+    alt port publié (80, 443, 53)
+      PF -> N : SYN (règle F01)
+      N --> K : SYN/ACK
+    else autre port
+      PF -> PF : défaut deny
+      PF -> L : filterlog (block)
+    end
+  end
+end
+O -> C : runs.csv : (run_id, S-01, t0, t1, src, cible)
+L -> C : events.csv
+C -> C : détecté = alerte dans [t0, t1 + 10 s]\nTTD = t_première_alerte - t0
+@enduml

@@ -1,0 +1,44 @@
+@startuml 05_sequence_nominale_B
+!include style.iuml
+title Séquence nominale (état B) : un client externe consulte l'application
+autonumber "<b>[0]"
+actor "Client externe\n203.0.113.10" as U
+box "OPNsense" #F7F9FC
+participant "C3 Suricata\n(IPS)" as S
+participant "C1 pf" as PF
+end box
+participant "nginx\n10.20.0.10" as N
+participant "API Flask\n10.20.0.70" as A
+database "PostgreSQL\n10.10.0.70" as DB
+participant "C9 Collecte" as L
+
+U -> S : SYN vers 203.0.113.1:443
+S -> S : décodage, suivi de flux,\naucune signature
+S -> PF : paquet transmis
+PF -> PF : pas d'état existant\nrègle F01 (WAN -> nginx:443) : pass\nNAT de destination, création d'état
+PF -> S : sortie sur vtnet1 (trunk)
+S -> S : 2e inspection (adresses internes, après NAT)
+S -> N : SYN vers 10.20.0.10:443
+N --> U : poignée de main TLS (états suivants : table d'états)
+U -> N : GET /api/produits
+N -> S : HTTP clair vers 10.20.0.70:5000 (entrée vtnet1)
+S -> S : signatures web (injection SQL...)
+S -> PF : paquet transmis
+PF -> PF : règle F03 (DMZ-WEB -> DMZ-APP:5000) : pass
+PF -> S : sortie vtnet1
+S -> A : requête proxifiée
+A -> S : TCP 10.10.0.70:5432 (entrée vtnet1)
+S -> PF : paquet transmis
+PF -> PF : règle F04 (DMZ-APP -> LAN-DB:5432) : pass
+PF -> S : sortie vtnet1
+S -> DB : SELECT ...
+DB --> A : lignes
+A --> N : JSON
+N --> U : 200 OK
+PF -> L : filterlog (pass, si journalisé)
+N -> L : access.log
+note over PF
+Chaque saut entre deux segments repasse par les points d'application
+(Suricata puis pf) : aucun flux implicite entre segments.
+end note
+@enduml

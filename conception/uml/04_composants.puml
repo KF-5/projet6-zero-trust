@@ -1,0 +1,46 @@
+@startuml 04_composants
+!include style.iuml
+title Composants (C1 à C11) et interactions, rattachés aux rôles Zero Trust (NIST SP 800-207)
+left to right direction
+
+package "Plan de contrôle (Policy Engine / Policy Administrator)" {
+  [C2 Moteur de politique\nflows.csv -> règles + plan de test] as C2
+  [C4 Gestionnaire de règles IDS\nET Open + locales + réglage] as C4
+}
+package "Plan de données (Policy Enforcement Points)" {
+  [C3 Moteur IDS/IPS\nSuricata] as C3
+  [C1 Pare-feu stateful\nOPNsense pf] as C1
+}
+package "Ressources protégées" {
+  [C5 Services applicatifs\nnginx · bind9 · API · PostgreSQL] as C5
+}
+package "Plan d'expérimentation" {
+  [C6 Orchestrateur\nde campagnes] as C6
+  [C7 Générateur\nd'attaques] as C7
+  [C8 Trafic légitime\n+ sonde SLA] as C8
+}
+package "Plan d'observabilité (sources de données ZT)" {
+  [C9 Collecte et\nnormalisation des logs] as C9
+  [C10 Capture\net forensique] as C10
+  [C11 Corrélation\net métriques] as C11
+}
+
+C2 --> C1 : règles pass/block\n(API ou saisie)
+C4 --> C3 : suricata.rules\n(alert / drop)
+C7 ..> C3 : trafic d'attaque
+C8 ..> C3 : trafic légitime
+C3 --> C1 : paquets non rejetés
+C1 --> C5 : paquets autorisés
+C6 --> C7 : lancer scénario i
+C6 --> C8 : démarrer / arrêter
+C6 --> C10 : démarrer / arrêter capture
+C6 --> C11 : vérité terrain (runs.csv)
+C1 --> C9 : filterlog (syslog)
+C3 --> C9 : alertes EVE JSON
+C5 --> C9 : journaux d'accès
+C8 --> C11 : sla.csv
+C9 --> C11 : events.csv normalisés
+C10 --> C11 : PCAP / résumés
+C2 --> C6 : plan de test (tests.csv)
+C11 --> C4 : faux positifs par règle
+@enduml

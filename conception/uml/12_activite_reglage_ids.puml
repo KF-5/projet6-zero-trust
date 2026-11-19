@@ -1,0 +1,26 @@
+@startuml 12_activite_reglage_ids
+!include style.iuml
+title C4 Réglage des règles : passage contrôlé de l'IDS à l'IPS
+start
+:Activer ET Open + règles locales (sid 9000001-9000099)\nen action alert;
+:Rejouer 2 h de trafic légitime seul (C8);
+repeat
+  :Compter les alertes par sid (= faux positifs);
+  if (sid avec > 0 faux positif ?) then (oui)
+    :Ajuster seuil, restreindre la portée\n(variables HOME_NET/réseaux) ou suppress;
+  endif
+  :Rejouer trafic légitime + scénarios S-01 à S-06;
+  :Mesurer détection et faux positifs;
+repeat while (faux positifs > 1 / heure ?) is (oui)
+->non;
+:Familles validées (scan, flood, web, fragmentation)\npassées en action drop;
+:Autres règles laissées en alert;
+:Vérifier disponibilité >= 99 % et latence ajoutée;
+if (Critères atteints ?) then (oui)
+  :Figer le jeu de règles (hash + Git);
+  stop
+else (non)
+  :Remettre en alert les règles fautives;
+  stop
+endif
+@enduml

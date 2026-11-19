@@ -1,0 +1,9 @@
+# Les scripts tournent sous Linux : fins de ligne LF, même si le dépôt est cloné sous Windows
+*.sh   text eol=lf
+*.py   text eol=lf
+*.nft  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.csv  text eol=lf
+*.rules text eol=lf
+*.ps1  text eol=crlf

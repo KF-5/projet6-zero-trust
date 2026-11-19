@@ -1,0 +1,10 @@
+# Captures trop lourdes : archivées à part (zip daté)
+resultats/**/pcap/
+*.pcap
+*.pyc
+__pycache__/
+.venv/
+# Secrets : jamais versionnés (modèle .env.exemple versionné)
+.env
+*.key
+utilisateurs.json
