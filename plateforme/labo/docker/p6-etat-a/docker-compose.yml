@@ -1,0 +1,159 @@
+# Projet 6 - Zero Trust - Etat A (pare-feu perimetrique)
+# Hote Docker : VM p6-docker (Debian 13)
+#   ens33 = p6-trunk (VLAN 10 et 20, sous-interfaces creees par Docker)
+#   ens34 = p6-wan   (WAN simule 203.0.113.0/24)
+# Chaque conteneur a une adresse fixe et pour passerelle OPNsense.
+# Plan d'adressage : rapport, section 4.1.
+
+name: p6
+
+networks:
+  dmz:                       # DMZ - VLAN 20
+    driver: macvlan
+    driver_opts:
+      parent: ens33.20
+    ipam:
+      config:
+        - subnet: 10.20.0.0/24
+          gateway: 10.20.0.1
+  lan:                       # LAN - VLAN 10
+    driver: macvlan
+    driver_opts:
+      parent: ens33.10
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24
+          gateway: 10.10.0.1
+  wan:                       # WAN simule (pas de VLAN)
+    driver: macvlan
+    driver_opts:
+      parent: ens34
+    ipam:
+      config:
+        - subnet: 203.0.113.0/24
+          gateway: 203.0.113.1
+
+x-outils: &outils
+  build: ./outils
+  image: p6/outils:1
+  command: ["sleep", "infinity"]
+  restart: unless-stopped
+  cap_add: [NET_ADMIN, NET_RAW]   # tcpdump, ping, nmap simples
+
+services:
+
+  # ---------------- DMZ (10.20.0.0/24) ----------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    hostname: nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+    networks:
+      dmz:
+        ipv4_address: 10.20.0.10
+    depends_on: [api]
+
+  iperf3:                    # FA6 : partage la pile reseau de nginx (10.20.0.10:5201)
+    image: p6/outils:1       # construite par le service client-01 (setup.sh fait le build avant)
+    pull_policy: never
+    container_name: iperf3
+    restart: unless-stopped
+    command: ["iperf3", "-s"]
+    network_mode: "service:nginx"
+    depends_on: [nginx]
+
+  dmz-pivot:                 # hote DMZ suppose compromis (S-04)
+    <<: *outils
+    container_name: dmz-pivot
+    hostname: dmz-pivot
+    networks:
+      dmz:
+        ipv4_address: 10.20.0.20
+
+  bind9:
+    image: internetsystemsconsortium/bind9:9.20
+    container_name: bind9
+    hostname: bind9
+    restart: unless-stopped
+    volumes:
+      - ./bind/named.conf:/etc/bind/named.conf:ro
+      - ./bind/db.p6.lab:/etc/bind/db.p6.lab:ro
+    networks:
+      dmz:
+        ipv4_address: 10.20.0.40
+
+  api:
+    build: ./api
+    image: p6/api:1
+    container_name: api
+    hostname: api
+    restart: unless-stopped
+    environment:
+      DB_HOST: 10.10.0.70
+      DB_NAME: catalogue
+      DB_USER: api_catalogue
+      DB_PASSWORD: ${API_DB_PASSWORD:?lancer setup.sh}
+    networks:
+      dmz:
+        ipv4_address: 10.20.0.70
+
+  # ---------------- LAN (10.10.0.0/24) ----------------
+  client-01:                 # utilisateur legitime
+    <<: *outils
+    container_name: client-01
+    hostname: client-01
+    networks:
+      lan:
+        ipv4_address: 10.10.0.10
+
+  client-03:                 # poste suppose compromis (S-05)
+    <<: *outils
+    container_name: client-03
+    hostname: client-03
+    networks:
+      lan:
+        ipv4_address: 10.10.0.12
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    hostname: postgres
+    restart: unless-stopped
+    command: ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf", "-c", "log_connections=on"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?lancer setup.sh}
+      POSTGRES_DB: catalogue
+      API_DB_PASSWORD: ${API_DB_PASSWORD}
+    volumes:
+      - ./db/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./db/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/02-donnees.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
+      - ./db/03-role-api.sh:/docker-entrypoint-initdb.d/03-role-api.sh:ro
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      lan:
+        ipv4_address: 10.10.0.70
+
+  admin:                     # poste d'administration
+    <<: *outils
+    container_name: admin
+    hostname: admin
+    networks:
+      lan:
+        ipv4_address: 10.10.0.100
+
+  # ---------------- WAN simule (203.0.113.0/24) ----------------
+  client-ext:                # client externe legitime + sonde SLA (C8)
+    <<: *outils
+    container_name: client-ext
+    hostname: client-ext
+    networks:
+      wan:
+        ipv4_address: 203.0.113.10
+
+volumes:
+  pgdata:
