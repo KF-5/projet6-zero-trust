@@ -1,0 +1,10 @@
+@* Décodeur octet par octet (DecodeurPaquet, en C#) : vue hexadécimale à gauche, champs nommés à droite.
+   Survoler (ou parcourir au clavier) un champ met ses octets en valeur, et inversement. *@
+<details class="decodeur" id="decodeur" hidden>
+    <summary><span id="decodeur-titre">Trame octet par octet</span></summary>
+    <div class="decodeur-corps">
+        <div class="decodeur-hexa" id="decodeur-hexa" role="grid" aria-label="Octets de la trame en hexadécimal"></div>
+        <div class="decodeur-champs" id="decodeur-champs"></div>
+    </div>
+    <p class="decodeur-note">Valeurs en <em>italique</em> : exemples (adresses MAC, port source, numéros de séquence). Sommes de contrôle réellement calculées.</p>
+</details>

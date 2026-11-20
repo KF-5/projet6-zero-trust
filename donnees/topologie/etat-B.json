@@ -1,0 +1,120 @@
+{
+  "_lisez_moi": "État B prévu (pas encore construit : rôle 2 étapes 8 et 9, rôle 4 étape 8, 22–24 nov.). Les machines sont décrites dans etat-A.json : ce fichier ne donne que leurs cartes de l'état B (mêmes adresses, masque, VLAN et passerelle changés, section 5.1). Règles : sortie de politique/c2.py --etat B sur les fichiers de la page Contrats (regles-B.md), plus MGMT et les filtres des VM inchangés. Les redirections de l'état A sont gardées telles quelles (« Pass ») ; F01 et F02 de regles-B.md sont présentes mais désactivées (Q15, E43). Câbles : les conteneurs gardent leur place, chacun relié par son VLAN de l'état B (jalon 6).",
+  "etat": "B",
+  "libelle": "État B · Zero Trust (microsegmentation)",
+  "description": "Six segments (VLAN 11, 12, 13, 21, 22, 23) : chaque flux autorisé est une ligne justifiée de flows.csv (F01 à F09), tout le reste est refusé et journalisé (F99). Les adresses ne changent pas ; seuls le masque, la passerelle et le VLAN changent.",
+  "noeuds": [
+    {
+      "id": "opnsense",
+      "interfaces": [
+        { "nom": "vlan0.21", "description": "DMZ-WEB (VLAN 21 sur em1, nom à vérifier : Q9)", "affectation": "DMZ-WEB", "vlan": 21, "reseauCode": "dmz-web", "adresse": { "adresse": "10.20.0.1", "prefixe": 27 }, "etatReseauCode": "B" },
+        { "nom": "vlan0.22", "description": "DMZ-DNS (VLAN 22 sur em1, nom à vérifier : Q9)", "affectation": "DMZ-DNS", "vlan": 22, "reseauCode": "dmz-dns", "adresse": { "adresse": "10.20.0.33", "prefixe": 27 }, "etatReseauCode": "B" },
+        { "nom": "vlan0.23", "description": "DMZ-APP (VLAN 23 sur em1, nom à vérifier : Q9)", "affectation": "DMZ-APP", "vlan": 23, "reseauCode": "dmz-app", "adresse": { "adresse": "10.20.0.65", "prefixe": 27 }, "etatReseauCode": "B" },
+        { "nom": "vlan0.11", "description": "LAN-USERS (VLAN 11 sur em1, nom à vérifier : Q9)", "affectation": "LAN-USERS", "vlan": 11, "reseauCode": "lan-users", "adresse": { "adresse": "10.10.0.1", "prefixe": 26 }, "etatReseauCode": "B" },
+        { "nom": "vlan0.12", "description": "LAN-DB (VLAN 12 sur em1, nom à vérifier : Q9)", "affectation": "LAN-DB", "vlan": 12, "reseauCode": "lan-db", "adresse": { "adresse": "10.10.0.65", "prefixe": 27 }, "etatReseauCode": "B" },
+        { "nom": "vlan0.13", "description": "LAN-ADMIN (VLAN 13 sur em1, nom à vérifier : Q9)", "affectation": "LAN-ADMIN", "vlan": 13, "reseauCode": "lan-admin", "adresse": { "adresse": "10.10.0.97", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "nginx",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "dmz-web", "adresse": { "adresse": "10.20.0.10", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "dmz-pivot",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "dmz-web", "adresse": { "adresse": "10.20.0.20", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "bind9",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "dmz-dns", "adresse": { "adresse": "10.20.0.40", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "api",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "dmz-app", "adresse": { "adresse": "10.20.0.70", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "client-01",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "lan-users", "adresse": { "adresse": "10.10.0.10", "prefixe": 26 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "client-03",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "lan-users", "adresse": { "adresse": "10.10.0.12", "prefixe": 26 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "postgres",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "lan-db", "adresse": { "adresse": "10.10.0.70", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    },
+    {
+      "id": "admin",
+      "interfaces": [
+        { "nom": "eth0", "reseauCode": "lan-admin", "adresse": { "adresse": "10.10.0.100", "prefixe": 27 }, "etatReseauCode": "B" }
+      ]
+    }
+  ],
+  "reseaux": [
+    { "code": "dmz-web", "nom": "DMZ-WEB · VLAN 21", "zone": "Dmz", "vlan": 21, "prefixe": { "adresse": "10.20.0.0", "prefixe": 27 }, "passerelle": "10.20.0.1", "etatReseauCode": "B", "cadreX": 545, "cadreY": 48, "cadreLargeur": 210, "cadreHauteur": 200 },
+    { "code": "dmz-dns", "nom": "DMZ-DNS · VLAN 22", "zone": "Dmz", "vlan": 22, "prefixe": { "adresse": "10.20.0.32", "prefixe": 27 }, "passerelle": "10.20.0.33", "etatReseauCode": "B", "cadreX": 760, "cadreY": 48, "cadreLargeur": 110, "cadreHauteur": 200 },
+    { "code": "dmz-app", "nom": "DMZ-APP · VLAN 23", "zone": "Dmz", "vlan": 23, "prefixe": { "adresse": "10.20.0.64", "prefixe": 27 }, "passerelle": "10.20.0.65", "etatReseauCode": "B", "cadreX": 875, "cadreY": 48, "cadreLargeur": 110, "cadreHauteur": 200 },
+    { "code": "lan-users", "nom": "LAN-USERS · VLAN 11", "zone": "Lan", "vlan": 11, "prefixe": { "adresse": "10.10.0.0", "prefixe": 26 }, "passerelle": "10.10.0.1", "etatReseauCode": "B", "cadreX": 545, "cadreY": 284, "cadreLargeur": 210, "cadreHauteur": 200 },
+    { "code": "lan-db", "nom": "LAN-DB · VLAN 12", "zone": "Lan", "vlan": 12, "prefixe": { "adresse": "10.10.0.64", "prefixe": 27 }, "passerelle": "10.10.0.65", "etatReseauCode": "B", "cadreX": 760, "cadreY": 284, "cadreLargeur": 110, "cadreHauteur": 200 },
+    { "code": "lan-admin", "nom": "LAN-ADMIN · VLAN 13", "zone": "Lan", "vlan": 13, "prefixe": { "adresse": "10.10.0.96", "prefixe": 27 }, "passerelle": "10.10.0.97", "etatReseauCode": "B", "cadreX": 875, "cadreY": 284, "cadreLargeur": 110, "cadreHauteur": 200 }
+  ],
+  "liens": [
+    { "id": "nginx-vlan21", "de": "nginx", "vers": "opnsense", "zone": "Dmz", "etatReseauCode": "B", "libelle": "VLAN 21", "points": [[597,161],[597,208],[530,208]] },
+    { "id": "dmz-pivot-vlan21", "de": "dmz-pivot", "vers": "opnsense", "zone": "Dmz", "etatReseauCode": "B", "libelle": "VLAN 21", "points": [[703,161],[703,208],[530,208]] },
+    { "id": "bind9-vlan22", "de": "bind9", "vers": "opnsense", "zone": "Dmz", "etatReseauCode": "B", "libelle": "VLAN 22", "points": [[815,161],[815,208],[530,208]] },
+    { "id": "api-vlan23", "de": "api", "vers": "opnsense", "zone": "Dmz", "etatReseauCode": "B", "libelle": "VLAN 23", "points": [[925,161],[925,208],[530,208]] },
+    { "id": "client-01-vlan11", "de": "client-01", "vers": "opnsense", "zone": "Lan", "etatReseauCode": "B", "libelle": "VLAN 11", "points": [[597,396],[597,430],[530,430]] },
+    { "id": "client-03-vlan11", "de": "client-03", "vers": "opnsense", "zone": "Lan", "etatReseauCode": "B", "libelle": "VLAN 11", "points": [[703,396],[703,430],[530,430]] },
+    { "id": "postgres-vlan12", "de": "postgres", "vers": "opnsense", "zone": "Lan", "etatReseauCode": "B", "libelle": "VLAN 12", "points": [[815,396],[815,430],[530,430]] },
+    { "id": "admin-vlan13", "de": "admin", "vers": "opnsense", "zone": "Lan", "etatReseauCode": "B", "libelle": "VLAN 13", "points": [[925,396],[925,430],[530,430]] }
+  ],
+  "regles": [
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F09", "interface": "WAN", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "203.0.113.10", "destination": "10.20.0.10", "ports": "5201", "active": false, "description": "Mesure iperf3 (activée seulement pendant les mesures)" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F01", "interface": "WAN", "ordre": 2, "action": "Pass", "proto": "tcp", "source": "any", "destination": "10.20.0.10", "ports": "80;443", "active": false, "description": "Site public : NON saisie (Q15, E43) ; la redirection F01 en « Pass » suffit, et cette règle laisserait joindre 10.20.0.10 sans traduction" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F02", "interface": "WAN", "ordre": 3, "action": "Pass", "proto": "tcp/udp", "source": "any", "destination": "10.20.0.40", "ports": "53", "active": false, "description": "Zone DNS publique : NON saisie (Q15, E43) ; la redirection F02 en « Pass » suffit" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "WAN", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F03", "interface": "DMZ-WEB", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.20.0.10", "destination": "10.20.0.70", "ports": "5000", "description": "Reverse proxy vers l'API" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "DMZ-WEB", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "DMZ-DNS", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F04", "interface": "DMZ-APP", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.20.0.70", "destination": "10.10.0.70", "ports": "5432", "description": "Seul accès autorisé à la base" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "DMZ-APP", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F05", "interface": "LAN-USERS", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.10.0.0/26", "destination": "10.20.0.10", "ports": "443", "description": "Application interne" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F06", "interface": "LAN-USERS", "ordre": 2, "action": "Pass", "proto": "udp", "source": "10.10.0.0/26", "destination": "10.20.0.40", "ports": "53", "description": "Résolution de noms" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "LAN-USERS", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "LAN-DB", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F07", "interface": "LAN-ADMIN", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.10.0.100", "destination": "10.20.0.10;10.20.0.40;10.20.0.70;10.10.0.70", "ports": "22", "description": "Administration SSH" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F08", "interface": "LAN-ADMIN", "ordre": 2, "action": "Pass", "proto": "tcp", "source": "10.10.0.100", "destination": "10.10.0.97", "ports": "443", "description": "Console du pare-feu" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "LAN-ADMIN", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "Admin du pare-feu", "interface": "MGMT", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.99.0.2;10.99.0.10", "destination": "self", "ports": "22;443", "description": "Alias ADMINS (Windows, collecteur) vers This Firewall, inchangé depuis l'état A (E37)" },
+    { "etatReseauCode": "B", "equipement": "opnsense", "code": "F99", "interface": "MGMT", "ordre": 99, "action": "Block", "proto": "any", "source": "any", "destination": "any", "ports": "any", "description": "Refus par défaut, journalisé (anti-lockout désactivée)" },
+    { "etatReseauCode": "B", "equipement": "docker", "code": "p6_ssh", "interface": "input", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.99.0.2;10.99.0.10", "destination": "any", "ports": "22", "description": "SSH seulement depuis Windows et le collecteur" },
+    { "etatReseauCode": "B", "equipement": "docker", "code": "p6_ssh", "interface": "input", "ordre": 2, "action": "Block", "proto": "tcp", "source": "any", "destination": "any", "ports": "22", "description": "Tout autre SSH : noté (p6-ssh-refuse) puis jeté" },
+    { "etatReseauCode": "B", "equipement": "collecteur", "code": "p6_ssh", "interface": "input", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.99.0.2;10.99.0.10", "destination": "any", "ports": "22", "description": "SSH seulement depuis Windows et le collecteur" },
+    { "etatReseauCode": "B", "equipement": "collecteur", "code": "p6_ssh", "interface": "input", "ordre": 2, "action": "Block", "proto": "tcp", "source": "any", "destination": "any", "ports": "22", "description": "Tout autre SSH : noté (p6-ssh-refuse) puis jeté" },
+    { "etatReseauCode": "B", "equipement": "collecteur", "code": "p6_syslog", "interface": "input", "ordre": 3, "action": "Pass", "proto": "udp", "source": "10.99.0.1;10.99.0.20", "destination": "any", "ports": "514", "active": false, "description": "Proposé (Q16, E44) : syslog seulement depuis OPNsense et p6-docker (restreindre-syslog.sh, pas encore lancé)" },
+    { "etatReseauCode": "B", "equipement": "collecteur", "code": "p6_syslog", "interface": "input", "ordre": 4, "action": "Block", "proto": "udp", "source": "any", "destination": "any", "ports": "514", "active": false, "description": "Proposé (Q16, E44) : tout autre syslog noté (p6-syslog-refuse) puis jeté" },
+    { "etatReseauCode": "B", "equipement": "kali", "code": "p6_ssh", "interface": "input", "ordre": 1, "action": "Pass", "proto": "tcp", "source": "10.99.0.2;10.99.0.10", "destination": "any", "ports": "22", "description": "SSH seulement depuis Windows et le collecteur" },
+    { "etatReseauCode": "B", "equipement": "kali", "code": "p6_ssh", "interface": "input", "ordre": 2, "action": "Block", "proto": "tcp", "source": "any", "destination": "any", "ports": "22", "description": "Tout autre SSH : noté (p6-ssh-refuse) puis jeté" },
+    { "etatReseauCode": "B", "equipement": "hote", "code": "P6 - bloquer le labo vers Windows", "interface": "entrant", "ordre": 1, "action": "Block", "proto": "any", "source": "10.99.0.0/24", "destination": "any", "ports": "any", "journal": false, "description": "Pare-feu Windows : tout ce qui vient du laboratoire est refusé (les réponses à ce que Windows ouvre passent)" }
+  ],
+  "reglesNat": [
+    { "etatReseauCode": "B", "code": "F01", "interface": "WAN", "proto": "tcp", "adressePublique": "203.0.113.1", "portPublic": "80", "cible": "10.20.0.10", "portCible": "80", "filtrage": "Pass", "description": "F01 web : redirections de l'état A conservées (Firewall rule = Pass, E36 ; voir Q15)" },
+    { "etatReseauCode": "B", "code": "F01", "interface": "WAN", "proto": "tcp", "adressePublique": "203.0.113.1", "portPublic": "443", "cible": "10.20.0.10", "portCible": "443", "filtrage": "Pass", "description": "F01 web : redirections de l'état A conservées (Firewall rule = Pass, E36 ; voir Q15)" },
+    { "etatReseauCode": "B", "code": "F02", "interface": "WAN", "proto": "tcp/udp", "adressePublique": "203.0.113.1", "portPublic": "53", "cible": "10.20.0.40", "portCible": "53", "filtrage": "Pass", "description": "F02 dns : redirection de l'état A conservée (Firewall rule = Pass, E36 ; voir Q15)" },
+    { "etatReseauCode": "B", "code": "F09", "interface": "WAN", "proto": "tcp", "adressePublique": "203.0.113.1", "portPublic": "5201", "cible": "10.20.0.10", "portCible": "5201", "sourceAutorisee": "203.0.113.10", "active": false, "filtrage": "Aucune", "description": "F09 iperf3, désactivée hors mesures" }
+  ]
+}

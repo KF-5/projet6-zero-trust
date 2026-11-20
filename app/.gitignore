@@ -1,0 +1,9 @@
+# Sorties de compilation et fichiers de Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+# Captures d'écran de preuve envoyées par l'équipe (stockées hors du dépôt)
+P6Explorer.Web/wwwroot/preuves/

@@ -1,0 +1,59 @@
+@model SimulationFormVM
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var protocoles = new[] { "Tcp", "Udp", "Icmp", "Http", "Https", "Dns", "Ssh", "PostgreSql", "Ntp", "Syslog", "Iperf3", "Smb", "Rdp" };
+}
+<div class="page-simulation">
+    <header>
+        <p class="surtitre">Mode « Et si ? » · état @Model.Etat</p>
+        <h1>Et si on envoyait ce paquet ?</h1>
+        <p class="chapeau">Choisis une machine, une adresse et un port : le moteur calcule le vrai chemin (VLAN, NAT, pare-feu) et te dit quelle règle décide.
+            Essaie <a href="?source=client-ext&destination=10.10.0.70&protocole=PostgreSql&port=5432">client-ext → PostgreSQL</a>,
+            puis la même chose en état B.</p>
+    </header>
+
+    <div class="disposition-simulation">
+        <form class="formulaire simulation-form" id="simulation-form" method="post" asp-action="Enregistrer"
+              data-jeton="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
+            <input type="hidden" asp-for="Etat" />
+            <div class="champ"><label asp-for="Source"></label>
+                <select asp-for="Source">@foreach (var s in Model.Sources) { <option value="@s.Valeur">@s.Libelle</option> }</select>
+            </div>
+            <div class="champ"><label asp-for="Destination"></label>
+                <input asp-for="Destination" list="destinations" inputmode="decimal" autocomplete="off" />
+                <datalist id="destinations">@foreach (var d in Model.Destinations) { <option value="@d.Valeur">@d.Libelle</option> }</datalist>
+                <span asp-validation-for="Destination" class="erreur-champ"></span>
+            </div>
+            <div class="champ-ligne">
+                <div class="champ"><label asp-for="Protocole"></label>
+                    <select asp-for="Protocole">@foreach (var p in protocoles) { <option value="@p">@p</option> }</select>
+                </div>
+                <div class="champ"><label asp-for="Port"></label><input asp-for="Port" type="number" min="1" max="65535" /></div>
+            </div>
+            <fieldset class="champ options">
+                <legend>Situations particulières</legend>
+                <label><input asp-for="Mesures" /> @Html.DisplayNameFor(m => m.Mesures)</label>
+                <label><input asp-for="SshOpnsense" /> @Html.DisplayNameFor(m => m.SshOpnsense)</label>
+                <label><input asp-for="DurcissementQ16" /> @Html.DisplayNameFor(m => m.DurcissementQ16)</label>
+            </fieldset>
+            <div class="boutons">
+                <button type="button" class="btn" id="simuler">Simuler</button>
+            </div>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="champ"><label asp-for="Titre"></label><input asp-for="Titre" placeholder="client-ext vers la base, état A" /></div>
+                <button type="submit" class="btn secondaire">Enregistrer dans l'historique</button>
+            }
+            <p class="note"><a asp-action="Historique">Historique des simulations</a> · <a asp-action="Demonstration">Démonstration</a></p>
+        </form>
+
+        <div class="lecteur mode-simulation" id="lecteur" data-mode="simulation" data-etat="@Model.Etat">
+            <partial name="_Schema" model="Model.Schema" />
+            <partial name="_PanneauExplication" />
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/lecteur.js" asp-append-version="true" defer></script>
+}

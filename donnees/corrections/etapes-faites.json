@@ -1,0 +1,144 @@
+{
+  "_lisez_moi": "Commandes réellement utilisées pour les étapes marquées « fait » (décision du 20 nov., docs/questions.md Q4). Lu par P6Explorer.Importeur. Une entrée remplace un bloc du guide (« bloc » = titre ou fichier du bloc) par des commandes ou par un fichier réel de plateforme/labo/, ou corrige une commande de test (« contient » = morceau du texte du guide). Les règles génériques (root@ → karim@, chemins /var/log/p6, p6.lab, p6/outils:1…) sont dans le code de l'importeur.",
+  "etapes": {
+    "r2-e2": [
+      {
+        "bloc": "System › Settings › Administration",
+        "texte": "Secure Shell : **désactivé**. L'administration passe par l'interface web (https://10.99.0.1 depuis Windows, ou https://127.0.0.1:8443 par le tunnel).",
+        "note": "Le SSH d'OPNsense sera réactivé sur MGMT, par clé seulement, pour l'orchestrateur du rôle 5 (question Q13)."
+      },
+      {
+        "bloc": "Firewall › Rules › MGMT",
+        "texte": "Une seule règle : « Admin du pare-feu » — pass, TCP, source alias `ADMINS` (10.99.0.2 Windows, 10.99.0.10 collecteur), destination « This Firewall », ports 22 et 443, **port source any**, journalisée. Les règles « Default allow LAN » de MGMT et l'anti-lockout sont désactivées.",
+        "note": "Écarts E34 et E37 : l'anti-lockout ouvrait la console web à tout MGMT, donc à Kali."
+      }
+    ],
+    "r4-e1": [
+      {
+        "bloc": "Dépôt officiel Docker pour Debian 13",
+        "commandes": [
+          "sudo apt-get update",
+          "sudo apt-get install -y docker.io docker-compose netcat-openbsd dnsutils tcpdump",
+          "sudo usermod -aG docker karim"
+        ],
+        "note": "Docker 26.1.5 et Compose 2.26.1 des paquets Debian, pas le dépôt officiel de Docker (écart E38)."
+      },
+      {
+        "bloc": "Images à télécharger pendant la même fenêtre",
+        "commandes": [
+          "docker pull postgres:17",
+          "docker pull nginx:1.27-alpine",
+          "docker pull python:3.12-slim",
+          "docker pull internetsystemsconsortium/bind9:9.20",
+          "docker pull debian:trixie-slim"
+        ],
+        "note": "Images de base réellement utilisées par ~/p6-etat-a/docker-compose.yml (carte NAT branchée le temps du téléchargement)."
+      },
+      {
+        "bloc": "services/outils/Dockerfile",
+        "fichierReel": "plateforme/labo/docker/p6-etat-a/outils/Dockerfile",
+        "chemin": "~/p6-etat-a/outils/Dockerfile",
+        "note": "Image commune des postes, étiquetée p6/outils:1."
+      },
+      {
+        "bloc": "Construire",
+        "commandes": [ "cd ~/p6-etat-a && docker compose build" ],
+        "note": "Construit p6/outils:1 et p6/api:1 (projet Compose « p6 », écart E38)."
+      }
+    ],
+    "r4-e2": [
+      {
+        "bloc": "services/reseaux-A.sh",
+        "fichierReel": "plateforme/labo/docker/p6-etat-a/docker-compose.yml",
+        "lignes": [ 8, 34 ],
+        "chemin": "~/p6-etat-a/docker-compose.yml (réseaux)",
+        "note": "Les réseaux macvlan sont déclarés dans docker-compose.yml (projet p6) : ils s'appellent p6_dmz, p6_lan et p6_wan (écart E38)."
+      }
+    ],
+    "r4-e3": [
+      { "bloc": "services/postgres/init.sh", "fichierReel": "plateforme/labo/docker/p6-etat-a/db/01-schema.sql", "chemin": "~/p6-etat-a/db/01-schema.sql", "note": "Schéma réel de la base « catalogue » (catégories, produits, utilisateurs, commandes)." },
+      { "bloc": "services/postgres/init.sh", "fichierReel": "plateforme/labo/docker/p6-etat-a/db/02-donnees.sql", "chemin": "~/p6-etat-a/db/02-donnees.sql", "note": "Données fictives du laboratoire." },
+      { "bloc": "services/postgres/init.sh", "fichierReel": "plateforme/labo/docker/p6-etat-a/db/03-role-api.sh", "chemin": "~/p6-etat-a/db/03-role-api.sh", "note": "Compte api_catalogue, aux droits limités ; son mot de passe vient de .env (jamais affiché)." },
+      { "bloc": "services/postgres/init.sh", "fichierReel": "plateforme/labo/docker/p6-etat-a/db/pg_hba.conf", "chemin": "~/p6-etat-a/db/pg_hba.conf", "note": "PostgreSQL n'accepte que l'API (10.20.0.70) et le poste admin (10.10.0.100)." },
+      { "bloc": "services/api/app.py", "fichierReel": "plateforme/labo/docker/p6-etat-a/api/app.py", "chemin": "~/p6-etat-a/api/app.py", "note": "API Flask réelle, servie par gunicorn ; /api/produit est volontairement injectable (S-03)." },
+      { "bloc": "services/api/Dockerfile", "fichierReel": "plateforme/labo/docker/p6-etat-a/api/Dockerfile", "chemin": "~/p6-etat-a/api/Dockerfile", "note": "Image p6/api:1." },
+      { "bloc": "services/compose.yml", "fichierReel": "plateforme/labo/docker/p6-etat-a/docker-compose.yml", "chemin": "~/p6-etat-a/docker-compose.yml", "note": "Un seul fichier Compose (projet p6) pour les 10 conteneurs de l'état A (écart E38)." },
+      {
+        "bloc": "services/etat-A.env, etat-B.env",
+        "commandes": [ "cat ~/p6-etat-a/.env" ],
+        "sortie": "POSTGRES_PASSWORD=••••••\nAPI_DB_PASSWORD=••••••",
+        "note": "Les mots de passe sont tirés au hasard par setup.sh dans .env (droits 600) et ne sont jamais affichés."
+      },
+      {
+        "bloc": "Construire l'image de l'API (carte NAT branchée le temps du téléchargement), puis lancer la base et l'API",
+        "commandes": [
+          "cd ~/p6-etat-a",
+          "docker compose build api",
+          "docker compose up -d postgres api"
+        ]
+      },
+      {
+        "contient": "urlopen('http://127.0.0.1:5000/api/produits')",
+        "sortie": "b'[{\"categorie\":\"Peripheriques\",\"id\":1,\"nom\":\"Clavier\",\"prix\":25.0,\"stock\":40},…]'",
+        "note": "Forme indicative : la vraie base contient les produits de db/02-donnees.sql."
+      },
+      {
+        "contient": "OR '1'='1",
+        "texte": "docker exec api python -c \"import urllib.request,urllib.parse;q=urllib.parse.quote('1 OR 1=1');print(urllib.request.urlopen('http://127.0.0.1:5000/api/produit?id='+q).read())\"",
+        "sortie": "b'[{\"id\":1,\"nom\":\"Clavier\",…},{\"id\":2,…},…]'",
+        "note": "L'API réelle colle l'identifiant sans guillemets : l'injection est numérique (1 OR 1=1) et renvoie tous les produits. Il n'y a pas de colonne « secret » (question Q14)."
+      }
+    ],
+    "r4-e4": [
+      {
+        "bloc": "Certificat auto-signé (sur l'hôte Docker)",
+        "commandes": [
+          "cd ~/p6-etat-a && mkdir -p nginx/certs",
+          "sudo openssl req -x509 -newkey rsa:2048 -nodes -days 365 -keyout nginx/certs/p6.key -out nginx/certs/p6.crt -subj \"/CN=www.p6.lab\" -addext \"subjectAltName=DNS:www.p6.lab,DNS:api.p6.lab,IP:203.0.113.1,IP:10.20.0.10\""
+        ],
+        "note": "Commande de setup.sh (étape 3/5) : certificat pour www.p6.lab et les deux adresses de nginx."
+      },
+      { "bloc": "services/nginx/site.conf", "fichierReel": "plateforme/labo/docker/p6-etat-a/nginx/nginx.conf", "chemin": "~/p6-etat-a/nginx/nginx.conf", "note": "Configuration réelle : HTTP (80), HTTPS (443), relais /api/ vers 10.20.0.70:5000, journal au format « p6 »." },
+      { "bloc": "Lancer", "commandes": [ "docker compose up -d nginx iperf3" ] },
+      {
+        "contient": "tail -n 1 /srv/logs/nginx/projet6.log",
+        "texte": "docker logs --tail 1 nginx",
+        "sortie": "2026-11-17T16:02:11+00:00 203.0.113.66 \"GET /api/produits HTTP/1.1\" 200 … \"curl/8.x\"",
+        "note": "Dans l'image nginx:alpine, access.log part sur la sortie standard du conteneur : on le lit avec docker logs (format « p6 » de nginx.conf)."
+      }
+    ],
+    "r4-e5": [
+      { "bloc": "services/bind9/", "fichierReel": "plateforme/labo/docker/p6-etat-a/bind/named.conf", "chemin": "~/p6-etat-a/bind/named.conf", "note": "Zone p6.lab faisant autorité, sans récursion, sans vues." },
+      { "bloc": "services/bind9/", "fichierReel": "plateforme/labo/docker/p6-etat-a/bind/db.p6.lab", "chemin": "~/p6-etat-a/bind/db.p6.lab", "note": "Une seule vue publique : www, api, fw et ns1 → 203.0.113.1." },
+      {
+        "bloc": "Lancer et vérifier la syntaxe",
+        "commandes": [
+          "docker compose up -d bind9",
+          "docker exec bind9 named-checkconf /etc/bind/named.conf",
+          "docker exec bind9 named-checkzone p6.lab /etc/bind/db.p6.lab"
+        ]
+      },
+      {
+        "contient": "dig +short @10.20.0.40 www.labo.test",
+        "sortie": "203.0.113.1",
+        "note": "La zone réelle n'a pas de vue interne : le LAN reçoit aussi l'adresse publique 203.0.113.1."
+      },
+      {
+        "contient": "dig +short @203.0.113.1 www.labo.test",
+        "sortie": "203.0.113.1"
+      }
+    ],
+    "r4-e6": [
+      {
+        "bloc": "Tout lancer",
+        "commandes": [
+          "cd ~/p6-etat-a",
+          "sudo bash setup.sh",
+          "docker compose ps --format 'table {{.Name}}\\t{{.State}}'",
+          "for c in nginx dmz-pivot bind9 api client-01 client-03 postgres admin client-ext; do printf \"%-11s %s\\n\" \"$c\" \"$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $c)\"; done"
+        ],
+        "note": "setup.sh vérifie les cartes, crée .env et le certificat, construit les images et démarre les 10 conteneurs."
+      }
+    ]
+  }
+}

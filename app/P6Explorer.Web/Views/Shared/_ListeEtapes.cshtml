@@ -1,0 +1,23 @@
+@model EtapeVM
+<nav class="liste-etapes" aria-label="Étapes du rôle @Model.Role.Numero">
+    <ol>
+        @foreach (var e in Model.Etapes)
+        {
+            <li class="@(e.Active ? "active" : "")">
+                <a href="/Roles/@Model.Role.Numero/Etapes/@e.Numero" aria-current="@(e.Active ? "page" : "false")">
+                    <span class="etape-numero">@e.Numero</span>
+                    <span class="etape-texte">
+                        <span class="etape-titre">@e.Titre</span>
+                        <span class="etape-meta">
+                            @if (e.Quand is not null) { <span>@e.Quand</span> }
+                            <span class="pastille @(e.Fait ? "fait" : "afaire")">@(e.Fait ? "fait" : "à faire")</span>
+                            @if (e.Statut != StatutValidation.Validee) { <span class="pastille statut">@(e.Statut == StatutValidation.Brouillon ? "brouillon" : "à valider")</span> }
+                            @if (e.Maitrisee) { <span class="pastille maitrise" title="Quiz réussi">maîtrisée</span> }
+                            @if (e.QuestionsOuvertes > 0) { <span class="pastille question" title="Questions ouvertes">? @e.QuestionsOuvertes</span> }
+                        </span>
+                    </span>
+                </a>
+            </li>
+        }
+    </ol>
+</nav>

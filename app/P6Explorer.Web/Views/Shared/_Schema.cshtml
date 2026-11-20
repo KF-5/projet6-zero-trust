@@ -1,0 +1,120 @@
+@model SchemaVM
+@using System.Globalization
+@{
+    // Schéma produit côté serveur à partir du ViewModel de topologie (prompt, section 7 « Le rendu graphique »).
+    // ViewData["Decor"] = true : quelques paquets décoratifs circulent (accueil). Le lecteur (jalon 4) animera les vrais effets.
+    var decor = ViewData["Decor"] as bool? == true;
+    var idSchema = $"schema-{Model.Etat.ToLowerInvariant()}";
+    string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+    var liens = Model.Liens.ToDictionary(l => l.Id);
+
+    // Chemin SVG (« M x,y L … ») qui suit une suite de liens ; « ! » devant un identifiant = parcours à l'envers.
+    string Trajet(params string[] ids)
+    {
+        var points = new List<string>();
+        foreach (var brut in ids)
+        {
+            var envers = brut.StartsWith('!');
+            if (!liens.TryGetValue(envers ? brut[1..] : brut, out var l)) continue;
+            var p = l.Points.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (envers) p.Reverse();
+            foreach (var x in p) if (points.Count == 0 || points[^1] != x) points.Add(x);
+        }
+        return points.Count == 0 ? "" : "M" + string.Join(" L", points);
+    }
+}
+<figure class="schema" aria-labelledby="@idSchema-titre">
+    <svg class="schema-svg" viewBox="0 0 @F(Model.Largeur) @F(Model.Hauteur)" role="img"
+         aria-labelledby="@idSchema-titre @idSchema-desc" data-etat="@Model.Etat" id="@idSchema">
+        <title id="@idSchema-titre">@Model.Titre</title>
+        <desc id="@idSchema-desc">@Model.Description Machines : @string.Join(", ", Model.Noeuds.Where(n => n.Id != "conteneur-test").Select(n => n.Nom)).</desc>
+        <defs>
+            <pattern id="@idSchema-grille" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="0.9" class="grille-point" />
+            </pattern>
+        </defs>
+        <rect class="fond" x="0" y="0" width="@F(Model.Largeur)" height="@F(Model.Hauteur)" fill="url(#@idSchema-grille)" />
+
+        <g class="calque calque-zones">
+            @foreach (var z in Model.Zones)
+            {
+                <g class="zone z-@z.Zone" data-reseau="@z.Code">
+                    <rect x="@F(z.X)" y="@F(z.Y)" width="@F(z.Largeur)" height="@F(z.Hauteur)" rx="6" />
+                    <text class="zone-nom" x="@F(z.X + 10)" y="@F(z.Y + 17)">@z.Nom@(z.Prefixe is null ? "" : $" · {z.Prefixe}")</text>
+                </g>
+            }
+        </g>
+
+        <g class="calque calque-liens">
+            @foreach (var l in Model.Liens)
+            {
+                <polyline class="lien l-@l.Zone@(l.Branche ? "" : " debranche")@(l.Id.StartsWith("conteneur-test") ? " temporaire" : "")"
+                          points="@l.Points" data-lien="@l.Id" data-de="@l.De" data-vers="@l.Vers">
+                    <title>@(l.Libelle ?? $"{l.De} ↔ {l.Vers}")@(l.Branche ? "" : " (débranché)")</title>
+                </polyline>
+            }
+            @foreach (var l in Model.Liens.Where(l => !l.Branche))
+            {
+                var dernier = l.Points.Split(' ')[^1].Split(',');
+                @:<text class="croix" x="@dernier[0]" y="@dernier[1]" dy="4" text-anchor="middle" aria-hidden="true">✕</text>
+            }
+        </g>
+
+        <g class="calque calque-noeuds">
+            @foreach (var n in Model.Noeuds)
+            {
+                var adresses = n.Adresses.Concat(Model.MembreConnecte ? n.AdressesReservees : []).ToList();
+                <g class="noeud n-@n.Type z-@n.Zone@(n.Id == "conteneur-test" ? " temporaire" : "")" data-noeud="@n.Id" tabindex="0"
+                   aria-label="@n.Nom@(n.SousTitre is null ? "" : $", {n.SousTitre}")">
+                    <title>@n.Nom&#10;@n.Description@(adresses.Count > 0 ? "\n" + string.Join("\n", adresses) : "")@(n.MembresSeulement && !Model.MembreConnecte ? "\n(Adresse Tailscale réservée aux membres connectés.)" : "")</title>
+                    <rect class="cadre" x="@F(n.Gauche)" y="@F(n.Haut)" width="@F(n.Largeur)" height="@F(n.Hauteur)" rx="4" />
+                    <text class="noeud-nom" x="@F(n.X)" y="@F(n.Y - (n.Hauteur > 30 ? 4 : -4))" text-anchor="middle">@n.Nom</text>
+                    @if (n.SousTitre is not null && n.Hauteur > 30)
+                    {
+                        @:<text class="noeud-ip" x="@F(n.X)" y="@F(n.Y + 13)" text-anchor="middle">@n.SousTitre</text>
+                    }
+                </g>
+            }
+        </g>
+
+        <g class="calque calque-ip" aria-hidden="true">
+            @foreach (var n in Model.Noeuds.Where(n => n.Id != "conteneur-test"))
+            {
+                var lignes = n.Adresses.Concat(Model.MembreConnecte ? n.AdressesReservees : []).ToList();
+                for (var i = 0; i < lignes.Count; i++)
+                {
+                    @:<text class="noeud-adresse" x="@F(n.X)" y="@F(n.Y + n.Hauteur / 2 + 11 + i * 10)" text-anchor="middle">@lignes[i]</text>
+                }
+            }
+        </g>
+
+        @* Paquets, verdicts et bulles du lecteur (lecteur.js) : dessinés ici, au-dessus de tout. *@
+        <g class="calque calque-anim" data-anim="1"></g>
+
+        @if (decor)
+        {
+            // Trafic de fond de l'état A : un client externe sur le site (FA1), un poste du LAN vers la DMZ (FA4),
+            // l'heure et les journaux sur MGMT. Purement décoratif : masqué si l'utilisateur réduit les animations.
+            var trajets = new (string Chemin, string Classe, string Duree, string Debut)[]
+            {
+                (Trajet("client-ext-eth0", "opnsense-em1", "!nginx-vlan20"), "p-https", "7s", "0s"),
+                (Trajet("client-01-vlan10", "!opnsense-em1", "opnsense-em1", "!api-vlan20"), "p-http", "8s", "2.5s"),
+                (Trajet("opnsense-em2") + " L820,568 L820,600", "p-syslog", "6s", "1s"),         // syslog vers le collecteur
+                (Trajet("docker-ens32") + " L820,568 L820,600", "p-ntp", "5s", "3.5s"),          // NTP vers le collecteur
+            };
+            <g class="calque calque-decor" aria-hidden="true">
+                @foreach (var t in trajets.Where(t => t.Chemin.Length > 0))
+                {
+                    <circle r="5" class="paquet-decor @t.Classe" visibility="hidden">
+                        <set attributeName="visibility" to="visible" begin="@t.Debut" />
+                        <animateMotion dur="@t.Duree" begin="@t.Debut" repeatCount="indefinite" path="@t.Chemin" rotate="auto" />
+                    </circle>
+                }
+            </g>
+        }
+    </svg>
+    <figcaption class="schema-legende">
+        <zone nom="WAN" /> <zone nom="DMZ" /> <zone nom="LAN" /> <zone nom="MGMT" /> <zone nom="TRUNK" /> <zone nom="OPNSENSE" />
+        <span class="legende-note">Survole une machine pour voir son rôle et ses adresses. Pointillés barrés : câble débranché.</span>
+    </figcaption>
+</figure>

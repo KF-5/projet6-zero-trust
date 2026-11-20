@@ -1,0 +1,47 @@
+﻿@model AccueilVM
+
+<section class="accueil-intro">
+    <p class="surtitre">Projet 6 · Architecture Zero Trust</p>
+    <h1>Le laboratoire, commande par commande</h1>
+    <p class="chapeau">
+        Chaque commande des six rôles est rejouée sur le schéma : la machine concernée s'allume, les paquets suivent
+        le vrai chemin (VLAN, NAT, pare-feu) et une règle décide s'ils passent.
+        @Model.TotalEtapes étapes, @Model.TotalCommandes commandes.
+    </p>
+</section>
+
+<section class="accueil-carte" aria-label="Carte de l'architecture, état A">
+    <partial name="_Schema" model="Model.Schema" view-data='new ViewDataDictionary(ViewData) { ["Decor"] = true }' />
+</section>
+
+<section class="accueil-roles" aria-labelledby="titre-roles">
+    <h2 id="titre-roles">Les six rôles</h2>
+    <ul class="cartes-roles">
+        @foreach (var r in Model.Roles)
+        {
+            <li class="carte-role" style="--role: var(@r.Couleur)">
+                <div class="carte-entete">
+                    <span class="carte-numero" aria-hidden="true">@r.Numero</span>
+                    <h3><a class="lien-carte" href="/Roles/@r.Numero"><span class="visuellement-cache">Rôle @r.Numero : </span>@r.Titre</a></h3>
+                </div>
+                <p class="carte-mission">@r.Mission</p>
+                <div class="avancement" role="img" aria-label="@r.NbFaites étape(s) faite(s) sur @r.NbEtapes">
+                    <span class="avancement-barre" style="width:@r.Pourcentage%"></span>
+                </div>
+                <p class="carte-chiffres">
+                    <span><strong>@r.NbFaites</strong>/@r.NbEtapes étapes faites</span>
+                    <span><strong>@r.NbCommandes</strong> commandes</span>
+                </p>
+                @if (r.NbComprises is not null)
+                {
+                    <p class="carte-perso"><span class="etiquette">Toi</span> @r.NbComprises commande@(r.NbComprises > 1 ? "s" : "") comprise@(r.NbComprises > 1 ? "s" : "") · @r.NbMaitrisees étape@(r.NbMaitrisees > 1 ? "s" : "") maîtrisée@(r.NbMaitrisees > 1 ? "s" : "")</p>
+                }
+                @if (r.ProchaineEtape is not null)
+                {
+                    <p class="carte-suite"><span class="etiquette">À faire</span> @r.ProchaineEtape</p>
+                }
+            </li>
+        }
+    </ul>
+    <p class="note-jalon">Choisis un rôle pour rejouer ses étapes commande par commande, ou essaie le mode <a asp-controller="Simulation" asp-action="Index">« Et si ? »</a> : pourquoi <code>client-ext → postgres:5432</code> est-il bloqué en état A ?</p>
+</section>

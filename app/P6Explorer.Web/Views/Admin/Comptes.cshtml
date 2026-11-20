@@ -1,0 +1,29 @@
+@model List<CompteLigneVM>
+@{ var nouveau = ViewBag.Nouveau as NouveauCompteVM ?? new NouveauCompteVM(); }
+<div class="page-liste">
+    <h1>Comptes de l'équipe</h1>
+    <p class="chapeau">Un compte par membre, avec son numéro de rôle : il ne pourra modifier que les étapes de ce rôle. Le rôle 1 est administrateur.</p>
+    <table class="tableau">
+        <thead><tr><th scope="col">Nom</th><th scope="col">Adresse</th><th scope="col">Rôle</th><th scope="col">Admin</th><th scope="col">État</th></tr></thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr><td>@(c.Nom ?? "—")</td><td>@c.Email</td><td>@(c.NumeroRole?.ToString() ?? "—")</td><td>@(c.Admin ? "oui" : "")</td><td>@(c.Verrouille ? "verrouillé" : "actif")</td></tr>
+            }
+        </tbody>
+    </table>
+
+    <h2>Créer un compte</h2>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Comptes" class="formulaire">
+        <div class="champ-ligne">
+            <div class="champ"><label for="Nom">Nom affiché</label><input name="Nom" id="Nom" value="@nouveau.Nom" required maxlength="60" /></div>
+            <div class="champ"><label for="Email">Adresse e-mail</label><input name="Email" id="Email" type="email" value="@nouveau.Email" required /></div>
+            <div class="champ"><label for="NumeroRole">Numéro de rôle</label><input name="NumeroRole" id="NumeroRole" type="number" min="1" max="6" value="@nouveau.NumeroRole" required /></div>
+        </div>
+        <div class="champ"><label for="MotDePasse">Mot de passe provisoire (10 caractères, une majuscule, une minuscule, un chiffre)</label>
+            <input name="MotDePasse" id="MotDePasse" type="password" minlength="10" required autocomplete="new-password" /></div>
+        <p class="note">Le membre le change à sa première connexion (menu « Changer de mot de passe »).</p>
+        <button type="submit" class="btn">Créer le compte</button>
+    </form>
+</div>

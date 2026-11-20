@@ -66,3 +66,12 @@ Chaque ligne dit ce que la conception prévoyait, ce qui a été réellement fai
 - `tests-cloisonnement.sh` sur Kali : 19/19 (box, Internet, Windows et MGMT injoignables ; seuls FA1 et FA2 passent).
 - Consoles VNC : `Get-NetTCPConnection` montre les ports 5901 à 5904 en écoute sur 127.0.0.1 uniquement.
 - Instantanés de référence : `07-vnc` (OPNsense), `vnc-pret` (p6-docker, p6-collecteur, p6-kali).
+
+## Ajouts du 20 novembre 2026 (moteur réseau de P6 Explorer, rôle 1)
+
+Trouvés en simulant les états A et B ; propositions, le groupe décide.
+
+| ID | Gravité | Où | Constat | Correction proposée | Guide |
+|---|---|---|---|---|---|
+| E43 | haute | Rôle 2 ét. 6 et 8 (`regles-B.md`) | `c2.py` produit sur le WAN F01 « any → 10.20.0.10:80,443 » et F02 « any → 10.20.0.40:53 ». Les redirections réelles sont en « Firewall rule = Pass » (E36) : ces règles ne servent pas au trafic redirigé, mais laissent Kali joindre 10.20.0.10 directement, sans traduction (le trou corrigé en E36). | Ne pas saisir F01 et F02 sur le WAN en état B (les redirections « Pass » suffisent) ; ou, dans `c2.py`, ne pas générer de règle WAN pour un flux publié par NAT. Ajouter à `test_flux` un test « accès direct 10.20.0.10:80 depuis le WAN : block ». | appliqué dans P6 Explorer (F01/F02 désactivées) ; à reporter par le rôle 2 |
+| E44 | moyenne | Rôle 1 ét. 5, rôle 6 (collecteur) | `p6_ssh` (E35) ne filtre que TCP 22 : depuis MGMT, Kali peut envoyer des lignes syslog au collecteur (rangées sous `10.99.0.66.log`, ou sous une autre adresse si elle l'usurpe), interroger NTP et pinger les VM. | `plateforme/labo/collecteur/restreindre-syslog.sh` : UDP 514 accepté seulement depuis 10.99.0.1 et 10.99.0.20. NTP reste ouvert (Kali en est cliente). Contre l'usurpation : comparer avec le journal local d'OPNsense (E13). | script écrit, pas encore lancé |

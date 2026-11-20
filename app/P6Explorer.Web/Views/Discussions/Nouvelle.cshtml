@@ -1,0 +1,13 @@
+@model NouveauFilVM
+<div class="page-formulaire">
+    <p class="surtitre">Question sur <code>@Model.CommandeCode</code></p>
+    <h1>Poser une question</h1>
+    <p class="note"><code>@Model.CommandeTexte</code></p>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Nouvelle" class="formulaire">
+        <input type="hidden" asp-for="CommandeId" /><input type="hidden" asp-for="CommandeCode" /><input type="hidden" asp-for="CommandeTexte" />
+        <div class="champ"><label asp-for="Titre"></label><input asp-for="Titre" /><span asp-validation-for="Titre" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="Texte"></label><textarea asp-for="Texte" rows="5"></textarea><span asp-validation-for="Texte" class="erreur-champ"></span></div>
+        <div class="boutons"><button type="submit" class="btn">Envoyer</button></div>
+    </form>
+</div>

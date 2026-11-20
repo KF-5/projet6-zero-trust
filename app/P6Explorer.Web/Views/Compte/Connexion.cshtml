@@ -1,0 +1,14 @@
+@model ConnexionVM
+<div class="page-formulaire etroit">
+    <h1>Connexion</h1>
+    <p class="chapeau">Réservée aux six membres du groupe : suivre ta progression, passer les quiz, poser des questions et modifier les étapes de ton rôle. Tout le reste se consulte sans compte.</p>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Connexion" class="formulaire">
+        <input type="hidden" asp-for="Retour" />
+        <div class="champ"><label asp-for="Email"></label><input asp-for="Email" autocomplete="username" /><span asp-validation-for="Email" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="MotDePasse"></label><input asp-for="MotDePasse" autocomplete="current-password" /><span asp-validation-for="MotDePasse" class="erreur-champ"></span></div>
+        <div class="champ case"><label><input asp-for="Memoriser" /> @Html.DisplayNameFor(m => m.Memoriser)</label></div>
+        <button type="submit" class="btn">Se connecter</button>
+    </form>
+    <p class="note">Pas de compte ? Le rôle 1 (admin) crée celui de chaque membre. Après 5 erreurs, le compte est verrouillé 10 minutes.</p>
+</div>

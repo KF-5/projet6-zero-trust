@@ -1,0 +1,33 @@
+@model HistoriqueVM
+<div class="page-liste">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.EtapeNumero</p>
+    <h1>Historique des modifications</h1>
+    <p class="chapeau">@Model.Titre — @Model.Lots.Total changement@(Model.Lots.Total > 1 ? "s" : "") de champ enregistré@(Model.Lots.Total > 1 ? "s" : "").</p>
+    <p><a href="/Roles/@Model.RoleNumero/Etapes/@Model.EtapeNumero">← Retour à l'étape</a></p>
+    @if (Model.Lots.Elements.Count == 0) { <p class="note">Aucune modification depuis l'importation du guide.</p> }
+    @foreach (var lot in Model.Lots.Elements)
+    {
+        <article class="revision">
+            <header>
+                <strong>@lot.Date.ToLocalTime().ToString("d MMM yyyy, HH:mm:ss")</strong> · @lot.Auteur · <span class="note">@lot.Element</span>
+                @if (Model.PeutModifier)
+                {
+                    <form method="post" asp-action="Annuler" class="en-ligne">
+                        <input type="hidden" name="lot" value="@lot.Lot" /><input type="hidden" name="etapeId" value="@Model.EtapeId" />
+                        <button type="submit" class="btn-lien">revenir avant ce changement</button>
+                    </form>
+                }
+            </header>
+            <table class="tableau compact">
+                <thead><tr><th scope="col">Champ</th><th scope="col">Avant</th><th scope="col">Après</th></tr></thead>
+                <tbody>
+                    @foreach (var c in lot.Champs)
+                    {
+                        <tr><td>@c.Champ</td><td class="avant">@(c.Avant ?? "—")</td><td class="apres">@(c.Apres ?? "—")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </article>
+    }
+    <partial name="_Pagination" model='new PaginationVM(Model.Lots.Page, Model.Lots.NombrePages, "Historique", new Dictionary<string, string?> { ["id"] = Model.EtapeId.ToString() })' />
+</div>

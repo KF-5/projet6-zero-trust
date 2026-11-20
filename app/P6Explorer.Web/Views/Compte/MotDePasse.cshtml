@@ -1,0 +1,11 @@
+@model ChangerMotDePasseVM
+<div class="page-formulaire etroit">
+    <h1>Changer de mot de passe</h1>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="MotDePasse" class="formulaire">
+        <div class="champ"><label asp-for="Actuel"></label><input asp-for="Actuel" autocomplete="current-password" /></div>
+        <div class="champ"><label asp-for="Nouveau"></label><input asp-for="Nouveau" autocomplete="new-password" /><span asp-validation-for="Nouveau" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="Confirmation"></label><input asp-for="Confirmation" autocomplete="new-password" /><span asp-validation-for="Confirmation" class="erreur-champ"></span></div>
+        <button type="submit" class="btn">Changer</button>
+    </form>
+</div>

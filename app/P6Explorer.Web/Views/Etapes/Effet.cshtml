@@ -1,0 +1,23 @@
+@model EffetFormVM
+<div class="page-formulaire">
+    <p class="surtitre">Commande @Model.CommandeCode</p>
+    <h1>@(Model.Id == 0 ? "Nouvel effet" : "Modifier un effet")</h1>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Effet" class="formulaire">
+        <input type="hidden" asp-for="Id" /><input type="hidden" asp-for="CommandeId" /><input type="hidden" asp-for="CommandeCode" />
+        <div class="champ"><label asp-for="Json"></label><textarea asp-for="Json" rows="14" class="mono" spellcheck="false"></textarea><span asp-validation-for="Json" class="erreur-champ"></span></div>
+        <details class="aide">
+            <summary>Types d'effets</summary>
+            <ul>
+                <li><code>paquet</code> : <code>de</code>, <code>vers</code>, <code>proto</code> (Tcp, Udp, Icmp, Dns, Http, Https, Ssh, Ntp, Syslog, PostgreSql, Iperf3…), <code>port</code>, <code>adresseVisee</code>. Laisse <code>verdict</code> à ACalculer : le moteur décide.</li>
+                <li><code>surbrillance</code> (<code>noeud</code>, <code>fichier</code>, <code>texte</code>), <code>service</code> (<code>noeud</code>, <code>nom</code>, <code>demarre</code>, <code>port</code>), <code>fichier</code> (<code>noeud</code>, <code>chemin</code>)</li>
+                <li><code>journal</code> (<code>de</code>, <code>ligne</code>), <code>alerteIds</code> (<code>signature</code>, <code>blocage</code>), <code>resultatTest</code> (<code>nom</code>, <code>ok</code>, <code>compteur</code>)</li>
+                <li><code>etatNoeud</code>, <code>etatLien</code>, <code>attribuerIp</code>, <code>changementRegle</code>, <code>instantane</code>, <code>changementEtat</code>, <code>conteneurReseau</code></li>
+            </ul>
+        </details>
+        <div class="boutons">
+            <button type="submit" class="btn">Enregistrer</button>
+            <a class="btn secondaire" asp-action="Commande" asp-route-id="@Model.CommandeId">Retour à la commande</a>
+        </div>
+    </form>
+</div>

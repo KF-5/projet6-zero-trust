@@ -1,0 +1,15 @@
+@* Panneau d'explication : ce que fait la commande, la règle qui décide, le chemin, la trame octet par octet. *@
+<section class="panneau" aria-label="Explication de la commande" id="panneau">
+    <header class="panneau-entete">
+        <h2 id="panneau-titre">Explication</h2>
+        <span id="panneau-code" class="code-commande"></span>
+    </header>
+    <div class="panneau-corps">
+        <div id="panneau-explication" class="explication">Choisis une commande : son explication s'affiche ici.</div>
+        <div id="panneau-guide" class="guide-origine" hidden></div>
+        <ul id="panneau-effets" class="effets"></ul>
+        <div id="panneau-paquet" class="paquet-detail" hidden></div>
+        <partial name="_DecodeurOctets" />
+        <div id="panneau-actions" class="panneau-actions"></div>
+    </div>
+</section>

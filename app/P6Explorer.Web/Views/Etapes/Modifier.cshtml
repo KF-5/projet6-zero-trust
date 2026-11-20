@@ -1,0 +1,30 @@
+@model EtapeFormVM
+<div class="page-formulaire">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.Numero · @Model.Code</p>
+    <h1>Modifier l'étape</h1>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Modifier" class="formulaire">
+        <input type="hidden" asp-for="Id" /><input type="hidden" asp-for="RoleNumero" /><input type="hidden" asp-for="Numero" /><input type="hidden" asp-for="Code" />
+        <div class="champ"><label asp-for="Titre"></label><input asp-for="Titre" /><span asp-validation-for="Titre" class="erreur-champ"></span></div>
+        <div class="champ-ligne">
+            <div class="champ"><label asp-for="Quand"></label><input asp-for="Quand" /></div>
+            <div class="champ"><label asp-for="Statut"></label>
+                <select asp-for="Statut">
+                    <option value="@StatutValidation.Brouillon">Brouillon</option>
+                    <option value="@StatutValidation.AValider">À valider</option>
+                    <option value="@StatutValidation.Validee">Validée</option>
+                </select>
+            </div>
+            <div class="champ case"><label><input asp-for="Fait" /> @Html.DisplayNameFor(m => m.Fait)</label></div>
+        </div>
+        <div class="champ"><label asp-for="But"></label><textarea asp-for="But" rows="4"></textarea><span asp-validation-for="But" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="Pourquoi"></label><textarea asp-for="Pourquoi" rows="4"></textarea><span asp-validation-for="Pourquoi" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="MiseAJour"></label><textarea asp-for="MiseAJour" rows="3"></textarea></div>
+        <div class="champ"><label asp-for="Livrable"></label><textarea asp-for="Livrable" rows="2"></textarea></div>
+        <p class="note">Le texte accepte **gras** et `code`. Chaque enregistrement est écrit dans l'historique et peut être annulé.</p>
+        <div class="boutons">
+            <button type="submit" class="btn">Enregistrer</button>
+            <a class="btn secondaire" href="/Roles/@Model.RoleNumero/Etapes/@Model.Numero">Annuler</a>
+        </div>
+    </form>
+</div>

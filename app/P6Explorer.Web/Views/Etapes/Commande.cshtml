@@ -1,0 +1,58 @@
+@model CommandeFormVM
+@{ var machines = new[] { "hote", "opnsense", "docker", "collecteur", "kali", "nginx", "dmz-pivot", "bind9", "api", "client-01", "client-03", "postgres", "admin", "client-ext", "pc-membre" }; }
+<div class="page-formulaire">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.EtapeNumero@(Model.Code is null ? "" : $" · {Model.Code}")</p>
+    <h1>@(Model.Id == 0 ? "Nouvelle commande" : "Modifier la commande")</h1>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Commande" class="formulaire">
+        <input type="hidden" asp-for="Id" /><input type="hidden" asp-for="EtapeId" /><input type="hidden" asp-for="RoleNumero" />
+        <input type="hidden" asp-for="EtapeNumero" /><input type="hidden" asp-for="Code" />
+        <div class="champ-ligne">
+            <div class="champ"><label asp-for="Ordre"></label><input asp-for="Ordre" type="number" min="1" /><span asp-validation-for="Ordre" class="erreur-champ"></span></div>
+            <div class="champ"><label asp-for="Ou"></label>
+                <select asp-for="Ou">@foreach (var m in machines) { <option value="@m">@m</option> }</select>
+            </div>
+            <div class="champ"><label asp-for="Shell"></label><select asp-for="Shell" asp-items="Html.GetEnumSelectList<Shell>()"></select></div>
+            <div class="champ"><label asp-for="Compte"></label><input asp-for="Compte" placeholder="karim" /></div>
+        </div>
+        <div class="champ"><label asp-for="Texte"></label><textarea asp-for="Texte" rows="5" class="mono" spellcheck="false"></textarea><span asp-validation-for="Texte" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="Explication"></label><textarea asp-for="Explication" rows="4"></textarea><span asp-validation-for="Explication" class="erreur-champ"></span></div>
+        <div class="champ"><label asp-for="Sortie"></label><textarea asp-for="Sortie" rows="4" class="mono" spellcheck="false"></textarea></div>
+        <div class="champ case"><label><input asp-for="EstTest" /> @Html.DisplayNameFor(m => m.EstTest)</label></div>
+        <p class="note">Aucun secret : un mot de passe ou une clé privée n'a rien à faire ici (remplace-le par ••••••).</p>
+        <div class="boutons">
+            <button type="submit" class="btn">Enregistrer</button>
+            <a class="btn secondaire" href="/Roles/@Model.RoleNumero/Etapes/@Model.EtapeNumero">Retour à l'étape</a>
+        </div>
+    </form>
+
+    @if (Model.Id != 0)
+    {
+        <section class="bloc">
+            <h2>Effets sur le schéma</h2>
+            <table class="tableau">
+                <thead><tr><th scope="col">#</th><th scope="col">Type</th><th scope="col">Ce que montre le schéma</th><th scope="col">Relu</th><th scope="col"><span class="visuellement-cache">Actions</span></th></tr></thead>
+                <tbody>
+                    @foreach (var f in Model.Effets)
+                    {
+                        <tr>
+                            <td>@f.Ordre</td><td><code>@f.Type</code></td><td>@f.Resume</td><td>@(f.Automatique ? "non (proposé)" : "oui")</td>
+                            <td class="actions">
+                                <a asp-action="Effet" asp-route-commandeId="@Model.Id" asp-route-id="@f.Id">modifier</a>
+                                <form method="post" asp-action="SupprimerEffet" class="en-ligne">
+                                    <input type="hidden" name="commandeId" value="@Model.Id" /><input type="hidden" name="id" value="@f.Id" />
+                                    <button type="submit" class="btn-lien">supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <a class="btn secondaire" asp-action="Effet" asp-route-commandeId="@Model.Id">+ Ajouter un effet</a>
+        </section>
+        <form method="post" asp-action="SupprimerCommande" class="zone-danger" data-confirmer="Supprimer cette commande et ses effets ? Tu pourras l'annuler depuis l'historique.">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn danger">Supprimer la commande</button>
+        </form>
+    }
+</div>

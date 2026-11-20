@@ -1,0 +1,24 @@
+@model AvancementVM
+<div class="page-liste">
+    <h1>Administration</h1>
+    <nav class="filtres" aria-label="Pages d'administration">
+        <a asp-action="Comptes">Comptes de l'équipe</a>
+        <a asp-action="Preparation">Préparation de la soutenance</a>
+        <a asp-controller="Simulation" asp-action="Historique">Simulations</a>
+        <a asp-controller="Discussions" asp-action="Index">Questions ouvertes</a>
+    </nav>
+    <h2>Avancement de l'équipe</h2>
+    @if (Model.Membres.Count == 0) { <p class="note">Aucun compte. Crée ceux des cinq membres dans « Comptes de l'équipe ».</p> }
+    else
+    {
+        <table class="tableau">
+            <thead><tr><th scope="col">Membre</th><th scope="col">Rôle</th><th scope="col">Commandes comprises</th><th scope="col">Étapes maîtrisées</th></tr></thead>
+            <tbody>
+                @foreach (var m in Model.Membres)
+                {
+                    <tr><td>@m.Nom</td><td>@(m.NumeroRole?.ToString() ?? "—")</td><td>@m.CommandesComprises</td><td>@m.EtapesMaitrisees</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
