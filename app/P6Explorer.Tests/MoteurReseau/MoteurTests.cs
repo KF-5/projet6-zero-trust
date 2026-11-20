@@ -64,6 +64,18 @@ public class MoteurTests
         Assert.Equal(Verdict.Passe, Labo.Simuler(etat, "kali", "10.99.0.20", Protocole.Icmp).Verdict);
     }
 
+    [Theory]
+    [InlineData("A")]
+    [InlineData("B")]
+    public void Q16_avec_restreindre_syslog_Kali_ne_peut_plus_ecrire_au_collecteur(string etat)
+    {
+        var durci = new OptionsSimulation { ReglesActivees = new HashSet<string> { "p6_syslog" } };
+        var kali = Labo.Simuler(etat, "kali", "10.99.0.10", Protocole.Syslog, options: durci);
+        Assert.Equal((Verdict.Bloque, "p6_syslog"), (kali.Verdict, kali.Regle));
+        Assert.Equal(Verdict.Passe, Labo.Simuler(etat, "opnsense", "10.99.0.10", Protocole.Syslog, options: durci).Verdict);
+        Assert.Equal(Verdict.Passe, Labo.Simuler(etat, "kali", "10.99.0.10", Protocole.Ntp, options: durci).Verdict);   // l'heure reste servie
+    }
+
     [Fact]
     public void S05_en_A_le_mouvement_lateral_aboutit_sans_aucune_ligne_filterlog()
     {
@@ -129,11 +141,16 @@ public class MoteurTests
     }
 
     [Fact]
-    public void Q15_en_B_la_regle_F01_laisse_joindre_nginx_sans_traduction()
+    public void Q15_en_B_sans_F01_le_site_reste_joignable_par_la_redirection_et_l_acces_direct_est_jete()
     {
-        // Constat (docs/questions.md, Q15) : F01 « any → 10.20.0.10:80,443 » de regles-B.md rouvre l'écart E36.
-        var r = Labo.Simuler("B", "kali", "10.20.0.10", Protocole.Http);
-        Assert.Equal((Verdict.Passe, "F01"), (r.Verdict, r.Regle));
+        // Recommandation Q15 / E43 appliquée : F01 et F02 ne sont pas saisies, les redirections « Pass » suffisent.
+        var direct = Labo.Simuler("B", "kali", "10.20.0.10", Protocole.Http);
+        Assert.Equal((Verdict.Bloque, "F99"), (direct.Verdict, direct.Regle));
+        var publie = Labo.Simuler("B", "kali", "203.0.113.1", Protocole.Https);
+        Assert.Equal((Verdict.Passe, "F01"), (publie.Verdict, publie.Regle));
+        // Avec F01 saisie comme dans regles-B.md, le trou E36 reviendrait.
+        var avecF01 = Labo.Simuler("B", "kali", "10.20.0.10", Protocole.Http, options: new OptionsSimulation { ReglesActivees = new HashSet<string> { "F01" } });
+        Assert.Equal((Verdict.Passe, "F01"), (avecF01.Verdict, avecF01.Regle));
     }
 
     // ---------- Routage ----------
