@@ -4,6 +4,16 @@ Jalon 1 (étude), 19 novembre 2026. Rédigé après lecture complète de `source
 
 Ce document décrit **ce qui sera construit** ; aucune ligne de code n'est écrite à ce jalon. Les points à trancher sont dans `docs/questions.md`.
 
+**Mise à jour du 20 novembre (réponses au jalon 1).** Plan validé avec ces décisions :
+
+- Schéma **à plat** et **AutoMapper 13.0.1** : validés.
+- Scripts du laboratoire disponibles dans `plateforme/labo/` (fusionnés depuis `main`) : `tests.sh` et `tests-cloisonnement.sh` donnent la liste exacte des 12 + 19 tests (section 5).
+- **Texte des commandes** : pour les étapes marquées « fait », on affiche la commande **réellement utilisée** (compte `karim` + `sudo`, jamais `root@`) ; pour les autres, le texte du guide, avec l'écart signalé dans l'explication (section 8, décision 2).
+- **Kali** : une seule route par défaut, via 203.0.113.1 (eth0) ; eth1 = 10.99.0.66 sur MGMT, sans passerelle.
+- **Zone DNS** : `p6.lab` (`labo.test` est un reste de la conception).
+- **Référence en cas de doute** : `ECARTS.md` (E31 à E42), puis les scripts de `plateforme/labo/`. Ce qui reste incertain est dans `docs/questions.md`, et on suit l'hypothèse la plus prudente.
+- SDK .NET 8.0.428 installé le 20 novembre ; Visual Studio 2022 Community (avec LocalDB) installé par l'équipe.
+
 ---
 
 ## 1. Ce que disent les sources
@@ -54,15 +64,25 @@ Le sommaire de la source principale compte les **lignes** des blocs, contenu des
 
 Le comptage exact sera produit par l'importeur (jalon 2) et tenu à jour dans `docs/a-completer.md`.
 
-### 1.4 Ce qui manque dans le dépôt
+### 1.4 Les scripts réels du laboratoire (`plateforme/labo/`)
 
-Le prompt cite des scripts « s'ils y sont ». **Aucun n'y est** : `docker/p6-etat-a/` (`setup.sh`, `tests.sh`, `docker-compose.yml`), `collecteur/setup-collecteur.sh`, `kali/setup-kali.sh`, `kali/tests-cloisonnement.sh`, `commun/restreindre-ssh.sh`, `acces/*.ps1`, `panneau/panneau.py`.
+Absents au 19 novembre, fusionnés le 20 depuis `main` (commit `3d7911b`). Ils sont la **référence de la plateforme réelle** pour les étapes déjà faites :
 
-Conséquence majeure : la **liste exacte** des 12 tests de `tests.sh` et des 19 de `tests-cloisonnement.sh` (le test d'acceptation principal du moteur) n'est connue que par leurs résumés. Voir Q1 dans `docs/questions.md`.
+| Script | Ce qu'il apporte au projet |
+|---|---|
+| `docker/p6-etat-a/docker-compose.yml`, `setup.sh` | projet Compose `p6`, réseaux macvlan sur `ens33.20`, `ens33.10`, `ens34` ; images réelles `p6/outils:1`, `p6/api:1`, `nginx:1.27-alpine`, `postgres:17`, `internetsystemsconsortium/bind9:9.20` ; adresses des 10 conteneurs |
+| `docker/p6-etat-a/tests.sh` | **les 12 tests** de l'état A (section 5) |
+| `docker/p6-etat-a/{api,bind,db,nginx,outils}/` | contenu réel de l'API, de la zone `p6.lab`, du schéma SQL, de `pg_hba.conf`, de nginx |
+| `kali/setup-kali.sh`, `kali/tests-cloisonnement.sh` | adresses de Kali (passerelle 203.0.113.1 sur eth0) ; **les 19 tests** de cloisonnement |
+| `collecteur/setup-collecteur.sh` | chrony `allow 10.99.0.0/24`, `local stratum 8` ; rsyslog UDP 514 → `/var/log/p6/%FROMHOST-IP%.log` |
+| `commun/restreindre-ssh.sh` | table `inet p6_ssh` (TCP 22 depuis 10.99.0.2 et 10.99.0.10) |
+| `acces/*.ps1`, `panneau/*` | accès de l'équipe (OpenSSH Windows, clés), panneau de contrôle |
+
+Ces fichiers seront lus (sans aucun secret) par l'importeur pour remplacer les commandes du guide des étapes « fait » par les commandes réellement exécutées.
 
 ### 1.5 Le poste de travail
 
-Constaté le 19 novembre sur ce PC : runtime .NET 8.0.21 présent, mais **aucun SDK .NET**, **pas de Visual Studio 2022**, **pas de SQL Server LocalDB**. Node.js 26 et Git sont là. Le jalon 2 ne peut pas compiler sans le SDK .NET 8 (voir Q2).
+Au 19 novembre : runtime .NET 8.0.21 seulement. Le 20 novembre : **SDK .NET 8.0.428 installé** (`winget`) ; Visual Studio 2022 Community avec la charge « Développement web et ASP.NET » (et donc LocalDB) installé par l'équipe. Node.js 26 et Git sont présents.
 
 ---
 
@@ -117,7 +137,7 @@ classDiagram
   class ApplicationUser { NumeroRole : int? }
   class Role { Numero : int «clé» ; Titre ; CourtNom ; Couleur ; Mission }
   class Etape { Id ; RoleNumero ; Ordre ; Titre ; Quand ; Fait ; Statut ; But ; Pourquoi ; MiseAJour ; Livrable ; Schema }
-  class Commande { Id ; Code «r1-e5-c03» ; EtapeId ; ParentId? ; Ordre ; Ou ; Shell ; Compte ; Texte ; Explication ; Sortie }
+  class Commande { Id ; Code «r1-e5-c03» ; EtapeId ; ParentId? ; Ordre ; Ou ; Shell ; Compte ; Texte ; TexteGuide? ; Explication ; Sortie }
   class Effet { <<abstract>> Id ; CommandeId ; Ordre }
   class Paquet { De ; Vers ; Proto ; Port ; Chemin «JSON» ; Nat «owned» ; Verdict ; Regle ; Vlan }
   class Panne { Symptome ; Cause ; Solution }
@@ -238,7 +258,8 @@ Pur C#, sans dépendance, interrogé en LINQ.
 - Réseaux : `p6-wan` 203.0.113.0/24, `p6-trunk` (VLAN 10 LAN, VLAN 20 DMZ ; en B : 11, 12, 13, 21, 22, 23), VMnet9 10.99.0.0/24, VMnet8 NAT débranché.
 - p6-opnsense `fw-p6.p6.lab` : em0 203.0.113.1, em1 (vlan01 10.10.0.1/24, vlan02 10.20.0.1/24), em2 10.99.0.1, em3 débranchée.
 - p6-docker 10.99.0.20 (ens32 MGMT, ens33 trunk, ens34 WAN) et ses conteneurs macvlan : nginx .10 (+ iperf3 dans son espace réseau), dmz-pivot .20, bind9 .40, api .70 ; client-01 .10, client-03 .12, postgres .70, admin .100 ; client-ext 203.0.113.10.
-- p6-collecteur 10.99.0.10 (NTP UDP 123, syslog UDP 514). p6-kali 203.0.113.66 (passerelle 203.0.113.1) et 10.99.0.66.
+- p6-collecteur 10.99.0.10 (NTP UDP 123, `local stratum 8` ; syslog UDP 514). p6-kali : eth0 203.0.113.66, **seule route par défaut via 203.0.113.1** ; eth1 10.99.0.66 sur MGMT, sans passerelle.
+- bind9 fait autorité sur **`p6.lab`**, sans récursion, avec **une seule zone publique, sans vues** (`bind/named.conf`, `bind/db.p6.lab`) : `ns1`, `www`, `api`, `fw` → 203.0.113.1 pour tout le monde, LAN compris. Le guide décrit `labo.test` avec deux vues (interne 10.20.0.10 / externe) : c'est un reste de la conception, signalé dans l'explication des étapes concernées.
 - Hors laboratoire : box 192.168.1.1, Internet (8.8.8.8), PC d'un membre (Tailscale).
 
 **Trois moteurs**, appelés dans l'ordre par un `SimulateurPaquet` :
@@ -249,7 +270,28 @@ Pur C#, sans dépendance, interrogé en LINQ.
 
 Le résultat (`ResultatSimulation`) donne : chemin saut par saut (nœud, interface, VLAN), traductions NAT, verdict (passé, bloqué, refusé par le service = RST, injoignable), règle responsable et sa phrase d'explication, ligne `filterlog` produite ou non.
 
-**Test d'acceptation** (jalon 3) : `[Theory]` xUnit avec une ligne `[InlineData]` par test de `tests.sh` (12) et de `tests-cloisonnement.sh` (19), plus les tests de `tests.csv` en A (8) et en B (42, générés par la même logique que `c2.py`), plus les cas nommés du critère d'acceptation : `client-ext → postgres:5432` bloqué en A (FA5) ; Kali ne joint jamais MGMT, la box, Internet ni Windows. **Les 31 tests ne peuvent être écrits exactement qu'avec les scripts (Q1).**
+**Test d'acceptation** (jalon 3) : `[Theory]` xUnit avec une ligne `[InlineData]` par test de `tests.sh` (12) et de `tests-cloisonnement.sh` (19), recopiés depuis `plateforme/labo/`, plus les tests de `tests.csv` en A (8) et en B (42, générés par la même logique que `c2.py`), plus les cas nommés du critère d'acceptation : `client-ext → postgres:5432` bloqué en A (FA5) ; Kali ne joint jamais MGMT, la box, Internet ni Windows.
+
+`tests.sh` (12, depuis les conteneurs, `docker exec`) :
+
+| # | Source → destination | Attendu | Ce qui décide |
+|---|---|---|---|
+| 1 | api → 10.10.0.70:5432 | passe | FA3 |
+| 2 | client-ext → https://203.0.113.1/api/sante | passe | rdr 443 + FA1 |
+| 3 | client-ext → http://203.0.113.1/ | passe | rdr 80 + FA1 |
+| 4 | client-ext → DNS @203.0.113.1 `www.p6.lab` (réponse 203.0.113.1) | passe | rdr 53 + FA2, vue externe |
+| 5 | client-01 → https://10.20.0.10/api/produits | passe | FA4 |
+| 6 | client-01 → DNS @10.20.0.40 `www.p6.lab` (réponse 203.0.113.1) | passe | FA4 |
+| 7 | dmz-pivot → 10.10.0.70:5432 | passe | FA3 trop large (faiblesse voulue) |
+| 8 | client-03 → 10.10.0.70:5432 | passe | même L2, pf ne voit rien (faiblesse voulue) |
+| 9 | client-03 → OPNsense 10.10.0.1:443 | passe | FA4 : console joignable depuis le LAN (faiblesse voulue) |
+| 10 | client-ext → 10.10.0.70:5432 | bloqué | FA5 (WAN → LAN, pas de rdr) |
+| 11 | dmz-pivot → client-01 10.10.0.10:22 | bloqué | FA5 (DMZ → LAN) ; de toute façon aucun SSH sur client-01 |
+| 12 | client-ext → 203.0.113.1:22 | bloqué | FA5 |
+
+`tests-cloisonnement.sh` (19, depuis Kali) : box 192.168.1.1 (ping), 8.8.8.8 (ping), DNS @8.8.8.8, HTTP 151.101.2.132 — passerelle OPNsense, pas de règle WAN, pas de route amont → bloqués ; Windows 10.99.0.2 ping / 445 / 3389 — directement par VMnet9, pare-feu Windows → bloqués ; OPNsense 10.99.0.1:443 et :22 — règle « Admin du pare-feu » (ADMINS seulement), SSH désactivé → bloqués ; 10.99.0.20:22 et 10.99.0.10:22 — `p6_ssh` → bloqués ; FA1 https et http, FA2 DNS `www.p6.lab` → passent ; 203.0.113.1:22, :5432, accès direct 10.20.0.10:80 et 10.10.0.70:5432 (sans NAT) → FA5 bloqués ; 203.0.113.1:5201 → FA6 désactivée, bloqué.
+
+**Deux sens de « bloqué » à ne pas confondre** dans le moteur : `tests.sh` et `tests-cloisonnement.sh` comptent un refus du service (RST, `nc -z` en échec) comme **bloqué** ; `test_flux.sh` (rôle 2) le compte comme **passé** (« le pare-feu a laissé passer »). Le moteur rend donc un verdict détaillé (passé / refusé par le service / jeté par une règle / pas de route), et chaque suite de tests le traduit à sa manière.
 
 `DecodeurPaquet` (jalon 5) : construit les octets d'une trame (Ethernet, 802.1Q si le saut est sur le trunk, IPv4, TCP/UDP/ICMP, en-tête applicatif simple : DNS, HTTP, TLS ClientHello, NTP, syslog) et les champs nommés avec leur explication ; checksums réellement calculés ; valeurs inventées (MAC, ports source, numéros de séquence) marquées « exemple ».
 
@@ -290,10 +332,14 @@ Une partie d'Identity (comptes, rôle `Admin` / `Membre`, claim `NumeroRole`) ar
 
 ---
 
-## 8. Décisions prises dans ce plan (à valider)
+## 8. Décisions
 
-1. **Schéma plan, pas isométrique** : on garde la géométrie du guide (`schemas-base.js`, zones colorées, viewBox ≈ 1000 × 660) en la mettant à jour (Windows sur MGMT, 10.99.0.20 et .66 confirmées, SSH filtré par `p6_ssh`, cartes em/ens réelles). Lisible projeté, et cohérent avec le rapport.
-2. **Textes des commandes conservés tels que dans le guide**, même quand la réalité diffère (`root@` au lieu de `karim@`, `/var/log/remote/` au lieu de `/var/log/p6/`, réseau `lan` au lieu de `p6_lan`). L'explication signale l'écart (« sur la plateforme réelle : … », avec le numéro E3x) et **le schéma montre la réalité**. Voir Q4 : à confirmer.
+1. **Schéma à plat, pas isométrique** (validé le 20 nov.) : on garde la géométrie du guide (`schemas-base.js`, zones colorées, viewBox ≈ 1000 × 660) en la mettant à jour (Windows sur MGMT, 10.99.0.20 et .66 définitives, SSH filtré par `p6_ssh`, cartes em/ens/eth réelles, Kali avec une route par défaut via 203.0.113.1). Lisible projeté, et cohérent avec le rapport.
+2. **Texte des commandes** (décidé le 20 nov.) :
+   - **Étapes marquées « fait »** : le terminal affiche la **commande réellement utilisée**. Compte `karim` + `sudo`, jamais `root@` ; chemins réels (`/var/log/p6/10.99.0.1.log`, réseaux `p6_lan` / `p6_dmz` / `p6_wan`, projet Compose `p6`, `~/p6-etat-a`) ; commandes reprises des scripts de `plateforme/labo/` quand ils existent. Le texte d'origine du guide est gardé dans un champ `TexteGuide` de `Commande` (traçabilité, affiché en petit sous « Dans le guide : … »).
+   - **Étapes pas encore réalisées** : texte exact du guide ; l'explication signale l'écart avec la plateforme réelle (« sur la plateforme réelle : … », numéro E3x).
+   - **SSH d'OPNsense** : désactivé pour l'instant. Toute commande `ssh … 10.99.0.1` est animée jusqu'à OPNsense et se termine par « service SSH arrêté » ; il sera réactivé sur MGMT, par clé seulement, pour l'orchestrateur (une bascule « SSH OPNsense actif » dans la topologie, éteinte par défaut).
+   - Dans tous les cas, **le schéma montre la réalité** (ECARTS.md E31–E42).
 3. **L'étape 0 du rôle 3** (mini-laboratoire WSL sur le PC d'un membre) a son propre petit schéma (4 conteneurs, 3 ponts isolés, mêmes adresses), au lieu de la carte du laboratoire.
 4. **Pas d'étape supplémentaire « Soutenance »** : pour rester à 47 étapes, les « questions probables du jury » de chaque rôle vont dans les quiz (comme le demande le prompt) et la « démonstration finale (2 minutes) » dans la fiche de la dernière étape du rôle.
 5. **Tests des services sur SQLite en mémoire** plutôt qu'EF InMemory (les contraintes et relations y sont vérifiées).
