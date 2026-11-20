@@ -33,6 +33,20 @@ public class Noeud
     public double Largeur { get; set; } = 96;
     public double Hauteur { get; set; } = 48;
     public List<Interface> Interfaces { get; set; } = [];
+    /// <summary>Ports en écoute (lus par le moteur réseau : connexion établie ou refusée par le service).</summary>
+    public List<ServiceReseau> Services { get; set; } = [];
+}
+
+/// <summary>Un port en écoute sur une machine (type owned de Noeud).</summary>
+public class ServiceReseau
+{
+    public string Nom { get; set; } = "";             // « nginx (HTTPS) », « sshd »
+    public string Proto { get; set; } = "tcp";        // tcp ou udp
+    public int Port { get; set; }
+    /// <summary>Adresse d'écoute ; null : toutes les adresses de la machine. 127.0.0.1 : la machine elle-même.</summary>
+    public string? Adresse { get; set; }
+    public bool Actif { get; set; } = true;
+    public string? Description { get; set; }
 }
 
 /// <summary>Une carte réseau d'une machine (em0, ens33.10, eth0…).</summary>
@@ -44,6 +58,8 @@ public class Interface
     public string Nom { get; set; } = "";
     public string? Description { get; set; }
     public string? ReseauCode { get; set; }
+    /// <summary>Nom de l'interface dans OPNsense (« WAN », « LAN », « DMZ-WEB »…) : c'est là que les règles s'écrivent.</summary>
+    public string? Affectation { get; set; }
     [JsonIgnore] public int? ReseauId { get; set; }
     [JsonIgnore] public Reseau? Reseau { get; set; }
     public AdresseIp? Adresse { get; set; }
@@ -117,6 +133,8 @@ public class RegleNat
     public string Cible { get; set; } = "";
     public string PortCible { get; set; } = "";
     public string? SourceAutorisee { get; set; }
+    /// <summary>Champ « Firewall rule » de la redirection (E36 : « Pass » sur la plateforme réelle).</summary>
+    public FiltrageNat Filtrage { get; set; } = FiltrageNat.Aucune;
     public bool Active { get; set; } = true;
     public string Description { get; set; } = "";
 }

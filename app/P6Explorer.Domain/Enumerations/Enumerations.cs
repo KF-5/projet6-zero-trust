@@ -41,6 +41,15 @@ public enum ActionRegle { Ajouter, Modifier, Activer, Desactiver, Supprimer, Vid
 [JsonConverter(typeof(JsonStringEnumConverter<ActionFiltre>))]
 public enum ActionFiltre { Pass, Block }
 
+/// <summary>
+/// Champ « Firewall rule » d'une Destination NAT d'OPNsense.
+/// Aucune : il faut une règle de filtrage vers l'adresse interne. Associee (« Register rule ») : OPNsense crée
+/// la règle « any → cible:port », qui laisse aussi passer un accès direct à la cible (E36).
+/// Pass : le paquet redirigé passe sans évaluer les règles de filtrage (choix de la plateforme réelle).
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<FiltrageNat>))]
+public enum FiltrageNat { Aucune, Associee, Pass }
+
 [JsonConverter(typeof(JsonStringEnumConverter<StatutValidation>))]
 public enum StatutValidation { Brouillon, AValider, Validee }
 

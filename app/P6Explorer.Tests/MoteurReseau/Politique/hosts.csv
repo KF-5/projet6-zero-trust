@@ -1,0 +1,11 @@
+hote,ip,segment_A,segment_B,conteneur
+client-ext,203.0.113.10,WAN,WAN,client-ext
+kali,203.0.113.66,WAN,WAN,-
+nginx,10.20.0.10,DMZ,DMZ-WEB,nginx
+dmz-pivot,10.20.0.20,DMZ,DMZ-WEB,dmz-pivot
+bind9,10.20.0.40,DMZ,DMZ-DNS,bind9
+api,10.20.0.70,DMZ,DMZ-APP,api
+client-01,10.10.0.10,LAN,LAN-USERS,client-01
+client-03,10.10.0.12,LAN,LAN-USERS,client-03
+postgresql,10.10.0.70,LAN,LAN-DB,postgres
+admin,10.10.0.100,LAN,LAN-ADMIN,admin

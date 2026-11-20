@@ -33,4 +33,23 @@ public class FichierTopologie
     public List<Lien> Liens { get; set; } = [];
     public List<Regle> Regles { get; set; } = [];
     public List<RegleNat> ReglesNat { get; set; } = [];
+
+    /// <summary>
+    /// Les machines sont décrites une fois (fichier de l'état A) ; un fichier suivant (état B) ne redonne que
+    /// leurs cartes propres à cet état (id + interfaces). On ajoute ces cartes et ces services à la première description.
+    /// </summary>
+    public static List<Noeud> FusionnerNoeuds(IEnumerable<FichierTopologie> fichiers)
+    {
+        var resultat = new Dictionary<string, Noeud>();
+        foreach (var n in fichiers.SelectMany(f => f.Noeuds))
+        {
+            if (resultat.TryGetValue(n.Id.Valeur, out var existant))
+            {
+                existant.Interfaces.AddRange(n.Interfaces);
+                existant.Services.AddRange(n.Services);
+            }
+            else resultat[n.Id.Valeur] = n;
+        }
+        return [.. resultat.Values];
+    }
 }

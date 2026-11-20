@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using P6Explorer.Application.Services;
 using P6Explorer.Domain.Commandes;
+using P6Explorer.Domain.Enumerations;
+using P6Explorer.Domain.Moteur;
+using P6Explorer.Domain.Valeurs;
 using P6Explorer.Infrastructure.Identite;
 using P6Explorer.Infrastructure.Persistance;
 using P6Explorer.Tests.Outils;
@@ -47,7 +50,33 @@ public class AmorcageTests
         using var scope = b.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<P6DbContext>();
         Assert.Equal(47, await db.Etapes.CountAsync());
-        Assert.Equal(1, await db.EtatsReseau.CountAsync());
+        Assert.Equal(2, await db.EtatsReseau.CountAsync());
+        Assert.Equal(Depot.LireTopologie("A").Noeuds.Count, await db.Noeuds.CountAsync());
+    }
+
+    [Fact]
+    public async Task Le_moteur_reseau_fonctionne_sur_la_topologie_enregistree_en_base()
+    {
+        using var b = new BaseDeTest();
+        await Amorcer(b);
+        using var scope = b.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<P6DbContext>();
+        var noeuds = await db.Noeuds.Include(n => n.Interfaces).AsNoTracking().ToListAsync();
+        var reseaux = await db.Reseaux.AsNoTracking().ToListAsync();
+        var regles = await db.Regles.AsNoTracking().ToListAsync();
+        var nat = await db.ReglesNat.AsNoTracking().ToListAsync();
+        // Cartes B ajoutées aux machines de l'état A, services (colonne JSON), affectations et mode de NAT relus.
+        Assert.Equal(2, noeuds.Single(n => n.Id == NoeudId.Nginx).Interfaces.Count);
+        Assert.Contains(noeuds.Single(n => n.Id == NoeudId.Bind9).Services, s => s.Proto == "udp" && s.Port == 53);
+
+        var a = new SimulateurPaquet(TopologieSimulee.Construire("A", noeuds, reseaux, regles, nat));
+        var bb = new SimulateurPaquet(TopologieSimulee.Construire("B", noeuds, reseaux, regles, nat));
+        var s05A = a.Simuler(new DemandeSimulation(NoeudId.Client03, "10.10.0.70", Protocole.PostgreSql));
+        var s05B = bb.Simuler(new DemandeSimulation(NoeudId.Client03, "10.10.0.70", Protocole.PostgreSql));
+        var web = a.Simuler(new DemandeSimulation(NoeudId.Kali, "203.0.113.1", Protocole.Https));
+        Assert.Equal((Verdict.Passe, false), (s05A.Verdict, s05A.Filterlog));
+        Assert.Equal((Verdict.Bloque, "F99"), (s05B.Verdict, s05B.Regle));
+        Assert.Equal((Verdict.Passe, "FA1"), (web.Verdict, web.Regle));
     }
 
     [Fact]

@@ -73,12 +73,12 @@ classDiagram
   class TermeGlossaire { +string Terme +string Definition +string? Comparaison }
 
   class EtatReseau { +string Code «A | B» +string Libelle +string? Description }
-  class Noeud { +NoeudId Id +string Nom +TypeNoeud Type +Zone Zone +string? Passerelle +NoeudId? Hote +double X, Y, Largeur, Hauteur }
-  class Interface { +string Nom +int? Vlan +AdresseIp? Adresse «owned» +bool Branchee +string? EtatReseauCode }
+  class Noeud { +NoeudId Id +string Nom +TypeNoeud Type +Zone Zone +string? Passerelle +NoeudId? Hote +double X, Y, Largeur, Hauteur +List~ServiceReseau~ Services «JSON» }
+  class Interface { +string Nom +string? Affectation +int? Vlan +AdresseIp? Adresse «owned» +bool Branchee +string? EtatReseauCode }
   class Reseau { +string Code +string Nom +Zone Zone +int? Vlan +AdresseIp? Prefixe «owned» +string? Passerelle +cadre X, Y, L, H }
   class Lien { +LienId Id +NoeudId De +NoeudId Vers +Zone Zone +bool Branche +List~double[]~ Points «JSON» }
   class Regle { +NoeudId Equipement +string Code +string Interface +int Ordre +ActionFiltre Action +string Proto, Source, Destination, Ports +bool Journal, Active }
-  class RegleNat { +string Code +string Proto +string AdressePublique, PortPublic +string Cible, PortCible +string? SourceAutorisee +bool Active }
+  class RegleNat { +string Code +string Proto +string AdressePublique, PortPublic +string Cible, PortCible +string? SourceAutorisee +FiltrageNat Filtrage +bool Active }
 
   class ApplicationUser { +int? NumeroRole +string? NomAffiche }
   class Revision { +Guid Lot +string Entite +int EntiteId +int? EtapeId +string Champ +string? Avant +string? Apres +DateTime Date }
@@ -156,11 +156,11 @@ classDiagram
 | `Simulations` | `Simulation` | `Id` | `EtatReseauCode` → `EtatsReseau` ; utilisateur mis à null à la suppression |
 | `Revisions` | `Revision` | `Id` | **sans** clé étrangère vers l'étape : l'historique survit à une suppression ; index (`EtapeId`, `Date`) |
 | `EtatsReseau` | `EtatReseau` | `Code` (« A », « B ») | réseaux, règles et règles NAT en cascade |
-| `Noeuds` | `Noeud` | `Id` (`NoeudId` converti) | position dans le SVG (centre, taille) |
-| `Interfaces` | `Interface` | `Id` | `Adresse` en **type owned** (`AdresseIp` : adresse + préfixe) ; réseau en `Restrict` |
+| `Noeuds` | `Noeud` | `Id` (`NoeudId` converti) | position dans le SVG (centre, taille) ; `Services` (ports en écoute lus par le moteur réseau) : **type owned rangé en JSON** dans une colonne (`ToJson`, jalon 3) |
+| `Interfaces` | `Interface` | `Id` | `Adresse` en **type owned** (`AdresseIp` : adresse + préfixe) ; réseau en `Restrict` ; `Affectation` : nom de l'interface dans OPNsense (WAN, LAN, DMZ-WEB…), là où s'écrivent les règles (jalon 3) |
 | `Reseaux` | `Reseau` | `Id` | `Code` unique ; `Prefixe` en **type owned** ; cadre de zone dans le SVG |
 | `Liens` | `Lien` | `Id` (`LienId` converti) | `Points` de la polyligne en JSON |
-| `Regles`, `ReglesNat` | `Regle`, `RegleNat` | `Id` | index (`EtatReseauCode`, `Equipement`, `Interface`, `Ordre`) : première correspondance |
+| `Regles`, `ReglesNat` | `Regle`, `RegleNat` | `Id` | index (`EtatReseauCode`, `Equipement`, `Interface`, `Ordre`) : première correspondance ; `RegleNat.Filtrage` (`Aucune`, `Associee`, `Pass` : champ « Firewall rule » d'OPNsense, E36), en texte (jalon 3) |
 | `AspNet…` | Identity | | `IdentityDbContext<ApplicationUser>` ; `NumeroRole` sur `AspNetUsers` |
 
 **Propriétés shadow** `DateCreation` et `DateModification` : ajoutées dans `OnModelCreating` à toute entité racine qui implémente `IHorodate` (contenu éditable, questions, fils), absentes des classes C#, remplies par `IntercepteurHorodatage` (`SaveChangesInterceptor`).
@@ -172,8 +172,17 @@ classDiagram
 | Données | Origine | Moment |
 |---|---|---|
 | Rôles, étapes, commandes, effets, pannes, critères | `donnees/commandes/role-1.json` … `role-6.json`, produits par `P6Explorer.Importeur` depuis le guide | amorçage, une seule fois (base vide) |
-| Topologie (nœuds, réseaux, liens, règles, NAT) | `donnees/topologie/etat-A.json` (état B au jalon 3) | amorçage, une seule fois |
+| Topologie (nœuds, réseaux, liens, règles, NAT) | `donnees/topologie/etat-A.json` (toutes les machines) et `etat-B.json` (cartes, réseaux, règles et NAT de l'état B seulement : fusionnés dans les machines de A) | amorçage, une seule fois |
 | Rôles Identity `Admin`, `Membre` ; compte admin | `RoleManager`, `UserManager` ; mot de passe dans les user-secrets | à chaque démarrage s'ils manquent |
 | Révisions, quiz, tentatives, progression, fils, simulations, preuves | l'équipe, par l'application | en continu |
 
 Après l'amorçage, **la base est la source de vérité** : les fichiers JSON ne sont plus relus.
+
+## 4. Migrations
+
+| Migration | Jalon | Contenu |
+|---|---|---|
+| `Initiale` | 2 | 34 tables |
+| `MoteurReseau` | 3 | `Noeuds.Services` (JSON), `Interfaces.Affectation`, `ReglesNat.Filtrage` (défaut `Aucune`) |
+
+L'amorçage de la topologie ne tourne que sur une base sans état réseau : une base créée avant le jalon 3 n'aurait pas l'état B. Aucune ne l'a été (LocalDB n'était pas installé) ; sinon, la supprimer (`dotnet ef database drop`) avant de relancer.

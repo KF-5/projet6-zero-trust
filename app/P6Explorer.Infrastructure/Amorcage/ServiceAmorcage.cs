@@ -55,23 +55,30 @@ public class ServiceAmorcage(
     private async Task AmorcerTopologieAsync(string dossier, CancellationToken annulation)
     {
         if (await contexte.EtatsReseau.AnyAsync(annulation)) return;
-        var fichiers = Directory.GetFiles(Path.Combine(dossier, "topologie"), "etat-*.json").Order().ToList();
-        var noeudsVus = new HashSet<string>();
-        var liensVus = new HashSet<string>();
-        foreach (var chemin in fichiers)
+        var chemins = Directory.GetFiles(Path.Combine(dossier, "topologie"), "etat-*.json").Order().ToList();
+        var fichiers = chemins.Select(c => (Chemin: c, Fichier: Lire<FichierTopologie>(c))).ToList();
+        var reseaux = new Dictionary<string, Reseau>();
+        foreach (var (chemin, f) in fichiers)
         {
-            var f = Lire<FichierTopologie>(chemin);
             contexte.EtatsReseau.Add(new EtatReseau { Code = f.Etat, Libelle = f.Libelle, Description = f.Description });
-            var reseaux = f.Reseaux.ToDictionary(r => r.Code);
-            contexte.Reseaux.AddRange(f.Reseaux);
-            foreach (var n in f.Noeuds.Where(n => noeudsVus.Add(n.Id.Valeur)))
-            {
-                foreach (var i in n.Interfaces)
-                    if (i.ReseauCode is not null)
-                        i.Reseau = reseaux.TryGetValue(i.ReseauCode, out var r) ? r
-                            : throw new DonneesAmorcageInvalidesException(chemin, $"réseau « {i.ReseauCode} » inconnu (interface {n.Id} {i.Nom}).");
-                contexte.Noeuds.Add(n);
-            }
+            foreach (var r in f.Reseaux)
+                if (!reseaux.TryAdd(r.Code, r))
+                    throw new DonneesAmorcageInvalidesException(chemin, $"réseau « {r.Code} » déjà décrit dans un autre fichier.");
+        }
+        // Une machine est décrite une fois ; les fichiers suivants n'ajoutent que ses cartes propres à leur état.
+        foreach (var n in FichierTopologie.FusionnerNoeuds(fichiers.Select(x => x.Fichier)))
+        {
+            if (string.IsNullOrWhiteSpace(n.Nom))
+                throw new DonneesAmorcageInvalidesException(chemins[0], $"machine « {n.Id} » sans description complète (nom manquant).");
+            foreach (var i in n.Interfaces.Where(i => i.ReseauCode is not null))
+                i.Reseau = reseaux.TryGetValue(i.ReseauCode!, out var r) ? r
+                    : throw new DonneesAmorcageInvalidesException(chemins[0], $"réseau « {i.ReseauCode} » inconnu (interface {n.Id} {i.Nom}).");
+            contexte.Noeuds.Add(n);
+        }
+        contexte.Reseaux.AddRange(reseaux.Values);
+        var liensVus = new HashSet<string>();
+        foreach (var (_, f) in fichiers)
+        {
             contexte.Liens.AddRange(f.Liens.Where(l => liensVus.Add(l.Id.Valeur)));
             contexte.Regles.AddRange(f.Regles);
             contexte.ReglesNat.AddRange(f.ReglesNat);

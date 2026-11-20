@@ -56,10 +56,63 @@ public class TopologieTests
     public void Regles_de_l_etat_A()
     {
         var opn = _a.Regles.Where(r => r.Equipement == NoeudId.Opnsense).ToList();
-        Assert.Equal(["FA1", "FA2", "FA6", "FA5"], opn.Where(r => r.Interface == "WAN").OrderBy(r => r.Ordre).Select(r => r.Code));
+        // FA1 et FA2 sont des redirections « Pass » (E36) : aucune règle de filtrage ne leur correspond sur le WAN.
+        Assert.Equal(["FA6", "FA5"], opn.Where(r => r.Interface == "WAN").OrderBy(r => r.Ordre).Select(r => r.Code));
+        Assert.All(_a.ReglesNat.Where(r => r.Code is "FA1" or "FA2"), r => Assert.Equal(FiltrageNat.Pass, r.Filtrage));
         Assert.False(opn.Single(r => r.Code == "FA6").Active);
         Assert.All(opn.Where(r => r.Code == "FA5"), r => Assert.Equal(ActionFiltre.Block, r.Action));
         Assert.Contains(opn, r => r.Code == "Admin du pare-feu" && r.Source == "10.99.0.2;10.99.0.10" && r.Ports == "22;443");
         Assert.Equal(3, _a.ReglesNat.Count(r => r.Active));
+    }
+
+    [Fact]
+    public void Chaque_interface_filtree_d_OPNsense_a_une_affectation()
+    {
+        var opn = _a.Noeuds.Single(n => n.Id == NoeudId.Opnsense);
+        Assert.Equal(["WAN", "LAN", "DMZ", "MGMT"], opn.Interfaces.Where(i => i.Affectation is not null).Select(i => i.Affectation!));
+        Assert.All(_a.Regles.Where(r => r.Equipement == NoeudId.Opnsense), r => Assert.Contains(r.Interface, new[] { "WAN", "LAN", "DMZ", "MGMT" }));
+    }
+}
+
+/// <summary>Topologie de l'état B : segments de la section 5.1, règles produites par c2.py (regles-B.md).</summary>
+public class TopologieEtatBTests
+{
+    private readonly Domain.Amorcage.FichierTopologie _a = Depot.LireTopologie("A");
+    private readonly Domain.Amorcage.FichierTopologie _b = Depot.LireTopologie("B");
+
+    [Fact]
+    public void Le_fichier_B_ne_decrit_que_des_machines_de_l_etat_A()
+    {
+        var connues = _a.Noeuds.Select(n => n.Id).ToHashSet();
+        Assert.All(_b.Noeuds, n => Assert.Contains(n.Id, connues));
+        Assert.All(_b.Noeuds.SelectMany(n => n.Interfaces), i => Assert.Equal("B", i.EtatReseauCode));
+        var reseaux = _a.Reseaux.Concat(_b.Reseaux).Select(r => r.Code).ToList();
+        Assert.Equal(reseaux.Count, reseaux.Distinct().Count());
+        Assert.All(_b.Noeuds.SelectMany(n => n.Interfaces), i => Assert.Contains(i.ReseauCode!, reseaux));
+    }
+
+    [Theory]
+    [InlineData("vlan0.11", 11, "10.10.0.1", 26)]
+    [InlineData("vlan0.12", 12, "10.10.0.65", 27)]
+    [InlineData("vlan0.13", 13, "10.10.0.97", 27)]
+    [InlineData("vlan0.21", 21, "10.20.0.1", 27)]
+    [InlineData("vlan0.22", 22, "10.20.0.33", 27)]
+    [InlineData("vlan0.23", 23, "10.20.0.65", 27)]
+    public void Six_segments_et_leurs_passerelles(string carte, int vlan, string ip, int prefixe)
+    {
+        var i = _b.Noeuds.Single(n => n.Id == NoeudId.Opnsense).Interfaces.Single(x => x.Nom == carte);
+        Assert.Equal((vlan, ip, prefixe), (i.Vlan!.Value, i.Adresse!.Adresse, i.Adresse.Prefixe));
+    }
+
+    [Fact]
+    public void Regles_de_l_etat_B_comme_regles_B_md()
+    {
+        var opn = _b.Regles.Where(r => r.Equipement == NoeudId.Opnsense && r.Interface != "MGMT").ToList();
+        Assert.Equal(16, opn.Count);                                                    // « 16 règles sur 7 interfaces »
+        Assert.Equal(7, opn.Select(r => r.Interface).Distinct().Count());
+        Assert.Equal(Enumerable.Range(1, 9).Select(n => $"F0{n}"), opn.Where(r => r.Code != "F99").Select(r => r.Code).Order());
+        Assert.False(opn.Single(r => r.Code == "F09").Active);
+        Assert.All(opn.GroupBy(r => r.Interface), g => Assert.Equal("F99", g.MaxBy(r => r.Ordre)!.Code));
+        Assert.DoesNotContain(opn, r => r.Action == ActionFiltre.Pass && r.Destination == "any");   // plus de « net → any »
     }
 }

@@ -32,6 +32,15 @@ public class NoeudConfiguration : IEntityTypeConfiguration<Noeud>
         b.Property(n => n.Description).HasMaxLength(1000);
         b.Property(n => n.Passerelle).HasMaxLength(45);
         b.HasMany(n => n.Interfaces).WithOne(i => i.Noeud).HasForeignKey(i => i.NoeudId).OnDelete(DeleteBehavior.Cascade);
+        // Ports en écoute : petite liste lue d'un bloc par le moteur réseau, rangée en JSON dans la colonne Services.
+        b.OwnsMany(n => n.Services, s =>
+        {
+            s.ToJson();
+            s.Property(x => x.Nom).HasMaxLength(80);
+            s.Property(x => x.Proto).HasMaxLength(3);
+            s.Property(x => x.Adresse).HasMaxLength(45);
+            s.Property(x => x.Description).HasMaxLength(200);
+        });
     }
 }
 
@@ -44,6 +53,7 @@ public class InterfaceConfiguration : IEntityTypeConfiguration<Interface>
         b.Property(i => i.Nom).HasMaxLength(30).IsRequired();
         b.Property(i => i.Description).HasMaxLength(200);
         b.Property(i => i.ReseauCode).HasMaxLength(30);
+        b.Property(i => i.Affectation).HasMaxLength(20);
         b.Property(i => i.EtatReseauCode).HasMaxLength(1);
         // Type owned : adresse + préfixe, rangés dans la table Interfaces (Adresse_Adresse, Adresse_Prefixe).
         b.OwnsOne(i => i.Adresse, a =>
@@ -124,6 +134,7 @@ public class RegleNatConfiguration : IEntityTypeConfiguration<RegleNat>
         b.Property(r => r.Cible).HasMaxLength(45);
         b.Property(r => r.PortCible).HasMaxLength(20);
         b.Property(r => r.SourceAutorisee).HasMaxLength(45);
+        b.Property(r => r.Filtrage).HasConversion<string>().HasMaxLength(8);
         b.Property(r => r.Description).HasMaxLength(300);
     }
 }

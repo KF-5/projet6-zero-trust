@@ -322,7 +322,7 @@ Chaque jalon se termine par un commit `[rôle 1] …` sur `role-1-plateforme-gra
 |---|---|---|---|
 | 1 | Étude | `docs/style-reference.md`, `docs/plan-plateforme.md`, `docs/questions.md` | fait |
 | 2 | Solution et base | 6 projets qui compilent sans avertissement ; `docs/modele-donnees.md` ; `DbContext` + configurations Fluent ; première migration ; script Node + importeur → `donnees/commandes/role-1..6.json` (47 étapes, toutes les commandes, effets proposés) ; amorçage au démarrage ; Layout, thème, accueil avec le SVG de l'état A ; `app/README.md` (débutant) | 4–6 h |
-| 3 | Moteur réseau | `MoteurRoutage`, `MoteurNat`, `MoteurParefeu`, topologies A et B ; `dotnet test` : 12/12, 19/19, `tests.csv` A et B, cas client-ext → postgres | 4–6 h |
+| 3 | Moteur réseau | `MoteurRoutage`, `MoteurNat`, `MoteurParefeu`, topologies A et B ; `dotnet test` : 12/12, 19/19, `tests.csv` A et B, cas client-ext → postgres | fait |
 | 4 | Lecteur + rôle 1 + édition | API `api/etapes/{id}/commandes`, `lecteur.js` (paquets, terminal, surbrillance, contrôles, URL par commande, session) ; les 112 commandes du rôle 1 avec leurs effets ; CRUD étapes / commandes / effets, politique `ModifierSonRole` (avec un Identity minimal), intercepteur et historique avec retour arrière, preuves (`IFormFile`), `TempData` | 6–8 h |
 | 5 | Décodeur | `DecodeurPaquet` + `_DecodeurOctets` (couches, hexa synchronisé) ; tests xUnit des octets (checksums) | 3–4 h |
 | 6 | Rôles 2 à 6 | effets de toutes les commandes, un rôle par sous-commit ; état B et bascule A ↔ B (rôle 2 étape 8, rôle 4 étape 8) ; schémas propres au rôle 3 (netmap, alertes) ; `docs/a-completer.md` vide ou justifié | 8–12 h |
@@ -349,6 +349,28 @@ Une partie d'Identity (comptes, rôle `Admin` / `Membre`, claim `NumeroRole`) ar
 **348 commandes au lieu des ≈ 394 estimées** (section 1.3) : l'estimation comptait une commande par ligne ; l'importeur regroupe les commandes écrites sur plusieurs lignes (« \ » final, here-documents, boucles `for … done`, blocs `foreach { }`) et compte un tableau ou un plan du guide comme un seul « document ». Les scripts seront dépliés en sous-commandes aux jalons 3 à 6.
 
 **Commandes réellement utilisées (étapes faites)** : règles génériques dans l'importeur (`root@` → `karim@`, `sudo` pour l'administration sur les VM, chemins `/var/log/p6/`, `p6_lan`, `p6/outils:1`, `p6.lab`, `~/p6-etat-a`, SSH d'OPNsense remplacé par la console), plus `donnees/corrections/etapes-faites.json` : blocs du rôle 4 remplacés par les vrais fichiers de `plateforme/labo/` (compose, API, schéma SQL, bind9, nginx) et les deux réglages d'OPNsense de r2-e2 (SSH désactivé, règle « Admin du pare-feu »). Le texte d'origine reste dans `TexteGuide`.
+
+### 7.2 Jalon 3 — réalisé le 20 novembre
+
+| Livrable | État |
+|---|---|
+| `MoteurRoutage`, `MoteurNat`, `MoteurParefeu`, `SimulateurPaquet` | fait, dans `P6Explorer.Domain/Moteur/`, pur C# sans dépendance |
+| Topologies A et B | `etat-A.json` complété (ports en écoute, affectations OPNsense, redirections « Pass ») ; `etat-B.json` créé (6 segments, cartes B des 8 conteneurs et d'OPNsense, règles de `regles-B.md`, MGMT inchangé). Câbles du schéma B : jalon 6 |
+| `tests.sh` | **12/12** |
+| `tests-cloisonnement.sh` | **19/19** |
+| `tests.csv` A et B | **8/8** et **42/42**, rejoués avec le sens de `test_flux.sh` ; fichiers produits par le vrai `c2.py` du guide sur les CSV de la page Contrats (mêmes nombres que le guide) |
+| Cas nommés | `client-ext → postgres:5432` bloqué par FA5 et journalisé ; Kali ne joint ni MGMT (administration), ni la box, ni Internet, ni Windows, en A comme en B ; S-05 sans filterlog en A, jeté par F99 en B ; S-04 |
+| Migration `MoteurReseau` | faite (3 colonnes) ; script SQL relu ; **exécution sur LocalDB toujours non vérifiée** (LocalDB absent du poste) |
+| Tests | **202 tests xUnit passent**, 0 avertissement ; le moteur tourne aussi sur la topologie relue depuis la base (SQLite) |
+
+Choix faits en cours de route :
+
+- **FA1 et FA2 ne sont plus des règles de filtrage** dans `etat-A.json` : sur la plateforme réelle, ce sont des redirections « Firewall rule = Pass » (E36), qui sautent le filtrage. C'est ce qui rend « accès direct 10.20.0.10:80 » bloqué (`tests-cloisonnement.sh` n°17) ; avec une règle FA1 « any → 10.20.0.10 », Kali passerait. Le mode « Register rule » reste simulable (`FiltrageNat.Associee`) pour montrer l'écart E36.
+- **Route de retour** : la machine d'arrivée doit pouvoir répondre. p6-docker et p6-collecteur n'ont pas de passerelle : un poste du LAN qui passe FA4 vers MGMT n'obtient pas de réponse (Q10).
+- **Passerelle des conteneurs en B** : celle du réseau Docker (ipam) quand la passerelle de l'état A n'est plus sur le segment (bind9 : 10.20.0.33).
+- Deux constats nouveaux, sans changer les données : **Q15** (F01 rouvre E36 en état B) et **Q16** (Kali joint NTP, syslog et le ping des VM par MGMT).
+
+Le dépliage de `tests.sh` et `tests-cloisonnement.sh` en sous-commandes (une par test, avec son paquet) se fera avec les commandes du rôle 1, au jalon 4 : le moteur donne déjà le verdict de chacune.
 
 ## 8. Décisions
 

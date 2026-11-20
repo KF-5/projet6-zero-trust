@@ -975,6 +975,10 @@ namespace P6Explorer.Infrastructure.Persistance.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Affectation")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<bool>("Branchee")
                         .HasColumnType("bit");
 
@@ -1223,6 +1227,11 @@ namespace P6Explorer.Infrastructure.Persistance.Migrations
                         .IsRequired()
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)");
+
+                    b.Property<string>("Filtrage")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
 
                     b.Property<string>("Interface")
                         .IsRequired()
@@ -2055,6 +2064,54 @@ namespace P6Explorer.Infrastructure.Persistance.Migrations
                     b.Navigation("Noeud");
 
                     b.Navigation("Reseau");
+                });
+
+            modelBuilder.Entity("P6Explorer.Domain.Topologie.Noeud", b =>
+                {
+                    b.OwnsMany("P6Explorer.Domain.Topologie.ServiceReseau", "Services", b1 =>
+                        {
+                            b1.Property<string>("NoeudId")
+                                .HasColumnType("nvarchar(40)");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            b1.Property<bool>("Actif")
+                                .HasColumnType("bit");
+
+                            b1.Property<string>("Adresse")
+                                .HasMaxLength(45)
+                                .HasColumnType("nvarchar(45)");
+
+                            b1.Property<string>("Description")
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<string>("Nom")
+                                .IsRequired()
+                                .HasMaxLength(80)
+                                .HasColumnType("nvarchar(80)");
+
+                            b1.Property<int>("Port")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("Proto")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)");
+
+                            b1.HasKey("NoeudId", "Id");
+
+                            b1.ToTable("Noeuds");
+
+                            b1.ToJson("Services");
+
+                            b1.WithOwner()
+                                .HasForeignKey("NoeudId");
+                        });
+
+                    b.Navigation("Services");
                 });
 
             modelBuilder.Entity("P6Explorer.Domain.Topologie.Regle", b =>

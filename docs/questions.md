@@ -20,7 +20,7 @@ Répondu par `tests.sh` : un poste du LAN joint la console d'OPNsense par sa pas
 
 Reste incertain : un poste du LAN (10.10.0.10) qui vise une adresse **MGMT** (10.99.0.1, 10.99.0.20…) ou **Kali** (203.0.113.66). FA4 « LAN net → any » semble l'autoriser au niveau de pf.
 
-**Hypothèse suivie (la plus prudente pour la démonstration) :** pf laisse passer par FA4 ; sur les VM, le filtre `p6_ssh` jette le port 22 ; les autres ports sont « refusés par le service » s'il n'écoute pas. Le moteur affiche ce verdict avec la mention « non vérifié sur la plateforme ». À confirmer par un test depuis client-03 (par exemple `nc -z -w 3 10.99.0.20 22` et `ping 10.99.0.10`).
+**Hypothèse suivie (la plus prudente pour la démonstration) :** pf laisse passer par FA4 ; sur les VM, le filtre `p6_ssh` jette le port 22. **Précisé au jalon 3 :** pour les autres ports, la connexion échoue quand même, car p6-docker et p6-collecteur n'ont **aucune route de retour** vers 10.10.0.0/24 (pas de passerelle depuis que la carte NAT est débranchée) : le moteur rend « injoignable, pas de route de retour ». À confirmer par un test depuis client-03 (par exemple `nc -z -w 3 10.99.0.20 22`, `ping -c 2 10.99.0.10`) et `ip route` sur les deux VM.
 
 ### Q11 — Informations personnelles affichées · ouvert
 
@@ -46,6 +46,18 @@ Trouvé au jalon 2 en relisant `plateforme/labo/docker/p6-etat-a/api/app.py` et 
 - la table réelle est `produit` (id, nom, prix, stock, categorie_id), **sans colonne `secret`** : le critère d'objectif de S-03 (« la sortie de curl contient « secret » », rôle 5 et `correle.py` du rôle 6) ne peut jamais être atteint en état A.
 
 **Hypothèse suivie :** le rôle 4 étape 3 (faite) montre la requête numérique réelle ; les étapes des rôles 5 et 6 (à venir) gardent le texte du guide, avec l'écart signalé. À trancher avec les rôles 4, 5 et 6 avant la campagne A (changer la commande de S-03 et son critère, ou ajouter une donnée « secrète » à la base).
+
+### Q15 — État B : la règle F01 rouvre l'écart E36 · ouvert (trouvé au jalon 3)
+
+`regles-B.md` (sortie de `c2.py --etat B`) crée sur le WAN **F01 : pass any → 10.20.0.10, ports 80 et 443** et **F02 : any → 10.20.0.40:53**. Sur la plateforme réelle, les redirections FA1/FA2 sont en « Firewall rule = Pass » (E36) : un paquet redirigé n'est pas filtré, donc F01 et F02 ne servent à rien pour le trafic légitime, mais elles laissent **Kali joindre 10.20.0.10:80 directement, sans traduction** (Kali a le pare-feu pour passerelle) — exactement le trou corrigé en E36. Le test `tests-cloisonnement.sh` n°17 (« accès direct DMZ 10.20.0.10:80 ») échouerait en état B.
+
+**Hypothèse suivie :** l'état B simulé garde les redirections de l'état A telles quelles (« Pass », le guide ne les modifie pas) et applique `regles-B.md` à la lettre ; le moteur montre donc le trou (test `Q15_en_B_la_regle_F01_laisse_joindre_nginx_sans_traduction`). À trancher avec le rôle 2 avant les 22–23 nov. : ne pas saisir F01/F02 sur le WAN (les redirections « Pass » suffisent), ou repasser les redirections en « Aucune » et garder F01/F02 en limitant la destination à ce qui a été redirigé.
+
+### Q16 — Kali joint encore NTP et syslog du collecteur, et le ping des VM, par MGMT · ouvert (trouvé au jalon 3)
+
+Le filtre `p6_ssh` (E35) ne vise que TCP 22. Depuis Kali (10.99.0.66, même segment MGMT, sans pare-feu entre eux) : `chronyd` du collecteur répond (`allow 10.99.0.0/24`), `rsyslog` accepte des lignes sur UDP 514, et p6-docker comme p6-collecteur répondent au ping. Aucun de ces cas n'est dans `tests-cloisonnement.sh`. Le plus gênant : **Kali peut écrire de fausses lignes `filterlog` dans `/var/log/p6/`**, que l'analyse (rôle 6) prendrait pour vraies.
+
+**Hypothèse suivie :** le moteur montre la réalité (test `Q16_Kali_joint_encore_NTP_et_syslog_du_collecteur_et_le_ping_des_VM`). Durcissement proposé (E35 le prévoyait) : sur le collecteur, accepter UDP 123 et 514 seulement depuis 10.99.0.1, 10.99.0.20 et 10.99.0.2 ; ou, plus simple, une règle `nftables` sur Kali qui jette tout en sortie de eth1 sauf les réponses SSH.
 
 ---
 
