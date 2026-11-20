@@ -1,0 +1,1974 @@
+{
+  "version": 1,
+  "source": "sources/guide/data (rôle services)",
+  "role": {
+    "numero": 4,
+    "cle": "services",
+    "titre": "Services applicatifs",
+    "courtNom": "Services",
+    "couleur": "--r4",
+    "mission": "Installer Docker et les réseaux macvlan par VLAN, déployer nginx, l'API Flask, PostgreSQL, bind9 et tous les conteneurs clients, fournir l'outil de capture par conteneur, puis basculer en état B.",
+    "introduction": "**Vos conteneurs sont la cible de tout le monde** : test_flux (rôle 2), sonde (rôle 3), attaques (rôle 5), captures (rôle 6). Leur nom de conteneur et leur adresse doivent correspondre exactement à `hosts.csv` (page Contrats).\n\n**Mise à jour du 17 novembre.** Les étapes 1 à 6 ont été réalisées par le rôle 1 : l'état A tourne sur `p6-docker` (10.99.0.20) avec 10 conteneurs, et `tests.sh` donne 12/12. Les fichiers sont dans `~/p6-etat-a` sur la VM (copie de `D:\\Labo-P6\\docker\\p6-etat-a` sur l'hôte) : un seul `docker-compose.yml` (projet `p6`), `setup.sh` relançable, `tests.sh`. Vérifie-les, reprends-les dans le dépôt Git, puis enchaîne sur l'étape 7 (outil de capture C10).\n\nCartes réelles de `p6-docker` : `ens32` (MGMT), `ens33` (trunk, « eth1 » du rapport), `ens34` (WAN, « eth2 »), `ens35` (NAT, débranchée). Réseaux Docker réels : `p6_lan`, `p6_dmz`, `p6_wan` (le nom du projet Compose est ajouté devant). Docker installé : **26.1.5** avec Compose 2.26.1 (paquets Debian `docker.io` et `docker-compose`), pas Docker Engine 29. La VM n'a pas Internet : pour un `apt` ou un `docker pull`, demande au rôle 1 de rebrancher sa carte NAT le temps du téléchargement.",
+    "demonstration": "Ce que vous montrez en 2 minutes : les services sont de vraies machines de leur segment.\n1. `docker network ls` et `ip -d link show ens33.12` : un réseau macvlan par VLAN.\n2. `docker exec postgres ip route` en état B : /27 et passerelle 10.10.0.65, même adresse qu'en A.\n3. `curl -k https://203.0.113.1/api/produits` depuis client-ext : la chaîne complète.\n4. Le PCAP d'une exécution capturé par capture.sh.\nPlan de secours : captures des sorties dans le rapport.",
+    "etapes": [
+      {
+        "numero": 1,
+        "code": "r4-e1",
+        "titre": "Installer Docker et les outils sur l'hôte Docker",
+        "quand": "14 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1 : Docker **26.1.5** et Compose 2.26.1 (paquets Debian), tcpdump installé, `karim` dans le groupe `docker`. Le filtre SSH du rôle 1 est la table `inet p6_ssh` (pas `inet mgmt`) : `sudo nft list table inet p6_ssh` doit toujours l'afficher à côté des tables de Docker.",
+        "but": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+        "pourquoi": "Section 6 : les services tournent en conteneurs Docker rattachés aux VLAN par macvlan (4 VM au lieu de 9, section 11.1). test_flux et les captures s'exécutent depuis cet hôte.",
+        "prerequis": "Étapes : chef-4\nModules du cours : 8\nFait par le rôle 1. Pour toute nouvelle installation : carte NAT de p6-docker rebranchée le temps du téléchargement.",
+        "livrable": "Mettre la version exacte de Docker dans `docs/versions.md`. Message au rôle 2 : « hôte Docker prêt, nsenter disponible pour test_flux ».",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Dépôt officiel Docker pour Debian 13",
+            "texte": "sudo apt-get update",
+            "texteGuide": "apt-get update && apt-get install -y ca-certificates curl\ninstall -m 0755 -d /etc/apt/keyrings\ncurl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc\nchmod a+r /etc/apt/keyrings/docker.asc\ntee /etc/apt/sources.list.d/docker.sources <<EOF\nTypes: deb\nURIs: https://download.docker.com/linux/debian\nSuites: $(. /etc/os-release && echo \"$VERSION_CODENAME\")\nComponents: stable\nSigned-By: /etc/apt/keyrings/docker.asc\nEOF\napt-get update\napt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin\napt-get install -y netcat-openbsd dnsutils tcpdump      # test_flux (rôle 2) et captures (étape 7)",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).\nDocker 26.1.5 et Compose 2.26.1 des paquets Debian, pas le dépôt officiel de Docker (écart E38).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Met à jour la liste des paquets (carte NAT branchée le temps du téléchargement).",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Dépôt officiel Docker pour Debian 13",
+            "texte": "sudo apt-get install -y docker.io docker-compose netcat-openbsd dnsutils tcpdump",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).\nDocker 26.1.5 et Compose 2.26.1 des paquets Debian, pas le dépôt officiel de Docker (écart E38).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Installe : docker.io, docker-compose, netcat-openbsd, dnsutils, tcpdump",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Dépôt officiel Docker pour Debian 13",
+            "texte": "sudo usermod -aG docker karim",
+            "explication": "Modifie un compte (ici, l'ajoute à un groupe).\nDocker 26.1.5 et Compose 2.26.1 des paquets Debian, pas le dépôt officiel de Docker (écart E38).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Images à télécharger pendant la même fenêtre",
+            "texte": "docker pull postgres:17",
+            "texteGuide": "docker pull postgres:17\ndocker pull nginx:stable\ndocker pull python:3.13-slim\ndocker pull internetsystemsconsortium/bind9:9.20\ndocker pull debian:13-slim",
+            "explication": "Télécharge une image Docker (carte NAT branchée le temps du téléchargement).\nImages de base réellement utilisées par ~/p6-etat-a/docker-compose.yml (carte NAT branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker pull",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Images à télécharger pendant la même fenêtre",
+            "texte": "docker pull nginx:1.27-alpine",
+            "explication": "Télécharge une image Docker (carte NAT branchée le temps du téléchargement).\nImages de base réellement utilisées par ~/p6-etat-a/docker-compose.yml (carte NAT branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker pull",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c06",
+            "ordre": 6,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Images à télécharger pendant la même fenêtre",
+            "texte": "docker pull python:3.12-slim",
+            "explication": "Télécharge une image Docker (carte NAT branchée le temps du téléchargement).\nImages de base réellement utilisées par ~/p6-etat-a/docker-compose.yml (carte NAT branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker pull",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c07",
+            "ordre": 7,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Images à télécharger pendant la même fenêtre",
+            "texte": "docker pull internetsystemsconsortium/bind9:9.20",
+            "explication": "Télécharge une image Docker (carte NAT branchée le temps du téléchargement).\nImages de base réellement utilisées par ~/p6-etat-a/docker-compose.yml (carte NAT branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker pull",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c08",
+            "ordre": 8,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Images à télécharger pendant la même fenêtre",
+            "texte": "docker pull debian:trixie-slim",
+            "explication": "Télécharge une image Docker (carte NAT branchée le temps du téléchargement).\nImages de base réellement utilisées par ~/p6-etat-a/docker-compose.yml (carte NAT branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker pull",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c09",
+            "ordre": 9,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/outils/Dockerfile",
+            "texte": "# Image commune des postes (client-01, client-03, admin, client-ext, dmz-pivot)\nFROM debian:trixie-slim\nRUN apt-get update \\\n && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\\n      ca-certificates curl dnsutils iproute2 iputils-ping netcat-openbsd \\\n      postgresql-client iperf3 tcpdump python3 python3-requests procps \\\n && rm -rf /var/lib/apt/lists/*\nCMD [\"sleep\", \"infinity\"]",
+            "texteGuide": "# services/outils/Dockerfile — image commune des postes (clients, dmz-pivot, admin, client-ext, iperf3)\nFROM debian:13-slim\nRUN apt-get update && apt-get install -y --no-install-recommends \\\n      curl ca-certificates dnsutils nmap netcat-openbsd postgresql-client iperf3 \\\n      iproute2 iputils-ping procps openssh-client python3 python3-requests python3-dnspython \\\n    && rm -rf /var/lib/apt/lists/*\n#   nmap, psql : nécessaires aux scénarios S-04 et S-05 lancés dans dmz-pivot et client-03\n#   python3-requests, python3-dnspython, procps (pkill) : sonde SLA du rôle 3\n# Construction (pendant une fenêtre de configuration) :  docker build -t projet6/outils services/outils",
+            "explication": "Contenu du fichier ~/p6-etat-a/outils/Dockerfile.\nImage commune des postes, étiquetée p6/outils:1.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/outils/Dockerfile",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c10",
+            "ordre": 10,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Construire",
+            "texte": "cd ~/p6-etat-a && docker compose build",
+            "texteGuide": "mkdir -p /opt/projet6/services/outils     # ou le dépôt, s'il est déjà cloné (rôle 1, étape 7)\n# y placer le Dockerfile ci-dessus, puis :\ndocker build -t projet6/outils /opt/projet6/services/outils     # apt-get dans l'image : carte NAT branchée",
+            "explication": "Se place dans un dossier.\nConstruit p6/outils:1 et p6/api:1 (projet Compose « p6 », écart E38).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker compose build",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c11",
+            "ordre": 11,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker version --format '{{.Server.Version}}'",
+            "explication": "Pilote Docker : construire, démarrer, inspecter ou entrer dans un conteneur.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker version",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c12",
+            "ordre": 12,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker compose version",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker compose version",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e1-c13",
+            "ordre": 13,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "sudo nft list tables",
+            "texteGuide": "nft list tables",
+            "explication": "Règle ou affiche le pare-feu nftables de la machine Linux.\nCommande lancée avec sudo : sur les VM, on travaille avec le compte karim (écart E40).\nDans la sortie, « 29.x.y » : Docker Engine 29\nDans la sortie, « table inet p6_ssh » : le filtre SSH du rôle 1 est toujours là\nDans la sortie, « table ip nat / filter » : tables créées par Docker (selon la version, ip ou inet)",
+            "sortie": "26.1.5\nDocker Compose version 2.26.1\ntable inet p6_ssh\ntable ip nat\ntable ip filter\n…",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "règles nftables",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "`apt-get update` échoue",
+            "cause": "Carte NAT débranchée",
+            "solution": "Rebrancher le temps de l'installation (rôle 1, étape 4)."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Plus de SSH depuis le collecteur après l'installation",
+            "cause": "`nft list ruleset`",
+            "solution": "Recharger `/etc/nftables.d/mgmt.nft` ; ne jamais utiliser `flush ruleset` sur cet hôte."
+          },
+          {
+            "ordre": 3,
+            "symptome": "« permission denied » sur docker",
+            "cause": "Utilisateur hors du groupe docker",
+            "solution": "Travailler en root, ou `usermod -aG docker <vous>` puis reconnexion."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Docker 26.1.5 et Compose 2.26.1 installés"
+          },
+          {
+            "ordre": 2,
+            "texte": "nc, dig, tcpdump présents sur l'hôte"
+          },
+          {
+            "ordre": 3,
+            "texte": "Les 5 images de base téléchargées, projet6/outils construite"
+          },
+          {
+            "ordre": 4,
+            "texte": "Le pare-feu MGMT est intact"
+          }
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "r4-e2",
+        "titre": "Créer les réseaux macvlan de l'état A",
+        "quand": "15–16 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1, avec des noms différents : `p6_lan` (parent `ens33.10`), `p6_dmz` (`ens33.20`), `p6_wan` (`ens34`), créés par le `docker-compose.yml` du projet `p6`. Vérifier : `docker network ls` et `docker network inspect p6_dmz`.",
+        "but": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+        "pourquoi": "Section 4.1 (adresses, VLAN, passerelles) et section 6 (macvlan par VLAN). macvlan donne à chaque conteneur sa propre adresse : sans cela, OPNsense ne verrait que l'adresse de l'hôte et la matrice serait inapplicable (module 8).",
+        "prerequis": "Étapes : services-1, parefeu-3\nModules du cours : 3, 8, 2",
+        "livrable": "Commit de `services/reseaux-A.sh`. Message au rôle 2 : « vous pouvez tester vos VLAN avec un conteneur ».",
+        "schema": "macvlan",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e2-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/docker-compose.yml (réseaux)",
+            "texte": "name: p6\n\nnetworks:\n  dmz:                       # DMZ - VLAN 20\n    driver: macvlan\n    driver_opts:\n      parent: ens33.20\n    ipam:\n      config:\n        - subnet: 10.20.0.0/24\n          gateway: 10.20.0.1\n  lan:                       # LAN - VLAN 10\n    driver: macvlan\n    driver_opts:\n      parent: ens33.10\n    ipam:\n      config:\n        - subnet: 10.10.0.0/24\n          gateway: 10.10.0.1\n  wan:                       # WAN simule (pas de VLAN)\n    driver: macvlan\n    driver_opts:\n      parent: ens34\n    ipam:\n      config:\n        - subnet: 203.0.113.0/24\n          gateway: 203.0.113.1",
+            "texteGuide": "#!/bin/bash\n# services/reseaux-A.sh — réseaux Docker de l'état A (section 4.1). À lancer en root sur l'hôte Docker.\nset -eu\nTRUNK=ens33        # carte reliée à p6-trunk (« eth1 » du rapport)\nWAN=ens34          # carte reliée à p6-wan (« eth2 » du rapport)\ndocker network create -d macvlan -o parent=$TRUNK.10 --subnet 10.10.0.0/24 --gateway 10.10.0.1 lan\ndocker network create -d macvlan -o parent=$TRUNK.20 --subnet 10.20.0.0/24 --gateway 10.20.0.1 dmz\ndocker network create -d macvlan -o parent=$WAN      --subnet 203.0.113.0/24 --gateway 203.0.113.1 wan\n#   parent=ens33.10 : Docker crée lui-même la sous-interface VLAN 10 (le point dans le nom le lui indique)\n#   --gateway : devient la route par défaut des conteneurs (la passerelle OPNsense du segment)\ndocker network ls --filter driver=macvlan",
+            "explication": "Contenu du fichier ~/p6-etat-a/docker-compose.yml (réseaux).\nLes réseaux macvlan sont déclarés dans docker-compose.yml (projet p6) : ils s'appellent p6_dmz, p6_lan et p6_wan (écart E38).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/docker-compose.yml",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e2-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "ip -d link show ens33.10 | head -3",
+            "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e2-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker run --rm --network p6_lan --ip 10.10.0.50 p6/outils:1 ping -c 2 10.10.0.1",
+            "texteGuide": "docker run --rm --network lan --ip 10.10.0.50 projet6/outils ping -c 2 10.10.0.1",
+            "explication": "Démarre un conteneur temporaire pour faire un test, puis le supprime (--rm).\nRéseaux Docker réels : p6_lan, p6_dmz, p6_wan, créés par le projet Compose « p6 » (écart E38).\nImage réelle des postes : p6/outils:1 (docker-compose.yml du projet p6).\nDans la sortie, « ens33.10@ens33 » : sous-interface VLAN créée par Docker\nDans la sortie, « id 10 » : elle étiquette en VLAN 10\nDans la sortie, « 64 bytes from 10.10.0.1 » : la passerelle OPNsense répond (FA4 l'autorise en état A)",
+            "sortie": "5: ens33.10@ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> …\n    vlan protocol 802.1Q id 10 <REORDER_HDR>\n64 bytes from 10.10.0.1: icmp_seq=1 ttl=64 time=0.41 ms",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "conteneurReseau",
+                "conteneur": "conteneur-test",
+                "reseau": "p6_lan",
+                "ip": "10.10.0.50",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "conteneur-test",
+                "vers": "opnsense",
+                "proto": "Icmp",
+                "adresseVisee": "10.10.0.1",
+                "verdict": "ACalculer",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« invalid subinterface vlan name »",
+            "cause": "Nom de carte faux",
+            "solution": "Utiliser le vrai nom (`ip -br link`), par exemple ens33.10."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Pas de réponse de 10.10.0.1",
+            "cause": "Sur OPNsense : `tcpdump -nei em1 vlan 10` voit-il l'ARP ?",
+            "solution": "Rien vu : carte du trunk sur le mauvais segment VMware (rôle 1). Vu sans réponse : VLAN 10 non activé (rôle 2)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Le réseau existe déjà",
+            "cause": "`docker network ls`",
+            "solution": "`docker network rm lan dmz` puis relancer le script."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Réseaux lan, dmz, wan créés"
+          },
+          {
+            "ordre": 2,
+            "texte": "Un conteneur de test joint 10.10.0.1 et 10.20.0.1"
+          }
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "r4-e3",
+        "titre": "Déployer PostgreSQL et l'API Flask",
+        "quand": "17 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1 : PostgreSQL 17 (10.10.0.70, base `catalogue`, rôle `api_catalogue`, `pg_hba` limité à 10.20.0.70 et 10.10.0.100) et l'API Flask + gunicorn (10.20.0.70:5000, `/api/produit` volontairement injectable). Mots de passe aléatoires dans `.env` (droits 600, jamais affichés).",
+        "but": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+        "pourquoi": "Section 7.5 : API « catalogue » avec un point d'entrée vulnérable à l'injection SQL pour S-03 (laboratoire uniquement) ; PostgreSQL seule cible de F04. Figure 5 (`/api/produits`) et section 10.1 (`/api/produit?id=`) : deux chemins (écart E17).",
+        "prerequis": "Étapes : services-2\nModules du cours : 4, 9",
+        "livrable": "Commit de `services/` (sans les mots de passe : `.env.secrets` non versionné). Message aux rôles 3 et 5 : « API prête : /api/produits (sûr), /api/produit?id= (vulnérable, S-03) ».",
+        "schema": "chaine-app",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/db/01-schema.sql",
+            "texte": "-- Base du catalogue - modele physique (rapport, section 12.1)\nCREATE TABLE categorie (\n  id  SERIAL PRIMARY KEY,\n  nom VARCHAR(60) NOT NULL UNIQUE\n);\nCREATE TABLE produit (\n  id           SERIAL PRIMARY KEY,\n  nom          VARCHAR(100) NOT NULL,\n  prix         NUMERIC(10,2) NOT NULL CHECK (prix >= 0),\n  stock        INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),\n  categorie_id INTEGER NOT NULL REFERENCES categorie(id)\n);\nCREATE TABLE utilisateur (\n  id       SERIAL PRIMARY KEY,\n  login    VARCHAR(40) NOT NULL UNIQUE,\n  hash_mdp CHAR(60) NOT NULL,            -- bcrypt, donnees fictives\n  role     VARCHAR(20) NOT NULL DEFAULT 'client'\n);\nCREATE TABLE commande (\n  id             SERIAL PRIMARY KEY,\n  produit_id     INTEGER NOT NULL REFERENCES produit(id),\n  utilisateur_id INTEGER NOT NULL REFERENCES utilisateur(id),\n  quantite       INTEGER NOT NULL CHECK (quantite > 0),\n  date_commande  TIMESTAMPTZ NOT NULL DEFAULT now()\n);\nCREATE INDEX idx_produit_categorie ON produit(categorie_id);",
+            "texteGuide": "#!/bin/bash\n# services/postgres/init.sh — exécuté une seule fois, à la création de la base\nset -e\npsql -v ON_ERROR_STOP=1 -U postgres <<SQL\nCREATE DATABASE catalogue;\nCREATE ROLE app     LOGIN PASSWORD '$APP_PWD';       -- compte de l'API (F04)\nCREATE ROLE lecteur LOGIN PASSWORD '$LECTEUR_PWD';   -- identifiants « volés » utilisés par S-04 et S-05\nSQL\npsql -v ON_ERROR_STOP=1 -U postgres -d catalogue <<'SQL'\nCREATE TABLE produits (id integer PRIMARY KEY, nom text NOT NULL, prix numeric(8,2) NOT NULL, secret text);\nINSERT INTO produits VALUES\n  (1, 'Routeur', 120.00, 'remise-interne-15'),\n  (2, 'Commutateur', 80.00, 'stock-bas'),\n  (3, 'Câble RJ45', 4.50, 'fournisseur-X');\nGRANT SELECT ON produits TO app, lecteur;\nSQL\n#   La colonne « secret » ne doit jamais sortir par /api/produits : elle sort par l'injection (S-03).",
+            "explication": "Contenu du fichier ~/p6-etat-a/db/01-schema.sql.\nSchéma réel de la base « catalogue » (catégories, produits, utilisateurs, commandes).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/db/01-schema.sql",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/db/02-donnees.sql",
+            "texte": "-- Donnees fictives du laboratoire\nINSERT INTO categorie (nom) VALUES\n  ('Peripheriques'), ('Reseau'), ('Stockage');\n\nINSERT INTO produit (nom, prix, stock, categorie_id) VALUES\n  ('Clavier',             25.00, 40, 1),\n  ('Souris',              12.50, 75, 1),\n  ('Ecran 24 pouces',    139.90, 12, 1),\n  ('Switch 8 ports',      34.00, 20, 2),\n  ('Routeur Wi-Fi 6',     89.00,  8, 2),\n  ('Cable RJ45 3 m',       4.90, 200, 2),\n  ('SSD 1 To',            69.00, 30, 3),\n  ('Disque externe 2 To', 79.00, 15, 3);\n\n-- Hashs bcrypt FICTIFS (ne correspondent a aucun mot de passe reel)\nINSERT INTO utilisateur (login, hash_mdp, role) VALUES\n  ('admin',  '$2b$12$k.Heas8VOcI.z0myHl2QlU0G4mzLmfzU.ydUF3MTplzoINzW9CrAb', 'admin'),\n  ('salma',  '$2b$12$yvcQNVWXLq.gx2Ym4Fl55Wj28M0kyI5.wccpGUyG5QG01.I89.sW/', 'client'),\n  ('youssef','$2b$12$N7PUuWIOY.uLa5hxdoVU/hytIb2.j8DmVUsFOsemnf97idqkuH5/c', 'client'),\n  ('ines',   '$2b$12$ry4945J9iLUKUekJJJ834VekFEewRVegA3RjuoZr7/jqjSdxtxKtX', 'client');\n\nINSERT INTO commande (produit_id, utilisateur_id, quantite) VALUES\n  (1, 2, 1), (7, 3, 2), (4, 4, 1);",
+            "explication": "Contenu du fichier ~/p6-etat-a/db/02-donnees.sql.\nDonnées fictives du laboratoire.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/db/02-donnees.sql",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/db/03-role-api.sh",
+            "texte": "#!/bin/bash\n# Compte utilise par l'API : aucun droit de creation ni de suppression de table\n# (rapport, section 12.1). Le mot de passe vient de .env (variable API_DB_PASSWORD).\nset -euo pipefail\npsql -v ON_ERROR_STOP=1 --username \"$POSTGRES_USER\" --dbname \"$POSTGRES_DB\" \\\n     -v pw=\"$API_DB_PASSWORD\" <<'SQL'\nCREATE ROLE api_catalogue LOGIN PASSWORD :'pw';\nGRANT SELECT ON categorie, produit, utilisateur TO api_catalogue;\nGRANT SELECT, INSERT ON commande TO api_catalogue;\nGRANT UPDATE (stock) ON produit TO api_catalogue;\nGRANT USAGE ON SEQUENCE commande_id_seq TO api_catalogue;\nSQL",
+            "explication": "Contenu du fichier ~/p6-etat-a/db/03-role-api.sh.\nCompte api_catalogue, aux droits limités ; son mot de passe vient de .env (jamais affiché).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/db/03-role-api.sh",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/db/pg_hba.conf",
+            "texte": "# PostgreSQL n'accepte que l'API (10.20.0.70) et le poste admin (10.10.0.100).\n# Rapport, section 12.1. Dans l'etat A, c'est la seule protection de la base\n# contre le mouvement lateral depuis le LAN (S-05).\n# TYPE  BASE       UTILISATEUR    ADRESSE          METHODE\nlocal   all        all                             trust\nhost    catalogue  api_catalogue  10.20.0.70/32    scram-sha-256\nhost    all        all            10.10.0.100/32   scram-sha-256\nhost    all        all            0.0.0.0/0        reject",
+            "explication": "Contenu du fichier ~/p6-etat-a/db/pg_hba.conf.\nPostgreSQL n'accepte que l'API (10.20.0.70) et le poste admin (10.10.0.100).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/db/pg_hba.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/api/app.py",
+            "texte": "\"\"\"API REST du catalogue - Projet 6 (composant C5).\n\nSpecification : rapport de conception, section 13.1.\nATTENTION : GET /api/produit est VOLONTAIREMENT vulnerable a l'injection SQL\n(scenario S-03). A n'utiliser que dans le laboratoire isole.\nToutes les autres requetes sont parametrees.\n\"\"\"\nimport os\nfrom decimal import Decimal\n\nimport psycopg2\nimport psycopg2.extras\nfrom flask import Flask, jsonify, request\n\napp = Flask(__name__)\napp.json.ensure_ascii = False\n\n\ndef connexion():\n    return psycopg2.connect(\n        host=os.environ[\"DB_HOST\"],\n        dbname=os.environ.get(\"DB_NAME\", \"catalogue\"),\n        user=os.environ[\"DB_USER\"],\n        password=••••••\n        connect_timeout=2,\n        cursor_factory=psycopg2.extras.RealDictCursor,\n    )\n\n\ndef erreur(message, code):\n    return jsonify({\"erreur\": message}), code\n\n\ndef propre(ligne):\n    \"\"\"Convertit les Decimal en float pour le JSON.\"\"\"\n    return {k: float(v) if isinstance(v, Decimal) else v for k, v in ligne.items()}\n\n\n@app.get(\"/api/sante\")\ndef sante():\n    try:\n        with connexion() as cnx, cnx.cursor() as cur:\n            cur.execute(\"SELECT 1\")\n        return jsonify({\"statut\": \"ok\", \"base\": \"ok\"}), 200\n    except psycopg2.OperationalError:\n        return jsonify({\"statut\": \"degrade\", \"base\": \"injoignable\"}), 503\n\n\n@app.get(\"/api/produits\")\ndef produits():\n    categorie = request.args.get(\"categorie\")\n    if categorie is not None and not categorie.lstrip(\"-\").isdigit():\n        return erreur(\"categorie doit etre un entier\", 400)\n    sql = (\"SELECT p.id, p.nom, c.nom AS categorie, p.prix, p.stock \"\n           \"FROM produit p JOIN categorie c ON c.id = p.categorie_id\")\n    params = ()\n    if categorie is not None:\n        sql += \" WHERE p.categorie_id = %s\"\n        params = (int(categorie),)\n    sql += \" ORDER BY p.id\"\n    try:\n        with connexion() as cnx, cnx.cursor() as cur:\n            cur.execute(sql, params)\n            return jsonify([propre(l) for l in cur.fetchall()]), 200\n    except psycopg2.OperationalError:\n        return erreur(\"base injoignable\", 503)\n\n\n@app.get(\"/api/produit\")\ndef produit():\n    # VULNERABLE (S-03) : concatenation directe du parametre dans la requete.\n    ident = request.args.get(\"id\", \"\")\n    sql = \"SELECT id, nom, prix, stock FROM produit WHERE id = \" + ident\n    try:\n        with connexion() as cnx, cnx.cursor() as cur:\n            cur.execute(sql)\n            lignes = [propre(l) for l in cur.fetchall()]\n    except psycopg2.OperationalError:\n        return erreur(\"base injoignable\", 503)\n    except psycopg2.Error as e:\n        # Message SQL renvoye tel quel : aide volontaire a l'injection (laboratoire).\n        return erreur(\"erreur SQL : \" + str(e).strip(), 500)\n    if not lignes:\n        return erreur(\"produit introuvable\", 404)\n    return jsonify(lignes[0] if len(lignes) == 1 else lignes), 200\n\n\n@app.post(\"/api/commande\")\ndef commande():\n    corps = request.get_json(silent=True) or {}\n    try:\n        produit_id = int(corps[\"produit_id\"])\n        utilisateur_id = int(corps[\"utilisateur_id\"])\n        quantite = int(corps[\"quantite\"])\n        if quantite <= 0:\n            raise ValueError\n    except (KeyError, TypeError, ValueError):\n        return erreur(\"champ manquant ou invalide\", 400)\n    try:\n        with connexion() as cnx, cnx.cursor() as cur:\n            cur.execute(\"UPDATE produit SET stock = stock - %s \"\n                        \"WHERE id = %s AND stock >= %s RETURNING id\",\n                        (quantite, produit_id, quantite))\n            if cur.fetchone() is None:\n                cur.execute(\"SELECT 1 FROM produit WHERE id = %s\", (produit_id,))\n                if cur.fetchone() is None:\n                    return erreur(\"champ manquant ou invalide\", 400)\n                return erreur(\"stock insuffisant\", 409)\n            cur.execute(\"INSERT INTO commande (produit_id, utilisateur_id, quantite) \"\n                        \"VALUES (%s, %s, %s) RETURNING id\",\n                        (produit_id, utilisateur_id, quantite))\n            nouvelle = cur.fetchone()[\"id\"]\n        return jsonify({\"commande_id\": nouvelle}), 201\n    except psycopg2.errors.ForeignKeyViolation:\n        return erreur(\"champ manquant ou invalide\", 400)\n    except psycopg2.OperationalError:\n        return erreur(\"base injoignable\", 503)\n\n\n@app.errorhandler(404)\ndef introuvable(_):\n    return erreur(\"ressource introuvable\", 404)\n\n\n@app.errorhandler(405)\ndef methode(_):\n    return erreur(\"methode non autorisee\", 405)",
+            "texteGuide": "# services/api/app.py — API « catalogue » (C5). LABORATOIRE UNIQUEMENT : /api/produit est volontairement vulnérable.\nimport os\nimport psycopg\nfrom flask import Flask, jsonify, request\n\napp = Flask(__name__)\nDSN = os.environ[\"DSN\"]                       # host=10.10.0.70 dbname=catalogue user=app … (compose.yml)\n\n@app.get(\"/api/sante\")\ndef sante():                                  # test de vie, utile à la sonde et à test_flux\n    return {\"ok\": True}\n\n@app.get(\"/api/produits\")\ndef produits():                               # point d'entrée sûr : requête fixe\n    with psycopg.connect(DSN) as c:\n        rows = c.execute(\"SELECT id, nom, prix FROM produits ORDER BY id\").fetchall()\n    return jsonify([{\"id\": r[0], \"nom\": r[1], \"prix\": float(r[2])} for r in rows])\n\n@app.get(\"/api/produit\")\ndef produit():                                # VULNÉRABLE (S-03) : la valeur de « id » est collée dans le SQL\n    ident = request.args.get(\"id\", \"\")\n    sql = f\"SELECT id, nom, prix, secret FROM produits WHERE id = '{ident}'\"   # NE JAMAIS FAIRE CELA EN VRAI\n    try:\n        with psycopg.connect(DSN) as c:\n            rows = c.execute(sql).fetchall()\n    except psycopg.Error as e:\n        return {\"erreur\": str(e).splitlines()[0]}, 500\n    return jsonify([{\"id\": r[0], \"nom\": r[1], \"prix\": float(r[2]), \"secret\": r[3]} for r in rows])\n\nif __name__ == \"__main__\":\n    app.run(host=\"0.0.0.0\", port=5000, threaded=True)",
+            "explication": "Contenu du fichier ~/p6-etat-a/api/app.py.\nAPI Flask réelle, servie par gunicorn ; /api/produit est volontairement injectable (S-03).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/api/app.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c06",
+            "ordre": 6,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/api/Dockerfile",
+            "texte": "FROM python:3.12-slim\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\nCOPY app.py .\nRUN useradd --system --no-create-home api\nUSER api\nEXPOSE 5000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:5000\", \"--workers\", \"2\", \"--timeout\", \"10\", \"--access-logfile\", \"-\", \"app:app\"]",
+            "texteGuide": "# services/api/Dockerfile — la construction télécharge Flask et psycopg (pip) : carte NAT branchée\nFROM python:3.13-slim\nRUN pip install --no-cache-dir flask \"psycopg[binary]\"\nCOPY app.py /app/app.py\nCMD [\"python\", \"/app/app.py\"]",
+            "explication": "Contenu du fichier ~/p6-etat-a/api/Dockerfile.\nImage p6/api:1.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/api/Dockerfile",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c07",
+            "ordre": 7,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/docker-compose.yml",
+            "texte": "# Projet 6 - Zero Trust - Etat A (pare-feu perimetrique)\n# Hote Docker : VM p6-docker (Debian 13)\n#   ens33 = p6-trunk (VLAN 10 et 20, sous-interfaces creees par Docker)\n#   ens34 = p6-wan   (WAN simule 203.0.113.0/24)\n# Chaque conteneur a une adresse fixe et pour passerelle OPNsense.\n# Plan d'adressage : rapport, section 4.1.\n\nname: p6\n\nnetworks:\n  dmz:                       # DMZ - VLAN 20\n    driver: macvlan\n    driver_opts:\n      parent: ens33.20\n    ipam:\n      config:\n        - subnet: 10.20.0.0/24\n          gateway: 10.20.0.1\n  lan:                       # LAN - VLAN 10\n    driver: macvlan\n    driver_opts:\n      parent: ens33.10\n    ipam:\n      config:\n        - subnet: 10.10.0.0/24\n          gateway: 10.10.0.1\n  wan:                       # WAN simule (pas de VLAN)\n    driver: macvlan\n    driver_opts:\n      parent: ens34\n    ipam:\n      config:\n        - subnet: 203.0.113.0/24\n          gateway: 203.0.113.1\n\nx-outils: &outils\n  build: ./outils\n  image: p6/outils:1\n  command: [\"sleep\", \"infinity\"]\n  restart: unless-stopped\n  cap_add: [NET_ADMIN, NET_RAW]   # tcpdump, ping, nmap simples\n\nservices:\n\n  # ---------------- DMZ (10.20.0.0/24) ----------------\n  nginx:\n    image: nginx:1.27-alpine\n    container_name: nginx\n    hostname: nginx\n    restart: unless-stopped\n    volumes:\n      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro\n      - ./nginx/certs:/etc/nginx/certs:ro\n      - ./nginx/html:/usr/share/nginx/html:ro\n    networks:\n      dmz:\n        ipv4_address: 10.20.0.10\n    depends_on: [api]\n\n  iperf3:                    # FA6 : partage la pile reseau de nginx (10.20.0.10:5201)\n    image: p6/outils:1       # construite par le service client-01 (setup.sh fait le build avant)\n    pull_policy: never\n    container_name: iperf3\n    restart: unless-stopped\n    command: [\"iperf3\", \"-s\"]\n    network_mode: \"service:nginx\"\n    depends_on: [nginx]\n\n  dmz-pivot:                 # hote DMZ suppose compromis (S-04)\n    <<: *outils\n    container_name: dmz-pivot\n    hostname: dmz-pivot\n    networks:\n      dmz:\n        ipv4_address: 10.20.0.20\n\n  bind9:\n    image: internetsystemsconsortium/bind9:9.20\n    container_name: bind9\n    hostname: bind9\n    restart: unless-stopped\n    volumes:\n      - ./bind/named.conf:/etc/bind/named.conf:ro\n      - ./bind/db.p6.lab:/etc/bind/db.p6.lab:ro\n    networks:\n      dmz:\n        ipv4_address: 10.20.0.40\n\n  api:\n    build: ./api\n    image: p6/api:1\n    container_name: api\n    hostname: api\n    restart: unless-stopped\n    environment:\n      DB_HOST: 10.10.0.70\n      DB_NAME: catalogue\n      DB_USER: api_catalogue\n      DB_PASSWORD: ${API_DB_PASSWORD:?lancer setup.sh}\n    networks:\n      dmz:\n        ipv4_address: 10.20.0.70\n\n  # ---------------- LAN (10.10.0.0/24) ----------------\n  client-01:                 # utilisateur legitime\n    <<: *outils\n    container_name: client-01\n    hostname: client-01\n    networks:\n      lan:\n        ipv4_address: 10.10.0.10\n\n  client-03:                 # poste suppose compromis (S-05)\n    <<: *outils\n    container_name: client-03\n    hostname: client-03\n    networks:\n      lan:\n        ipv4_address: 10.10.0.12\n\n  postgres:\n    image: postgres:17\n    container_name: postgres\n    hostname: postgres\n    restart: unless-stopped\n    command: [\"postgres\", \"-c\", \"hba_file=/etc/postgresql/pg_hba.conf\", \"-c\", \"log_connections=on\"]\n    environment:\n      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?lancer setup.sh}\n      POSTGRES_DB: catalogue\n      API_DB_PASSWORD: ${API_DB_PASSWORD}\n    volumes:\n      - ./db/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro\n      - ./db/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro\n      - ./db/02-donnees.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro\n      - ./db/03-role-api.sh:/docker-entrypoint-initdb.d/03-role-api.sh:ro\n      - pgdata:/var/lib/postgresql/data\n    networks:\n      lan:\n        ipv4_address: 10.10.0.70\n\n  admin:                     # poste d'administration\n    <<: *outils\n    container_name: admin\n    hostname: admin\n    networks:\n      lan:\n        ipv4_address: 10.10.0.100\n\n  # ---------------- WAN simule (203.0.113.0/24) ----------------\n  client-ext:                # client externe legitime + sonde SLA (C8)\n    <<: *outils\n    container_name: client-ext\n    hostname: client-ext\n    networks:\n      wan:\n        ipv4_address: 203.0.113.10\n\nvolumes:\n  pgdata:",
+            "texteGuide": "# services/compose.yml — mêmes conteneurs, mêmes adresses en A et en B ; seuls les réseaux changent.\n# Lancement :  docker compose --env-file etat-A.env up -d   (ou etat-B.env)\nname: projet6\nnetworks:                                  # réseaux créés par reseaux-A.sh / reseaux-B.sh\n  web:   {external: true, name: ${NET_WEB}}     # A : dmz       B : dmz-web\n  dns:   {external: true, name: ${NET_DNS}}     # A : dmz       B : dmz-dns\n  app:   {external: true, name: ${NET_APP}}     # A : dmz       B : dmz-app\n  users: {external: true, name: ${NET_USERS}}   # A : lan       B : lan-users\n  db:    {external: true, name: ${NET_DB}}      # A : lan       B : lan-db\n  admin: {external: true, name: ${NET_ADMIN}}   # A : lan       B : lan-admin\n  wan:   {external: true, name: wan}\nservices:\n  postgres:                                # C5 — base de l'application (LAN-DB)\n    image: postgres:17\n    container_name: postgres\n    environment: {POSTGRES_PASSWORD: ${PG_ADMIN_PWD}, APP_PWD: ${PG_APP_PWD}, LECTEUR_PWD: ${PG_LECTEUR_PWD}}\n    volumes: [\"./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro\"]\n    networks: {db: {ipv4_address: 10.10.0.70}}\n  api:                                     # C5 — API Flask (DMZ-APP), point d'entrée vulnérable : labo uniquement\n    build: ./api\n    container_name: api\n    environment: {DSN: \"host=10.10.0.70 dbname=catalogue user=app password=${PG_APP_PWD} connect_timeout=3\"}\n    networks: {app: {ipv4_address: 10.20.0.70}}\n  nginx:                                   # C5 — TLS + reverse proxy (DMZ-WEB)\n    image: nginx:stable\n    container_name: nginx\n    volumes: [\"./nginx/site.conf:/etc/nginx/conf.d/default.conf:ro\", \"./nginx/tls:/etc/nginx/tls:ro\", \"/srv/logs/nginx:/var/log/nginx\"]   # journaux visibles sur l'hôte (rôle 6)\n    networks: {web: {ipv4_address: 10.20.0.10}}\n  iperf3:                                  # serveur iperf3 dans l'espace réseau de nginx (FA6 / F09 : 10.20.0.10:5201)\n    image: projet6/outils\n    container_name: iperf3\n    network_mode: \"service:nginx\"\n    command: [\"iperf3\", \"-s\"]\n  bind9:                                   # C5 — DNS (DMZ-DNS)\n    image: internetsystemsconsortium/bind9:9.20\n    container_name: bind9\n    volumes: [\"./bind9:/etc/bind:ro\"]\n    networks: {dns: {ipv4_address: 10.20.0.40}}\n  dmz-pivot:                               # C7 interne — hôte DMZ supposé compromis (S-04)\n    image: projet6/outils\n    container_name: dmz-pivot\n    command: [\"sleep\", \"infinity\"]\n    environment: {PGPASSWORD: ${PG_LECTEUR_PWD}}\n    networks: {web: {ipv4_address: 10.20.0.20}}\n  client-01:                               # C8 — poste légitime (sonde du rôle 3)\n    image: projet6/outils\n    container_name: client-01\n    command: [\"sleep\", \"infinity\"]\n    networks: {users: {ipv4_address: 10.10.0.10}}\n  client-03:                               # C7 interne — poste supposé compromis (S-05)\n    image: projet6/outils\n    container_name: client-03\n    command: [\"sleep\", \"infinity\"]\n    environment: {PGPASSWORD: ${PG_LECTEUR_PWD}}\n    networks: {users: {ipv4_address: 10.10.0.12}}\n  admin:                                   # poste d'administration (F07, F08)\n    image: projet6/outils\n    container_name: admin\n    command: [\"sleep\", \"infinity\"]\n    networks: {admin: {ipv4_address: 10.10.0.100}}\n  client-ext:                              # C8 — client externe légitime, sur le WAN (eth2)\n    image: projet6/outils\n    container_name: client-ext\n    command: [\"sleep\", \"infinity\"]\n    networks: {wan: {ipv4_address: 203.0.113.10}}",
+            "explication": "Contenu du fichier ~/p6-etat-a/docker-compose.yml.\nUn seul fichier Compose (projet p6) pour les 10 conteneurs de l'état A (écart E38).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/docker-compose.yml",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c08",
+            "ordre": 8,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Choix des réseaux par état",
+            "texte": "cat ~/p6-etat-a/.env",
+            "texteGuide": "# services/etat-A.env\nNET_WEB=dmz\nNET_DNS=dmz\nNET_APP=dmz\nNET_USERS=lan\nNET_DB=lan\nNET_ADMIN=lan\n# mots de passe : dans services/.env.secrets (non versionné), copiés ici au moment du lancement\nPG_ADMIN_PWD=••••••\nPG_APP_PWD=••••••\nPG_LECTEUR_PWD=••••••\n\n# services/etat-B.env : mêmes mots de passe, et\nNET_WEB=dmz-web\nNET_DNS=dmz-dns\nNET_APP=dmz-app\nNET_USERS=lan-users\nNET_DB=lan-db\nNET_ADMIN=lan-admin",
+            "explication": "Affiche le contenu d'un fichier sans le modifier.\nLes mots de passe sont tirés au hasard par setup.sh dans .env (droits 600) et ne sont jamais affichés.",
+            "sortie": "POSTGRES_PASSWORD=••••••\nAPI_DB_PASSWORD=••••••",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "~/p6-etat-a/.env",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c09",
+            "ordre": 9,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Construire l'image de l'API (carte NAT branchée le temps du téléchargement), puis lancer la base et l'API",
+            "texte": "cd ~/p6-etat-a",
+            "texteGuide": "cd /opt/projet6/services\ndocker compose --env-file etat-A.env build api          # pip télécharge Flask et psycopg : carte NAT branchée\n# Rôle 1 : débrancher la carte NAT, puis :\ndocker compose --env-file etat-A.env up -d postgres api",
+            "explication": "Se place dans un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c10",
+            "ordre": 10,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Construire l'image de l'API (carte NAT branchée le temps du téléchargement), puis lancer la base et l'API",
+            "texte": "docker compose build api",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker compose build",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c11",
+            "ordre": 11,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Construire l'image de l'API (carte NAT branchée le temps du téléchargement), puis lancer la base et l'API",
+            "texte": "docker compose up -d postgres api",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "conteneurReseau",
+                "conteneur": "postgres",
+                "reseau": "p6_lan",
+                "ip": "10.10.0.70",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "api",
+                "reseau": "p6_dmz",
+                "ip": "10.20.0.70",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c12",
+            "ordre": 12,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Dans le conteneur de l'API (la requête part de l'API vers la base, à travers FA3)",
+            "texte": "docker exec api python -c \"import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:5000/api/produits').read())\"",
+            "explication": "Lance une commande à l'intérieur du conteneur api, avec son adresse réseau.\nTest : Dans le conteneur de l'API (la requête part de l'API vers la base, à travers FA3).\nForme indicative : la vraie base contient les produits de db/02-donnees.sql.\nDans la sortie, « trois produits, pas de « secret » » : l'API joint la base (FA3 l'autorise en état A) et le point d'entrée sûr ne divulgue rien",
+            "sortie": "b'[{\"categorie\":\"Peripheriques\",\"id\":1,\"nom\":\"Clavier\",\"prix\":25.0,\"stock\":40},…]'",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "api",
+                "texte": "programme Python",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e3-c13",
+            "ordre": 13,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Vérifier la vulnérabilité (labo uniquement)",
+            "texte": "docker exec api python -c \"import urllib.request,urllib.parse;q=urllib.parse.quote('1 OR 1=1');print(urllib.request.urlopen('http://127.0.0.1:5000/api/produit?id='+q).read())\"",
+            "texteGuide": "docker exec api python -c \"import urllib.request,urllib.parse;q=urllib.parse.quote(\\\"1' OR '1'='1\\\");print(urllib.request.urlopen('http://127.0.0.1:5000/api/produit?id='+q).read())\"",
+            "explication": "Lance une commande à l'intérieur du conteneur api, avec son adresse réseau.\nTest : Vérifier la vulnérabilité (labo uniquement).\nL'API réelle colle l'identifiant sans guillemets : l'injection est numérique (1 OR 1=1) et renvoie tous les produits. Il n'y a pas de colonne « secret » (question Q14).\nDans la sortie, « trois lignes avec « secret » » : l'injection fonctionne : c'est l'effet que le rôle 5 cherchera dans S-03",
+            "sortie": "b'[{\"id\":1,\"nom\":\"Clavier\",…},{\"id\":2,…},…]'",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "api",
+                "texte": "programme Python",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "L'API répond 500 « connection timeout »",
+            "cause": "`docker exec api python -c \"import socket;socket.create_connection(('10.10.0.70',5432),3)\"`",
+            "solution": "En état A, vérifier FA3 (rôle 2) ; en état B, F04."
+          },
+          {
+            "ordre": 2,
+            "symptome": "« password authentication failed for user app »",
+            "cause": "Mot de passe différent entre .env et init.sh",
+            "solution": "Recréer la base : `docker compose down -v` (efface le volume) puis `up`."
+          },
+          {
+            "ordre": 3,
+            "symptome": "init.sh ne s'exécute pas",
+            "cause": "Le volume de données existe déjà",
+            "solution": "Les scripts d'initialisation ne tournent qu'à la création : supprimer le volume."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "postgres sur 10.10.0.70, base catalogue avec 3 produits"
+          },
+          {
+            "ordre": 2,
+            "texte": "api sur 10.20.0.70:5000 ; /api/produits sans « secret »"
+          },
+          {
+            "ordre": 3,
+            "texte": "/api/produit?id=… vulnérable, vérifié une fois"
+          }
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "r4-e4",
+        "titre": "Configurer nginx : TLS et reverse proxy",
+        "quand": "17 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1 : nginx 10.20.0.10, HTTP et HTTPS (certificat auto-signé), relais `/api/` vers l'API. Testé par FA1 depuis client-ext à travers 203.0.113.1.",
+        "but": "nginx sur 10.20.0.10 sert HTTPS (certificat auto-signé), redirige HTTP vers HTTPS et relaie `/api/` vers l'API en HTTP clair.",
+        "pourquoi": "Section 7.5 : nginx (DMZ-WEB) : TLS et reverse proxy vers l'API. Section 11.3 : le TLS s'arrête à nginx, l'injection est détectée sur le saut nginx → API, en clair (F03).",
+        "prerequis": "Étapes : services-3\nModules du cours : 4, 7",
+        "livrable": "Message au rôle 6 : le journal d'accès nginx est `/srv/logs/nginx/projet6.log` sur l'hôte Docker, format combined. Message au rôle 3 : « URL de la sonde : https://203.0.113.1/api/produits (externe), https://10.20.0.10/api/produits (interne) ».",
+        "schema": "chaine-app",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Certificat auto-signé (sur l'hôte Docker)",
+            "texte": "cd ~/p6-etat-a && mkdir -p nginx/certs",
+            "texteGuide": "mkdir -p /opt/projet6/services/nginx/tls && cd /opt/projet6/services/nginx/tls\nopenssl req -x509 -newkey rsa:2048 -nodes -days 60 \\\n  -keyout site.key -out site.crt \\\n  -subj \"/CN=www.labo.test\" -addext \"subjectAltName=DNS:www.labo.test,IP:203.0.113.1,IP:10.20.0.10\"\n#   -nodes : clé sans mot de passe (nginx démarre sans intervention)\n#   subjectAltName : le certificat vaut pour le nom et les deux adresses (publique et interne)",
+            "explication": "Se place dans un dossier.\nCommande de setup.sh (étape 3/5) : certificat pour www.p6.lab et les deux adresses de nginx.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "nginx/certs",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Certificat auto-signé (sur l'hôte Docker)",
+            "texte": "sudo openssl req -x509 -newkey rsa:2048 -nodes -days 365 -keyout nginx/certs/p6.key -out nginx/certs/p6.crt -subj \"/CN=www.p6.lab\" -addext \"subjectAltName=DNS:www.p6.lab,DNS:api.p6.lab,IP:203.0.113.1,IP:10.20.0.10\"",
+            "explication": "Crée un certificat et sa clé, pour que nginx puisse parler en HTTPS.\nCommande de setup.sh (étape 3/5) : certificat pour www.p6.lab et les deux adresses de nginx.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "nginx/certs/p6.crt",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/nginx/nginx.conf",
+            "texte": "# nginx (DMZ 10.20.0.10) : site public + reverse proxy vers l'API (10.20.0.70:5000)\nworker_processes 1;\nevents { worker_connections 512; }\n\nhttp {\n    include       /etc/nginx/mime.types;\n    default_type  application/octet-stream;\n    server_tokens off;\n\n    log_format p6 '$time_iso8601 $remote_addr \"$request\" $status $body_bytes_sent '\n                  '$request_time \"$http_user_agent\"';\n    access_log /var/log/nginx/access.log p6;\n\n    upstream api { server 10.20.0.70:5000; }\n\n    # FA1 : HTTP (80)\n    server {\n        listen 80 default_server;\n        server_name _;\n        root /usr/share/nginx/html;\n        location /api/ {\n            proxy_pass http://api;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $remote_addr;\n            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n            proxy_connect_timeout 2s;\n            proxy_read_timeout 10s;\n        }\n        location / { try_files $uri $uri/ =404; }\n    }\n\n    # FA1 : HTTPS (443), certificat auto-signe genere par setup.sh\n    server {\n        listen 443 ssl default_server;\n        server_name _;\n        ssl_certificate     /etc/nginx/certs/p6.crt;\n        ssl_certificate_key /etc/nginx/certs/p6.key;\n        ssl_protocols TLSv1.2 TLSv1.3;\n        root /usr/share/nginx/html;\n        location /api/ {\n            proxy_pass http://api;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $remote_addr;\n            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n            proxy_connect_timeout 2s;\n            proxy_read_timeout 10s;\n        }\n        location / { try_files $uri $uri/ =404; }\n    }\n}",
+            "texteGuide": "# services/nginx/site.conf — TLS et reverse proxy vers l'API (C5)\nserver {\n    listen 80;                                        # FA1 / F01 publient aussi le port 80\n    return 301 https://$host$request_uri;             # tout est renvoyé vers HTTPS\n}\nserver {\n    listen 443 ssl;\n    ssl_certificate     /etc/nginx/tls/site.crt;      # certificat auto-signé (commande ci-dessous)\n    ssl_certificate_key /etc/nginx/tls/site.key;\n    access_log /var/log/nginx/projet6.log combined;   # vrai fichier (access.log est un lien vers la sortie standard) ; format lu par le rôle 6\n    location /api/ {\n        proxy_pass http://10.20.0.70:5000;            # F03 : saut nginx → API, en HTTP clair (Suricata le lit en B)\n        proxy_set_header Host $host;\n        proxy_set_header X-Forwarded-For $remote_addr;\n        proxy_connect_timeout 3s;\n    }\n    location / {\n        default_type text/plain;\n        return 200 \"Catalogue Projet 6\\n\";            # page d'accueil statique, servie par nginx lui-même\n    }\n}",
+            "explication": "Contenu du fichier ~/p6-etat-a/nginx/nginx.conf.\nConfiguration réelle : HTTP (80), HTTPS (443), relais /api/ vers 10.20.0.70:5000, journal au format « p6 ».",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/nginx/nginx.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Lancer",
+            "texte": "docker compose up -d nginx iperf3",
+            "texteGuide": "docker compose --env-file etat-A.env up -d nginx iperf3",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "conteneurReseau",
+                "conteneur": "nginx",
+                "reseau": "p6_dmz",
+                "ip": "10.20.0.10",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "iperf3",
+                "reseau": "p6_dmz",
+                "ip": "10.20.0.10",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c05",
+            "ordre": 5,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Depuis Kali (WAN), après les règles FA du rôle 2",
+            "texte": "curl -sk https://203.0.113.1/api/produits | head -c 120; echo",
+            "explication": "Envoie une requête web (HTTP ou HTTPS) et affiche la réponse du serveur.\nTest : Depuis Kali (WAN), après les règles FA du rôle 2.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "kali",
+                "vers": "opnsense",
+                "proto": "Https",
+                "port": 443,
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c06",
+            "ordre": 6,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Depuis Kali (WAN), après les règles FA du rôle 2",
+            "texte": "curl -sI http://203.0.113.1 | head -2",
+            "explication": "Envoie une requête web (HTTP ou HTTPS) et affiche la réponse du serveur.\nDans la sortie, « [{\"id\":1 … » : toute la chaîne fonctionne : FA1 + NAT, nginx, API, FA3, PostgreSQL\nDans la sortie, « 301 » : le port 80 renvoie vers HTTPS\nDans la sortie, « -k » : accepte le certificat auto-signé",
+            "sortie": "[{\"id\":1,\"nom\":\"Routeur\",\"prix\":120.0},{\"id\":2,…\nHTTP/1.1 301 Moved Permanently\nLocation: https://203.0.113.1/",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "kali",
+                "vers": "opnsense",
+                "proto": "Http",
+                "port": 80,
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e4-c07",
+            "ordre": 7,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Journal d'accès (lu par le rôle 6, sur l'hôte Docker)",
+            "texte": "docker logs --tail 1 nginx",
+            "texteGuide": "tail -n 1 /srv/logs/nginx/projet6.log",
+            "explication": "Affiche ce que le conteneur a écrit sur sa sortie (ici, le journal d'accès).\nTest : Journal d'accès (lu par le rôle 6, sur l'hôte Docker).\nDans l'image nginx:alpine, access.log part sur la sortie standard du conteneur : on le lit avec docker logs (format « p6 » de nginx.conf).\nDans la sortie, « 203.0.113.66 » : nginx voit la vraie adresse du client : pas de NAT de source\nDans la sortie, « 200 112 » : code et taille de la réponse : preuve d'effet réel",
+            "sortie": "2026-11-17T16:02:11+00:00 203.0.113.66 \"GET /api/produits HTTP/1.1\" 200 … \"curl/8.x\"",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker logs",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "502 Bad Gateway",
+            "cause": "nginx ne joint pas 10.20.0.70:5000",
+            "solution": "État A : vérifier que l'API tourne. État B : F03 (rôle 2)."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Le journal d'accès est vide",
+            "cause": "`ls -l /srv/logs/nginx/` ; la directive access_log pointe-t-elle vers projet6.log ?",
+            "solution": "Dans l'image officielle, access.log est un lien vers la sortie standard : écrire dans projet6.log (fichier ci-dessus) et monter /srv/logs/nginx."
+          },
+          {
+            "ordre": 3,
+            "symptome": "« SSL: certificate verify failed »",
+            "cause": "Client sans -k",
+            "solution": "Normal avec un certificat auto-signé ; la sonde utilise `verify=False`."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "HTTPS répond sur 10.20.0.10 et via 203.0.113.1"
+          },
+          {
+            "ordre": 2,
+            "texte": "HTTP renvoie vers HTTPS"
+          },
+          {
+            "ordre": 3,
+            "texte": "/api/ relayé vers l'API"
+          },
+          {
+            "ordre": 4,
+            "texte": "Le journal d'accès est lisible"
+          }
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "r4-e5",
+        "titre": "Configurer bind9",
+        "quand": "18 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1 : bind9 10.20.0.40, zone `p6.lab` faisant autorité, sans récursion. Testé par FA2 (réponse exacte vérifiée).",
+        "but": "bind9 sur 10.20.0.40 fait autorité sur `labo.test` : réponse interne (10.20.0.10) pour le LAN et la DMZ, publique (203.0.113.1) pour le WAN.",
+        "pourquoi": "Section 7.5 : bind9 (DMZ-DNS) : zone publique et résolution interne. Flux FA2 / F02 (WAN, UDP/TCP 53) et F06 (LAN-USERS, UDP 53). Sonde DNS toutes les 5 s (section 7.8).",
+        "prerequis": "Étapes : services-2\nModules du cours : 1, 4",
+        "livrable": "Commit de `services/bind9/`. Message au rôle 3 : « sonde DNS : dig @10.20.0.40 www.labo.test ».",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/bind/named.conf",
+            "texte": "// bind9 (DMZ 10.20.0.40) : zone publique p6.lab, serveur faisant autorite.\n// Pas de recursion : le laboratoire n'a pas d'acces a Internet, et on evite un resolveur ouvert.\noptions {\n    directory \"/var/cache/bind\";\n    listen-on { any; };\n    listen-on-v6 { none; };\n    recursion no;\n    allow-query { any; };\n    allow-transfer { none; };\n    version \"non communiquee\";\n};\n\nlogging {\n    channel requetes { stderr; severity info; print-time yes; };\n    category queries { requetes; };\n    category default { requetes; };\n};\n\nzone \"p6.lab\" {\n    type primary;\n    file \"/etc/bind/db.p6.lab\";\n};",
+            "texteGuide": "// services/bind9/named.conf — zone publique et résolution interne (C5)\noptions {\n    directory \"/var/cache/bind\";\n    listen-on { any; };\n    allow-query { any; };\n    recursion no;                       // serveur faisant autorité seulement : pas de résolution vers Internet\n};\nview \"interne\" {\n    match-clients { 10.10.0.0/24; 10.20.0.0/24; };   // couvre aussi les /26 et /27 de l'état B\n    zone \"labo.test\" { type primary; file \"/etc/bind/db.labo.test.interne\"; };\n};\nview \"externe\" {\n    match-clients { any; };\n    zone \"labo.test\" { type primary; file \"/etc/bind/db.labo.test.externe\"; };\n};\n\n; services/bind9/db.labo.test.interne   (db.labo.test.externe : mêmes lignes avec 203.0.113.1)\n$TTL 300\n@     IN SOA ns1.labo.test. admin.labo.test. ( 2026111701 3600 600 86400 300 )\n      IN NS  ns1.labo.test.\nns1   IN A   10.20.0.40\nwww   IN A   10.20.0.10\n;  « .test » est réservé aux essais (RFC 2606) : aucun risque de collision avec un vrai domaine",
+            "explication": "Contenu du fichier ~/p6-etat-a/bind/named.conf.\nZone p6.lab faisant autorité, sans récursion, sans vues.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/bind/named.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "~/p6-etat-a/bind/db.p6.lab",
+            "texte": "; Zone p6.lab - vue publique (adresses joignables depuis le WAN simule via le NAT d'OPNsense)\n$TTL 300\n@       IN SOA  ns1.p6.lab. admin.p6.lab. (\n                2026111601 ; serial\n                3600       ; refresh\n                600        ; retry\n                86400      ; expire\n                300 )      ; minimum\n        IN NS   ns1.p6.lab.\nns1     IN A    203.0.113.1\nwww     IN A    203.0.113.1\napi     IN A    203.0.113.1\nfw      IN A    203.0.113.1",
+            "explication": "Contenu du fichier ~/p6-etat-a/bind/db.p6.lab.\nUne seule vue publique : www, api, fw et ns1 → 203.0.113.1.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/p6-etat-a/bind/db.p6.lab",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Lancer et vérifier la syntaxe",
+            "texte": "docker compose up -d bind9",
+            "texteGuide": "docker compose --env-file etat-A.env up -d bind9\ndocker exec bind9 named-checkconf /etc/bind/named.conf\ndocker exec bind9 named-checkzone labo.test /etc/bind/db.labo.test.interne",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "conteneurReseau",
+                "conteneur": "bind9",
+                "reseau": "p6_dmz",
+                "ip": "10.20.0.40",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Lancer et vérifier la syntaxe",
+            "texte": "docker exec bind9 named-checkconf /etc/bind/named.conf",
+            "explication": "Lance une commande à l'intérieur du conteneur bind9, avec son adresse réseau.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "bind9",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Lancer et vérifier la syntaxe",
+            "texte": "docker exec bind9 named-checkzone p6.lab /etc/bind/db.p6.lab",
+            "explication": "Lance une commande à l'intérieur du conteneur bind9, avec son adresse réseau.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "bind9",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c06",
+            "ordre": 6,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker compose up -d client-01 client-ext",
+            "texteGuide": "docker compose --env-file etat-A.env up -d client-01 client-ext",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.\nLes fichiers de l'état A sont dans ~/p6-etat-a sur p6-docker (copie de D:\\Labo-P6\\docker\\p6-etat-a).",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "conteneurReseau",
+                "conteneur": "client-01",
+                "reseau": "p6_lan",
+                "ip": "10.10.0.10",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "client-ext",
+                "reseau": "p6_wan",
+                "ip": "203.0.113.10",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c07",
+            "ordre": 7,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker exec client-01  dig +short @10.20.0.40 www.p6.lab",
+            "texteGuide": "docker exec client-01  dig +short @10.20.0.40 www.labo.test",
+            "explication": "Lance une commande à l'intérieur du conteneur client-01, avec son adresse réseau.\nLa zone réelle n'a pas de vue interne : le LAN reçoit aussi l'adresse publique 203.0.113.1.\nZone DNS réelle : p6.lab (labo.test est un reste de la conception).",
+            "sortie": "203.0.113.1",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "client-01",
+                "vers": "bind9",
+                "proto": "Dns",
+                "port": 53,
+                "adresseVisee": "10.20.0.40",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e5-c08",
+            "ordre": 8,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker exec client-ext dig +short @203.0.113.1 www.p6.lab",
+            "texteGuide": "docker exec client-ext dig +short @203.0.113.1 www.labo.test",
+            "explication": "Lance une commande à l'intérieur du conteneur client-ext, avec son adresse réseau.\nZone DNS réelle : p6.lab (labo.test est un reste de la conception).\nDans la sortie, « 10.20.0.10 » : vue interne : le LAN joint nginx directement (F05 en état B)\nDans la sortie, « 203.0.113.1 » : vue externe, via la redirection FA2 / F02",
+            "sortie": "203.0.113.1",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "client-ext",
+                "vers": "opnsense",
+                "proto": "Dns",
+                "port": 53,
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« connection timed out; no servers could be reached »",
+            "cause": "bind9 tourne-t-il ? `docker logs bind9`",
+            "solution": "Erreur de syntaxe dans named.conf ou la zone : `named-checkconf`."
+          },
+          {
+            "ordre": 2,
+            "symptome": "client-ext reçoit 10.20.0.10",
+            "cause": "Mauvaise vue choisie",
+            "solution": "Vérifier `match-clients` : 203.0.113.0/24 ne doit pas être dans la vue interne."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Le DNS marche en A mais pas en B pour client-01",
+            "cause": "F06 en TCP au lieu d'UDP",
+            "solution": "Rôle 2 (écart E16)."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "named-checkconf et named-checkzone sans erreur"
+          },
+          {
+            "ordre": 2,
+            "texte": "Réponse interne pour le LAN, publique pour le WAN"
+          }
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "r4-e6",
+        "titre": "Lancer les postes : clients, dmz-pivot, admin, client-ext, iperf3",
+        "quand": "18 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1 : client-01 (10.10.0.10), client-03 (10.10.0.12), admin (10.10.0.100), dmz-pivot (10.20.0.20), client-ext (203.0.113.10), iperf3 (partage la pile réseau de nginx, port 5201). Image des postes : `p6/outils:1`. Les 10 conteneurs redémarrent seuls après un redémarrage de la VM.",
+        "but": "Tous les conteneurs de hosts.csv en marche à leur adresse, avec les outils dont ont besoin la sonde et les scénarios.",
+        "pourquoi": "Section 7.7 : client-03 (S-05) et dmz-pivot (S-04) sont des positions d'attaque internes. Section 7.8 : client-ext (conteneur de l'hôte Docker relié au WAN, distinct de Kali) et client-01 portent la sonde. FA6 / F09 : serveur iperf3 sur 10.20.0.10:5201.",
+        "prerequis": "Étapes : services-3, services-4, services-5\nModules du cours : 2, 8",
+        "livrable": "Message aux rôles 2, 3 et 5 : « tous les postes sont en place ». Fichier `docs/acces-attaquants.md` : les scénarios internes s'exécutent par `ssh root@10.99.0.20 docker exec client-03 …` et `… dmz-pivot …`.",
+        "schema": "macvlan-addr",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e6-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Tout lancer",
+            "texte": "cd ~/p6-etat-a",
+            "texteGuide": "cd /opt/projet6/services\ndocker compose --env-file etat-A.env up -d\ndocker compose ps --format 'table {{.Name}}\\t{{.State}}'\nfor c in nginx dmz-pivot bind9 api client-01 client-03 postgres admin client-ext; do\n  printf \"%-11s %s\\n\" \"$c\" \"$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $c)\"\ndone",
+            "explication": "Se place dans un dossier.\nsetup.sh vérifie les cartes, crée .env et le certificat, construit les images et démarre les 10 conteneurs.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e6-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Tout lancer",
+            "texte": "sudo bash setup.sh",
+            "explication": "Lance un script shell du projet.\nsetup.sh vérifie les cartes, crée .env et le certificat, construit les images et démarre les 10 conteneurs.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "setup.sh",
+                "texte": "Lance le script setup.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e6-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Tout lancer",
+            "texte": "docker compose ps --format 'table {{.Name}}\\t{{.State}}'",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.\nsetup.sh vérifie les cartes, crée .env et le certificat, construit les images et démarre les 10 conteneurs.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "docker compose ps",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e6-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Tout lancer",
+            "texte": "for c in nginx dmz-pivot bind9 api client-01 client-03 postgres admin client-ext; do printf \"%-11s %s\\n\" \"$c\" \"$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $c)\"; done",
+            "explication": "Répète la même commande pour plusieurs valeurs.\nsetup.sh vérifie les cartes, crée .env et le certificat, construit les images et démarre les 10 conteneurs.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e6-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Document",
+            "compte": "karim",
+            "texte": "(sortie de la boucle ci-dessus)",
+            "explication": "Texte de référence du guide : rien n'est exécuté.\n« chaque ligne » : doit correspondre exactement à hosts.csv (page Contrats)",
+            "sortie": "nginx       10.20.0.10\ndmz-pivot   10.20.0.20\nbind9       10.20.0.40\napi         10.20.0.70\nclient-01   10.10.0.10\nclient-03   10.10.0.12\npostgres    10.10.0.70\nadmin       10.10.0.100\nclient-ext  203.0.113.10",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e6-c06",
+            "ordre": 6,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Les outils des scénarios sont là",
+            "texte": "docker exec client-03 sh -c 'nmap --version | head -1; psql --version'",
+            "explication": "Lance une commande à l'intérieur du conteneur client-03, avec son adresse réseau.\nTest : Les outils des scénarios sont là.\nDans la sortie, « Nmap, psql » : S-05 pourra s'exécuter dans client-03",
+            "sortie": "Nmap version 7.9x …\npsql (PostgreSQL) 17.x",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "client-03",
+                "texte": "version de nmap",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "client-03",
+                "texte": "requête SQL locale",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« Address already in use »",
+            "cause": "Un conteneur de test a gardé l'adresse",
+            "solution": "`docker ps -a`, supprimer le conteneur de test."
+          },
+          {
+            "ordre": 2,
+            "symptome": "client-ext ne joint pas 203.0.113.1",
+            "cause": "Réseau wan sur la mauvaise carte",
+            "solution": "Le parent doit être la carte reliée à p6-wan (ens34)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "iperf3 ne démarre pas",
+            "cause": "nginx arrêté (espace réseau partagé)",
+            "solution": "Démarrer nginx d'abord."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Les 9 conteneurs de hosts.csv tournent à leur adresse"
+          },
+          {
+            "ordre": 2,
+            "texte": "iperf3 écoute sur 10.20.0.10:5201"
+          },
+          {
+            "ordre": 3,
+            "texte": "test_flux du rôle 2 peut s'exécuter"
+          }
+        ]
+      },
+      {
+        "numero": 7,
+        "code": "r4-e7",
+        "titre": "Écrire l'outil de capture C10",
+        "quand": "18–19 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Un script que l'orchestrateur appelle par SSH pour démarrer et arrêter une capture dans l'espace réseau d'un conteneur cible.",
+        "pourquoi": "Section 7.10 : un tcpdump par exécution, lancé dans l'espace réseau du conteneur cible ; le trafic entre deux conteneurs d'un même VLAN macvlan ne passe pas par l'interface parente. Les PCAP prouvent le blocage (section 9.4).",
+        "prerequis": "Étapes : services-6\nModules du cours : 10, 3\nNommage des fichiers : page Contrats.",
+        "livrable": "Commit de `capture/capture.sh`. Message aux rôles 5 et 6 : « capture.sh prêt ; fichiers dans /srv/captures/<run_id>_<point>.pcap, à rapatrier dans resultats/<etat>/<date>/pcap/ ».",
+        "schema": "macvlan",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e7-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "capture/capture.sh (installé dans /opt/projet6/capture/)",
+            "texte": "#!/bin/bash\n# capture/capture.sh — C10 : une capture par exécution, dans l'espace réseau du conteneur cible (section 7.10)\n# Usage (appelé par l'orchestrateur du rôle 5, par SSH) :\n#   capture.sh start <run_id> <point>     capture.sh stop <run_id> <point>\n#   <point> : nginx | api | postgres | bind9   (le point kali-wan est capturé sur Kali par le rôle 5)\nset -eu\nACTION=$1; RUN=$2; POINT=$3\nDIR=/srv/captures; mkdir -p \"$DIR\"\nPIDF=\"$DIR/.$RUN-$POINT.pid\"\ncase \"$POINT\" in nginx|api|postgres|bind9) CTR=$POINT ;; *) echo \"point inconnu : $POINT\" >&2; exit 2 ;; esac\nif [ \"$ACTION\" = start ]; then\n  PID=$(docker inspect -f '{{.State.Pid}}' \"$CTR\")                  # processus du conteneur\n  # -Z root : tcpdump garde les droits root pour écrire dans /srv/captures (sinon il passe sous l'utilisateur tcpdump)\n  # Les messages de tcpdump sont gardés dans un fichier caché, à lire si le PCAP est vide.\n  nsenter -t \"$PID\" -n tcpdump -i eth0 -U -s 0 -Z root -w \"$DIR/${RUN}_${POINT}.pcap\" >/dev/null 2>\"$DIR/.$RUN-$POINT.err\" &\n  echo $! > \"$PIDF\"                                                  # mémorise tcpdump pour l'arrêter\n  sleep 1                                                            # laisse tcpdump démarrer avant t0\nelif [ \"$ACTION\" = stop ]; then\n  kill -INT \"$(cat \"$PIDF\")\" && rm -f \"$PIDF\"                        # INT : tcpdump ferme proprement le fichier\n  sleep 1; ls -l \"$DIR/${RUN}_${POINT}.pcap\"\nfi",
+            "explication": "Contenu du fichier capture/capture.sh (installé dans /opt/projet6/capture/).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "capture/capture.sh",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e7-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "/opt/projet6/capture/capture.sh start TEST-S05-01 postgres",
+            "explication": "Lance un script shell du projet.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/capture/capture.sh",
+                "texte": "Lance le script capture.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e7-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker exec client-03 nc -z -w 2 10.10.0.70 5432",
+            "explication": "Lance une commande à l'intérieur du conteneur client-03, avec son adresse réseau.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "client-03",
+                "vers": "postgres",
+                "proto": "Tcp",
+                "port": 5432,
+                "adresseVisee": "10.10.0.70",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e7-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "/opt/projet6/capture/capture.sh stop TEST-S05-01 postgres",
+            "explication": "Lance un script shell du projet.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/capture/capture.sh",
+                "texte": "Lance le script capture.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e7-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "tcpdump -nr /srv/captures/TEST-S05-01_postgres.pcap 'tcp[tcpflags] & tcp-syn != 0' | head -2",
+            "explication": "Capture les paquets qui passent sur une carte réseau, pour les observer.\nDans la sortie, « Flags [S] puis [S.] » : SYN de client-03 puis SYN-ACK de la base : en état A, la connexion aboutit et seule cette capture le prouve",
+            "sortie": "-rw-r--r-- 1 root root 1024 … /srv/captures/TEST-S05-01_postgres.pcap\n16:20:01.102 IP 10.10.0.12.43120 > 10.10.0.70.5432: Flags [S], …\n16:20:01.102 IP 10.10.0.70.5432 > 10.10.0.12.43120: Flags [S.], …",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Capture des paquets sur une carte",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Fichier vide ou absent",
+            "cause": "`cat /srv/captures/.<run_id>-<point>.err`",
+            "solution": "Message de tcpdump (droits, interface). Arrêt par KILL : toujours `kill -INT`, tcpdump vide son tampon."
+          },
+          {
+            "ordre": 2,
+            "symptome": "« nsenter: cannot open … »",
+            "cause": "Lancé sans root",
+            "solution": "L'orchestrateur se connecte en root (clé du collecteur)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Capture sur eth1 vide en état A",
+            "cause": "Normal : trafic interne au macvlan",
+            "solution": "Capturer dans le conteneur (ce script)."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "start / stop fonctionnent pour nginx, api, postgres, bind9"
+          },
+          {
+            "ordre": 2,
+            "texte": "Le PCAP de test montre le SYN de client-03"
+          }
+        ]
+      },
+      {
+        "numero": 8,
+        "code": "r4-e8",
+        "titre": "Basculer les services en état B",
+        "quand": "22–23 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "miseAJour": "Adapter les commandes à l'état A réel : arrêter d'abord l'état A avec `docker compose -p p6 down` (dans `~/p6-etat-a`), ce qui supprime `p6_lan`, `p6_dmz` et `p6_wan` ; les parents des réseaux de l'état B sont `ens33.11`…`ens33.23` et `ens34`. Prendre un instantané de `p6-docker` avant (panneau, « Prendre un instantané »).",
+        "but": "Mêmes conteneurs, mêmes adresses, sur les six réseaux /26 et /27 de l'état B.",
+        "pourquoi": "Section 5.1 : les hôtes gardent leur adresse, seuls le masque et la passerelle changent. Section 6 : on ne change que des sous-interfaces et des règles, jamais le câblage.",
+        "prerequis": "Étapes : parefeu-8, chef-7\nModules du cours : 2, 3\netat-A doit être figé (snapshots) avant la bascule.",
+        "livrable": "Commit de `services/reseaux-B.sh`. Message au rôle 2 : « services en état B, vous pouvez lancer test_flux ».",
+        "schema": "macvlan",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "services/reseaux-B.sh",
+            "texte": "#!/bin/bash\n# services/reseaux-B.sh — réseaux Docker de l'état B (section 5.1). Les adresses des hôtes ne changent pas.\nset -eu\nTRUNK=ens33; WAN=ens34\ndocker network create -d macvlan -o parent=$TRUNK.11 --subnet 10.10.0.0/26  --gateway 10.10.0.1  lan-users\ndocker network create -d macvlan -o parent=$TRUNK.12 --subnet 10.10.0.64/27 --gateway 10.10.0.65 lan-db\ndocker network create -d macvlan -o parent=$TRUNK.13 --subnet 10.10.0.96/27 --gateway 10.10.0.97 lan-admin\ndocker network create -d macvlan -o parent=$TRUNK.21 --subnet 10.20.0.0/27  --gateway 10.20.0.1  dmz-web\ndocker network create -d macvlan -o parent=$TRUNK.22 --subnet 10.20.0.32/27 --gateway 10.20.0.33 dmz-dns\ndocker network create -d macvlan -o parent=$TRUNK.23 --subnet 10.20.0.64/27 --gateway 10.20.0.65 dmz-app\ndocker network inspect wan >/dev/null 2>&1 || docker network create -d macvlan -o parent=$WAN --subnet 203.0.113.0/24 --gateway 203.0.113.1 wan\ndocker network ls --filter driver=macvlan",
+            "explication": "Contenu du fichier services/reseaux-B.sh.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "services/reseaux-B.sh",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Bascule",
+            "texte": "cd /opt/projet6/services",
+            "explication": "Se place dans un dossier.\nLes fichiers de l'état A sont dans ~/p6-etat-a sur p6-docker (copie de D:\\Labo-P6\\docker\\p6-etat-a).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Bascule",
+            "texte": "docker compose --env-file etat-A.env down",
+            "explication": "Arrête les conteneurs ; la base est dans un volume anonyme créé par l'image postgres, conservé (seul « down -v » l'efface)\nLes fichiers de l'état A sont dans ~/p6-etat-a sur p6-docker (copie de D:\\Labo-P6\\docker\\p6-etat-a).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "docker",
+                "nom": "conteneurs du projet",
+                "demarre": false,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Bascule",
+            "texte": "docker network rm lan dmz",
+            "explication": "Supprime aussi les sous-interfaces ens33.10 et ens33.20",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Réseaux supprimés : lan, dmz.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Bascule",
+            "texte": "./reseaux-B.sh",
+            "explication": "Lance un script shell du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "./reseaux-B.sh",
+                "texte": "Lance le script reseaux-B.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c06",
+            "ordre": 6,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Bascule",
+            "texte": "docker compose --env-file etat-B.env up -d",
+            "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "changementEtat",
+                "etat": "B",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "nginx",
+                "reseau": "dmz-web",
+                "ip": "10.20.0.10",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "iperf3",
+                "reseau": "dmz-web",
+                "ip": "10.20.0.10",
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "dmz-pivot",
+                "reseau": "dmz-web",
+                "ip": "10.20.0.20",
+                "ordre": 4,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "bind9",
+                "reseau": "dmz-dns",
+                "ip": "10.20.0.40",
+                "ordre": 5,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "api",
+                "reseau": "dmz-app",
+                "ip": "10.20.0.70",
+                "ordre": 6,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "client-01",
+                "reseau": "lan-users",
+                "ip": "10.10.0.10",
+                "ordre": 7,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "client-03",
+                "reseau": "lan-users",
+                "ip": "10.10.0.12",
+                "ordre": 8,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "postgres",
+                "reseau": "lan-db",
+                "ip": "10.10.0.70",
+                "ordre": 9,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "admin",
+                "reseau": "lan-admin",
+                "ip": "10.10.0.100",
+                "ordre": 10,
+                "automatique": true
+              },
+              {
+                "type": "conteneurReseau",
+                "conteneur": "client-ext",
+                "reseau": "wan",
+                "ip": "203.0.113.10",
+                "ordre": 11,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c07",
+            "ordre": 7,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker exec postgres sh -c 'ip -br addr show eth0; ip route'",
+            "explication": "Lance une commande à l'intérieur du conteneur postgres, avec son adresse réseau.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "postgres",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "postgres",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c08",
+            "ordre": 8,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "docker exec client-03 ip route",
+            "explication": "Lance une commande à l'intérieur du conteneur client-03, avec son adresse réseau.\nDans la sortie, « 10.10.0.70/27 · via 10.10.0.65 » : PostgreSQL dans LAN-DB, passerelle de LAN-DB (section 5.1)\nDans la sortie, « 10.10.0.0/26 » : client-03 ne voit plus la base comme voisine : S-05 passera par pf",
+            "sortie": "eth0  UP  10.10.0.70/27\ndefault via 10.10.0.65 dev eth0\n10.10.0.64/27 dev eth0 proto kernel scope link src 10.10.0.70\ndefault via 10.10.0.1 dev eth0\n10.10.0.0/26 dev eth0 proto kernel scope link src 10.10.0.12",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "client-03",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r4-e8-c09",
+            "ordre": 9,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Chaîne complète en état B",
+            "texte": "docker exec client-ext curl -sk https://203.0.113.1/api/produits | head -c 60",
+            "explication": "Lance une commande à l'intérieur du conteneur client-ext, avec son adresse réseau.\nTest : Chaîne complète en état B.\nDans la sortie, « réponse JSON » : F01, F03 et F04 sont en place (rôle 2)",
+            "sortie": "[{\"id\":1,\"nom\":\"Routeur\",\"prix\":120.0},…",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "client-ext",
+                "vers": "opnsense",
+                "proto": "Https",
+                "port": 443,
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« network dmz-web not found »",
+            "cause": "reseaux-B.sh non exécuté",
+            "solution": "Le lancer avant `up`."
+          },
+          {
+            "ordre": 2,
+            "symptome": "PostgreSQL injoignable depuis l'API",
+            "cause": "Passerelle de LAN-DB",
+            "solution": "Vérifier `--gateway 10.10.0.65` ; sinon voir module 2, exercice 2."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Les données de la base ont disparu",
+            "cause": "`down -v` utilisé par erreur",
+            "solution": "Relancer : init.sh recrée la base à l'identique."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Six réseaux B créés, réseaux A supprimés"
+          },
+          {
+            "ordre": 2,
+            "texte": "Les 9 conteneurs à leur adresse, masques et passerelles de la section 5.1"
+          },
+          {
+            "ordre": 3,
+            "texte": "La chaîne client-ext → nginx → API → base fonctionne"
+          }
+        ]
+      }
+    ]
+  },
+  "questionsJury": [
+    {
+      "question": "Pourquoi macvlan et pas le réseau Docker par défaut ?",
+      "reponse": "Le réseau par défaut cache les conteneurs derrière l'adresse de l'hôte (NAT) : OPNsense ne verrait qu'une source et ne pourrait pas appliquer F03 ou F04. Avec macvlan, chaque conteneur a sa MAC et son adresse dans son VLAN : c'est une machine du segment."
+    },
+    {
+      "question": "Pourquoi l'API est-elle volontairement vulnérable ?",
+      "reponse": "Pour que S-03 ait un effet mesurable : en état A, l'injection renvoie la colonne « secret » ; en état B, Suricata doit la bloquer sur le saut nginx → API. Le point d'entrée n'existe que dans le laboratoire isolé ; /api/produits montre la bonne pratique."
+    },
+    {
+      "question": "Pourquoi la capture se fait-elle dans le conteneur ?",
+      "reponse": "Deux conteneurs d'un même réseau macvlan se parlent dans le noyau de l'hôte, sans passer par eth1 : une capture sur l'hôte ou sur OPNsense ne voit pas S-05 en état A. Seule la capture dans l'espace réseau de la cible prouve l'effet réel (section 7.10)."
+    },
+    {
+      "question": "Qu'est-ce qui change pour un conteneur entre A et B ?",
+      "reponse": "Seulement le réseau Docker : masque, passerelle et VLAN. L'adresse, l'image et la configuration restent identiques ; c'est ce qui rend la comparaison A/B honnête (ENF3)."
+    },
+    {
+      "question": "Pourquoi un serveur iperf3 dans l'espace réseau de nginx ?",
+      "reponse": "FA6 et F09 ouvrent 10.20.0.10:5201. Partager l'espace réseau de nginx donne cette adresse au serveur iperf3 sans créer d'hôte supplémentaire ; la mesure de débit traverse exactement le même chemin que le trafic web."
+    }
+  ]
+}

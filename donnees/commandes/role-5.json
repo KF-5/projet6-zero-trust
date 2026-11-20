@@ -1,0 +1,1438 @@
+{
+  "version": 1,
+  "source": "sources/guide/data (rôle attaques)",
+  "role": {
+    "numero": 5,
+    "cle": "attaques",
+    "titre": "Validation et attaques",
+    "courtNom": "Attaques",
+    "couleur": "--r5",
+    "mission": "Préparer Kali, écrire scenarios.yaml et l'orchestrateur qui rejoue chaque scénario N = 10 fois avec la vérité terrain, puis conduire les campagnes A et B, panne P-01 comprise.",
+    "introduction": "**Confinement.** Toutes les commandes de ce rôle visent uniquement les adresses du laboratoire isolé (203.0.113.0/24, 10.10.0.0/24, 10.20.0.0/24). Avant chaque campagne, le rôle 1 vérifie que les cartes NAT des VM sont débranchées et relance `tests-cloisonnement.sh` depuis Kali (19/19 au 17 novembre) : aucune VM n'a de route vers l'extérieur (ENF1). N'exécutez jamais ces outils hors du laboratoire.\n\nVous êtes le seul à « savoir » quand une attaque a lieu : `runs.csv` est la vérité terrain dont dépendent tous les indicateurs (section 8.4).\n\n**Mise à jour du 17 novembre.** Kali tourne déjà : `p6-kali`, 203.0.113.66 sur le WAN (eth0, passerelle 203.0.113.1) et 10.99.0.66 sur MGMT (eth1), sans bureau. Les outils nmap, hping3, nikto, curl, psql, dig, nc et tcpdump sont installés. Console : TightVNC sur `127.0.0.1::5904` par le tunnel.\n\n**Comptes et SSH réels.** Les VM Debian et Kali ont l'utilisateur `karim` avec `sudo`, pas de connexion `root`. SSH n'est accepté sur les VM que depuis Windows (10.99.0.2) et le collecteur (10.99.0.10) ; le SSH d'OPNsense est désactivé. Avant que l'orchestrateur tourne depuis le collecteur, le rôle 1 doit : installer la clé du collecteur sur p6-docker et p6-kali (pour `root`, ou pour `karim` avec un `sudo` sans mot de passe limité aux commandes utiles), et réactiver le SSH d'OPNsense sur MGMT, par clé seulement (la règle « Admin du pare-feu » autorise déjà le port 22 depuis 10.99.0.10).",
+    "demonstration": "Ce que vous montrez en 2 minutes : les mesures sont reproductibles et la vérité terrain est fiable.\n1. `scenarios.yaml` : un scénario, sa commande et son critère « objectif atteint ».\n2. Lancer `orchestrateur.py --scenario S-05 --n 1` en direct (état B) : la séquence s'affiche.\n3. La ligne ajoutée à runs.csv, la sortie de psql (délai dépassé) et le PCAP vide de SYN.\n4. Rappeler : même graine, même N, mêmes commandes en A et en B.\nPlan de secours : enregistrement de l'exécution.",
+    "etapes": [
+      {
+        "numero": 1,
+        "code": "r5-e1",
+        "titre": "Préparer Kali sans interface graphique",
+        "quand": "14–15 nov.",
+        "fait": false,
+        "etatTexte": "en partie fait",
+        "statut": "Validee",
+        "miseAJour": "En grande partie fait par le rôle 1 (script `setup-kali.sh`) : adresses, outils, heure prise sur 10.99.0.10 (avec `systemctl enable --now chrony` : Kali désactive les services au démarrage), SSH qui n'écoute que sur 10.99.0.66, démarrage en mode texte. Le filtre SSH de Kali est la table `inet p6_ssh` (SSH accepté depuis 10.99.0.2 et 10.99.0.10). Reste à faire : la clé de l'orchestrateur (voir l'encadré du rôle) et tes propres outils Python.",
+        "but": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+        "pourquoi": "Section 6 : Kali sans interface graphique, eth0 WAN, eth1 MGMT ; section 7.7 : positions d'attaque. ENF1 : aucun trafic d'attaque ne sort du laboratoire.",
+        "prerequis": "Étapes : chef-4, chef-5\nModules du cours : 9, 1",
+        "livrable": "Message au rôle 1 : « Kali prête ; contrôle de confinement OK ».",
+        "schema": "proxmox-topo",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c01",
+            "ordre": 1,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Outils (pendant une fenêtre de configuration)",
+            "texte": "apt update",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "Met à jour la liste des paquets (carte NAT branchée le temps du téléchargement).",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c02",
+            "ordre": 2,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Outils (pendant une fenêtre de configuration)",
+            "texte": "apt install -y nmap hping3 nikto curl tcpdump openssh-server",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "Installe : nmap, hping3, nikto, curl, tcpdump, openssh-server",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c03",
+            "ordre": 3,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Outils (pendant une fenêtre de configuration)",
+            "texte": "systemctl enable --now ssh",
+            "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "kali",
+                "nom": "ssh",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c04",
+            "ordre": 4,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Outils (pendant une fenêtre de configuration)",
+            "texte": "mkdir -p /root/.ssh && chmod 700 /root/.ssh",
+            "explication": "Clé publique du collecteur pour root (connexion par clé uniquement)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "kali",
+                "chemin": "/root/.ssh",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "kali",
+                "chemin": "/root/.ssh",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c05",
+            "ordre": 5,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Outils (pendant une fenêtre de configuration)",
+            "texte": "echo \"ssh-ed25519 •••••• collecteur\" >> /root/.ssh/authorized_keys",
+            "explication": "Affiche un texte (ou l'écrit dans un fichier).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "kali",
+                "chemin": "/root/.ssh/authorized_keys",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c06",
+            "ordre": 6,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle du confinement, à refaire avant chaque campagne",
+            "texte": "ip route",
+            "explication": "Attendu : seulement 203.0.113.0/24 et 10.99.0.0/24, AUCUNE ligne « default »",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c07",
+            "ordre": 7,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle du confinement, à refaire avant chaque campagne",
+            "texte": "ping -c 1 -W 1 1.1.1.1",
+            "explication": "Attendu : « Network is unreachable »",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "kali",
+                "vers": "internet",
+                "proto": "Icmp",
+                "adresseVisee": "1.1.1.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c08",
+            "ordre": 8,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle du confinement, à refaire avant chaque campagne",
+            "texte": "nmap --version | head -1; hping3 --version | head -1; nikto -Version | head -2",
+            "explication": "Scanne des ports pour voir lesquels répondent : c'est ce que fait un attaquant pour repérer les services.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "version de nmap",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "Commande tapée sur cette machine.",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "Commande tapée sur cette machine.",
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e1-c09",
+            "ordre": 9,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Depuis le collecteur",
+            "texte": "ssh -o BatchMode=yes root@10.99.0.66 'nmap -sn -Pn 203.0.113.1 | tail -1'",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nTest : Depuis le collecteur.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).\nDans la sortie, « BatchMode=yes » : aucune question interactive : c'est ainsi que l'orchestrateur se connectera\nDans la sortie, « 1 host up » : Kali voit OPNsense sur le WAN simulé",
+            "sortie": "Nmap done: 1 IP address (1 host up) scanned in 0.05 seconds",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "kali",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.66",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "kali",
+                "vers": "opnsense",
+                "proto": "Icmp",
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« Permission denied (publickey) »",
+            "cause": "Clé absente de /root/.ssh/authorized_keys",
+            "solution": "Ajouter la clé du collecteur ; vérifier `PermitRootLogin prohibit-password`."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Une route par défaut existe",
+            "cause": "`ip route`",
+            "solution": "La supprimer (carte de configuration encore active) : `ip route del default`, et prévenir le rôle 1."
+          },
+          {
+            "ordre": 3,
+            "symptome": "nmap -sS : « requires root »",
+            "cause": "Connexion avec un utilisateur normal",
+            "solution": "L'orchestrateur se connecte en root."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Outils installés, versions notées dans docs/versions.md"
+          },
+          {
+            "ordre": 2,
+            "texte": "SSH en root par clé depuis 10.99.0.10"
+          },
+          {
+            "ordre": 3,
+            "texte": "Aucune route par défaut sur Kali"
+          }
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "r5-e2",
+        "titre": "Écrire scenarios.yaml",
+        "quand": "15–16 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+        "pourquoi": "Section 10.1 (scénarios) et section 9.4 : le blocage se juge sur l'effet réel, donc chaque scénario doit dire ce qu'est « objectif atteint ». Corrections appliquées : commande curl de S-03 (écart E10), timeout de hping3.",
+        "prerequis": "Étapes : attaques-1, services-3\nModules du cours : 9\nFormat : page Contrats.",
+        "livrable": "Commit de `campagne/scenarios.yaml`. Message au rôle 6 : « critères objectif_atteint disponibles pour le calcul du blocage ».",
+        "schema": "comparateur-ab",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r5-e2-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "campagne/scenarios.yaml",
+            "texte": "# campagne/scenarios.yaml — scénarios de la section 10.1, rejoués à l'identique en A et en B\ngraine: 2026          # même graine dans les deux états : même ordre de passage (section 10.3)\nn: 10                 # exécutions par scénario et par état (ENF2) ; réduire à 5 si le planning glisse (section 11.2)\npause_s: 30           # pause entre deux exécutions (section 7.6)\nscenarios:\n  - id: S-01\n    description: Scan SYN depuis le WAN\n    machine: kali                       # SSH sur la VM Kali\n    commande: nmap -sS -Pn -p 1-1024 -T4 -oG - 203.0.113.1\n    cible: 203.0.113.1\n    duree_max_s: 240\n    objectif_atteint: \"au moins une ligne '/open/' dans la sortie\"\n    captures: [kali-wan, nginx]\n  - id: S-02\n    description: SYN flood sur le web\n    machine: kali\n    commande: timeout 30 hping3 -S --flood -p 443 203.0.113.1   # timeout : hping3 --flood ne s'arrête pas seul (code 124 attendu)\n    cible: 203.0.113.1\n    duree_max_s: 45\n    objectif_atteint: \"disponibilité de la sonde < 99 % entre t0 et t1 (sla.csv)\"\n    captures: [kali-wan]                # capturer nginx pendant un flood produirait un fichier énorme\n  - id: S-03\n    description: Scan de vulnérabilités web et injection SQL\n    machine: kali\n    commande: |\n      nikto -h https://203.0.113.1 -maxtime 60s -nointeractive\n      curl -sk -G https://203.0.113.1/api/produit --data-urlencode \"id=1' OR '1'='1\"\n    cible: 203.0.113.1\n    duree_max_s: 120\n    objectif_atteint: \"la sortie de curl contient « secret »\"\n    captures: [kali-wan, api]\n  - id: S-04\n    description: Pivot de la DMZ vers la base\n    machine: dmz-pivot                  # docker exec sur l'hôte Docker\n    commande: |\n      nmap -sT -Pn -p 5432 -oG - 10.10.0.70\n      PGCONNECT_TIMEOUT=5 psql -h 10.10.0.70 -U lecteur -d catalogue -c \"select count(*) from produits\"\n    cible: 10.10.0.70\n    duree_max_s: 60\n    objectif_atteint: \"psql renvoie une ligne (connexion ouverte et authentifiée)\"\n    captures: [postgres]\n  - id: S-05\n    description: Mouvement latéral du LAN vers la base\n    machine: client-03\n    commande: |\n      nmap -sT -Pn -p 22,5432 -oG - 10.10.0.64/27\n      PGCONNECT_TIMEOUT=5 psql -h 10.10.0.70 -U lecteur -d catalogue -c \"select count(*) from produits\"\n    cible: 10.10.0.70\n    duree_max_s: 120\n    objectif_atteint: \"psql renvoie une ligne (connexion ouverte et authentifiée)\"\n    captures: [postgres]\n  - id: S-06\n    description: Trafic fragmenté anormal\n    machine: kali\n    commande: |\n      nmap -f -sS -Pn -p 443 -oG - 203.0.113.1\n      hping3 -f -S -p 443 -c 20 203.0.113.1\n    cible: 203.0.113.1\n    duree_max_s: 60\n    objectif_atteint: \"aucun objectif de blocage : on mesure la détection\"\n    captures: [kali-wan]\n  - id: P-01                            # état B seulement, 5 répétitions (section 10.3, étape 4)\n    description: Panne de l'IPS pendant un SYN flood\n    machine: kali\n    commande: timeout 60 hping3 -S --flood -p 443 203.0.113.1\n    cible: 203.0.113.1\n    duree_max_s: 75\n    objectif_atteint: \"mesure : disponibilité avant, pendant, après ; temps de reprise\"\n    captures: [kali-wan]\n    actions:                            # exécutées sur OPNsense, en secondes après t0 (section 8.5)\n      - {a_s: 10, commande: \"configctl ids stop\"}     # à vérifier sur votre version (rôle 3, étape 7)\n      - {a_s: 40, commande: \"configctl ids start\"}",
+            "explication": "Contenu du fichier campagne/scenarios.yaml.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "campagne/scenarios.yaml",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e2-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Sur le collecteur",
+            "texte": "python3 -c \"import yaml;d=yaml.safe_load(open('campagne/scenarios.yaml'));print(len(d['scenarios']),[s['id'] for s in d['scenarios']])\"",
+            "explication": "Lance un programme Python du projet.\nTest : Sur le collecteur.\nDans la sortie, « 7 » : six scénarios et la panne",
+            "sortie": "7 ['S-01', 'S-02', 'S-03', 'S-04', 'S-05', 'S-06', 'P-01']",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "programme Python",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« mapping values are not allowed here »",
+            "cause": "Deux-points non protégé dans une commande",
+            "solution": "Mettre la commande en bloc `|` (comme S-03) ou entre guillemets."
+          },
+          {
+            "ordre": 2,
+            "symptome": "S-03 : curl renvoie « URL using bad/illegal format »",
+            "cause": "Commande du rapport sans encodage",
+            "solution": "Utiliser `-G --data-urlencode` (écart E10)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "psql demande un mot de passe",
+            "cause": "PGPASSWORD '••••••' du conteneur",
+            "solution": "Il est fourni par compose.yml (rôle 4) pour dmz-pivot et client-03."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "7 entrées, chacune avec un critère objectif_atteint vérifiable"
+          },
+          {
+            "ordre": 2,
+            "texte": "Commandes testées une fois à la main (état A)"
+          }
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "r5-e3",
+        "titre": "Écrire l'orchestrateur C6",
+        "quand": "16–18 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+        "pourquoi": "Section 7.6 et figure 8 : démarrer la capture, noter t0, lancer par SSH, noter t1, écrire la vérité terrain, arrêter la capture, réinitialiser (pfctl -k, levée des blocages), attendre 30 s. Section 10.3 : même graine en A et en B.",
+        "prerequis": "Étapes : attaques-2, services-7, parefeu-2\nModules du cours : 10, 11\nLe shell de connexion de root sur OPNsense doit exécuter une commande passée par SSH (System › Access › Users › root, « Login shell » : /bin/sh) à vérifier sur votre version.",
+        "livrable": "Commit de `campagne/orchestrateur.py`. Message au rôle 6 : « exemple de runs.csv réel joint ».",
+        "schema": "campagne-chrono",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r5-e3-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "campagne/orchestrateur.py",
+            "texte": "#!/usr/bin/env python3\n\"\"\"C6 — orchestrateur de campagnes (rapport, sections 7.6, 8.4, 10.3 ; figure 8).\nExécute chaque scénario N fois, produit la vérité terrain runs.csv, les sorties et les PCAP.\nDépendances sur le collecteur : apt install python3-yaml openssh-client\"\"\"\nimport argparse, csv, datetime as dt, os, random, shlex, subprocess, sys, threading, time\nimport yaml\n\nSRC_IP = {\"kali\": \"203.0.113.66\", \"client-03\": \"10.10.0.12\", \"dmz-pivot\": \"10.20.0.20\"}   # hosts.csv\nSSH = {\"kali\": \"root@10.99.0.66\", \"docker\": \"root@10.99.0.20\", \"opnsense\": \"root@10.99.0.1\"}  # par MGMT\n\ndef maintenant():                                   # horloge du collecteur (référence NTP), UTC, milliseconde\n    return dt.datetime.now(dt.timezone.utc).isoformat(timespec=\"milliseconds\").replace(\"+00:00\", \"Z\")\n\ndef ssh(cible, commande, simul, delai=None):\n    if simul:\n        print(f\"    [simulation] ssh {SSH[cible]} {commande}\")\n        return 0, \"\"\n    p = subprocess.run([\"ssh\", \"-o\", \"BatchMode=yes\", SSH[cible], commande],\n                       capture_output=True, text=True, timeout=delai)\n    return p.returncode, p.stdout + p.stderr\n\ndef executer(sc, simul):\n    cmd = sc[\"commande\"].strip()\n    if sc[\"machine\"] == \"kali\":\n        return ssh(\"kali\", f\"sh -c {shlex.quote(cmd)}\", simul, sc[\"duree_max_s\"])\n    return ssh(\"docker\", f\"docker exec {sc['machine']} sh -c {shlex.quote(cmd)}\", simul, sc[\"duree_max_s\"])\n\ndef capture(action, run_id, points, simul):         # C10 (rôle 4) ; le point kali-wan est sur Kali (écart E18)\n    for pt in points:\n        if pt == \"kali-wan\":\n            if action == \"start\":\n                ssh(\"kali\", f\"nohup tcpdump -i eth0 -U -w /tmp/{run_id}_kali-wan.pcap >/dev/null 2>&1 & echo $! > /tmp/{run_id}.pid; sleep 1\", simul)\n            else:\n                ssh(\"kali\", f\"kill -INT $(cat /tmp/{run_id}.pid); sleep 1\", simul)\n        else:\n            ssh(\"docker\", f\"/opt/projet6/capture/capture.sh {action} {run_id} {pt}\", simul)\n\ndef rapatrier(run_id, points, dossier, simul):\n    for pt in points:\n        src = f\"{SSH['kali']}:/tmp/{run_id}_kali-wan.pcap\" if pt == \"kali-wan\" else f\"{SSH['docker']}:/srv/captures/{run_id}_{pt}.pcap\"\n        if simul:\n            print(f\"    [simulation] scp {src} {dossier}/pcap/\")\n            continue\n        subprocess.run([\"scp\", \"-q\", \"-o\", \"BatchMode=yes\", src, f\"{dossier}/pcap/\"], check=False)\n\ndef actions_programmees(sc, simul):                 # P-01 : arrêt puis redémarrage de Suricata\n    fils = []\n    for a in sc.get(\"actions\", []):\n        t = threading.Timer(0 if simul else a[\"a_s\"], ssh, args=(\"opnsense\", a[\"commande\"], simul))\n        t.start()\n        fils.append(t)\n    return fils\n\ndef main():\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--etat\", choices=[\"A\", \"B\"], required=True)\n    ap.add_argument(\"--fichier\", default=\"campagne/scenarios.yaml\")\n    ap.add_argument(\"--scenario\", help=\"ne jouer que ce scénario, par exemple S-01 ou P-01\")\n    ap.add_argument(\"--n\", type=int, help=\"remplace n (1 pour une répétition à blanc)\")\n    ap.add_argument(\"--simulation\", action=\"store_true\", help=\"affiche les commandes sans rien exécuter\")\n    ap.add_argument(\"--dossier\", help=\"dossier de résultats, par exemple resultats/A/2026-11-20 (défaut : date du jour)\")\n    a = ap.parse_args()\n    with open(a.fichier, encoding=\"utf-8\") as f:\n        conf = yaml.safe_load(f)\n    n, pause = a.n or conf[\"n\"], conf[\"pause_s\"]\n    scen = [s for s in conf[\"scenarios\"] if (s[\"id\"] == a.scenario) or (a.scenario is None and s[\"id\"] != \"P-01\")]\n    if not scen:\n        sys.exit(\"aucun scénario sélectionné\")\n    if a.etat == \"A\" and any(s[\"id\"] == \"P-01\" for s in scen):\n        sys.exit(\"P-01 ne concerne que l'état B\")\n    random.Random(conf[\"graine\"]).shuffle(scen)     # ordre aléatoire, identique en A et en B\n    if a.simulation:\n        dossier = f\"resultats/{a.etat}/simulation\"                  # la simulation ne pollue pas les vraies données\n    else:\n        dossier = a.dossier or f\"resultats/{a.etat}/{dt.date.today().isoformat()}\"\n        # Un même dossier pour toute la campagne, même si elle passe minuit : le fixer avec --dossier.\n    os.makedirs(f\"{dossier}/sorties\", exist_ok=True)\n    os.makedirs(f\"{dossier}/pcap\", exist_ok=True)\n    chemin = f\"{dossier}/runs.csv\"\n    nouveau = not os.path.exists(chemin)\n    with open(chemin, \"a\", newline=\"\", encoding=\"utf-8\") as f:\n        w = csv.writer(f)\n        if nouveau:\n            w.writerow([\"run_id\", \"scenario\", \"etat\", \"iteration\", \"t0_utc\", \"t1_utc\", \"src_ip\", \"cible_ip\", \"code_retour\"])\n        for sc in scen:\n            for i in range(1, n + 1):\n                run_id = f\"{a.etat}-{sc['id'].replace('-', '')}-{i:02d}\"\n                print(f\"{run_id} · {sc['description']}\")\n                capture(\"start\", run_id, sc.get(\"captures\", []), a.simulation)\n                t0 = maintenant()\n                fils = actions_programmees(sc, a.simulation)\n                try:\n                    code, sortie = executer(sc, a.simulation)\n                except subprocess.TimeoutExpired:\n                    code, sortie = 124, \"délai maximal dépassé (duree_max_s)\"\n                t1 = maintenant()\n                for t in fils:\n                    t.join()\n                capture(\"stop\", run_id, sc.get(\"captures\", []), a.simulation)\n                rapatrier(run_id, sc.get(\"captures\", []), dossier, a.simulation)\n                with open(f\"{dossier}/sorties/{run_id}.txt\", \"w\", encoding=\"utf-8\") as o:\n                    o.write(sortie)\n                w.writerow([run_id, sc[\"id\"], a.etat, i, t0, t1, SRC_IP.get(sc[\"machine\"], \"\"), sc[\"cible\"], code])\n                f.flush()\n                src = SRC_IP.get(sc[\"machine\"])\n                if src:\n                    ssh(\"opnsense\", f\"pfctl -k {src}\", a.simulation)    # supprime les états de l'attaquant\n                time.sleep(0 if a.simulation else pause)              # blocages temporaires expirés, trafic calmé\n    print(f\"Terminé : {chemin}\")\n\nif __name__ == \"__main__\":\n    main()",
+            "explication": "Contenu du fichier campagne/orchestrateur.py.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "campagne/orchestrateur.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e3-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Simulation (n'exécute rien)",
+            "texte": "python3 campagne/orchestrateur.py --etat A --scenario S-05 --n 1 --simulation",
+            "explication": "Lance un programme Python du projet.\nTest : Simulation (n'exécute rien).\nDans la sortie, « ordre des lignes » : capture, attaque, arrêt, rapatriement, réinitialisation : exactement la figure 8\nDans la sortie, « pfctl -k 10.10.0.12 » : les états de l'attaquant sont supprimés après chaque exécution",
+            "sortie": "A-S05-01 · Mouvement latéral du LAN vers la base\n    [simulation] ssh root@10.99.0.20 /opt/projet6/capture/capture.sh start A-S05-01 postgres\n    [simulation] ssh root@10.99.0.20 docker exec client-03 sh -c 'nmap -sT …'\n    [simulation] ssh root@10.99.0.20 /opt/projet6/capture/capture.sh stop A-S05-01 postgres\n    [simulation] scp root@10.99.0.20:/srv/captures/A-S05-01_postgres.pcap resultats/A/simulation/pcap/\n    [simulation] ssh root@10.99.0.1 pfctl -k 10.10.0.12\nTerminé : resultats/A/simulation/runs.csv",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« Host key verification failed »",
+            "cause": "Première connexion SSH",
+            "solution": "Se connecter une fois à la main à 10.99.0.1, .20 et .66 pour accepter les clés."
+          },
+          {
+            "ordre": 2,
+            "symptome": "pfctl -k ne fait rien",
+            "cause": "Le shell de root sur OPNsense est le menu console",
+            "solution": "Choisir /bin/sh comme shell de connexion de root (à vérifier sur votre version)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Le PCAP n'est pas rapatrié",
+            "cause": "Point de capture inconnu de capture.sh",
+            "solution": "Points valides : kali-wan, nginx, api, postgres, bind9."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "La simulation affiche la séquence complète pour chaque scénario"
+          },
+          {
+            "ordre": 2,
+            "texte": "Une exécution réelle de S-05 produit runs.csv, sorties/…txt et pcap/…pcap"
+          }
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "r5-e4",
+        "titre": "Répétition à blanc",
+        "quand": "19 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Une exécution réelle de chaque scénario en état A, pour valider les commandes, les critères et toute la chaîne de mesure avant la campagne.",
+        "pourquoi": "Jalon du 19 novembre (section 12) : test_flux conforme ; une exécution S-01 produit runs.csv + events.csv. C'est la preuve que les rôles 2, 3, 4 et 6 sont prêts.",
+        "prerequis": "Étapes : parefeu-7, services-7, ids-3, analyse-3\nModules du cours : 9, 11",
+        "livrable": "Message au rôle 1 : « jalon du 19 atteint ». Les fichiers de l'essai restent dans `resultats/A/essai/` (pas dans les données de campagne).",
+        "schema": "comparateur-ab",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Sur le collecteur",
+            "texte": "python3 campagne/orchestrateur.py --etat A --n 1 --dossier resultats/A/essai",
+            "explication": "6 exécutions, environ 6 minutes",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Sur le collecteur",
+            "texte": "ls resultats/A/essai/",
+            "explication": "Liste les fichiers d'un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/essai/",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Sur le collecteur",
+            "texte": "cat resultats/A/essai/runs.csv",
+            "explication": "Affiche le contenu d'un fichier sans le modifier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/essai/runs.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Sur le collecteur",
+            "texte": "python3 analyse/parse.py --dossier resultats/A/essai",
+            "explication": "Rôle 6 : produit events.csv",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/parse.py",
+                "texte": "lance analyse/parse.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "grep -o '/open/' resultats/A/essai/sorties/A-S01-01.txt | wc -l",
+            "explication": "Cherche les lignes qui contiennent un motif.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/essai/sorties/A-S01-01.txt",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c06",
+            "ordre": 6,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "grep -c secret resultats/A/essai/sorties/A-S03-01.txt",
+            "explication": "Cherche les lignes qui contiennent un motif.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/essai/sorties/A-S03-01.txt",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e4-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "tail -3 resultats/A/essai/runs.csv",
+            "explication": "Affiche les dernières lignes d'un fichier (souvent un journal).\nDans la sortie, « 3 » : trois occurrences de « /open/ » (grep -o compte chaque port, pas chaque ligne : nmap -oG met tous les ports sur une ligne) : 53, 80, 443 découverts, objectif atteint\nDans la sortie, « secret » : S-03 en A : l'injection a réussi\nDans la sortie, « code 0 pour S-04 » : psql connecté : FA3 laisse passer dmz-pivot",
+            "sortie": "3\n1\nA-S04-01,S-04,A,1,2026-11-19T10:12:40.004Z,2026-11-19T10:12:47.210Z,10.20.0.20,10.10.0.70,0\nA-S01-01,S-01,A,1,…,203.0.113.66,203.0.113.1,0\n…",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/essai/runs.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "S-02 renvoie 124",
+            "cause": "Normal : timeout arrête hping3",
+            "solution": "Le blocage de S-02 se juge sur sla.csv, pas sur le code."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Aucune alerte pour aucun scénario en A",
+            "cause": "Normal : pas d'IDS en état A",
+            "solution": "Vérifier seulement que filterlog et sla.csv arrivent."
+          },
+          {
+            "ordre": 3,
+            "symptome": "events.csv vide",
+            "cause": "Collecte du rôle 6 pas prête",
+            "solution": "Escalader au rôle 1 : la campagne A ne peut pas partir."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Les 6 scénarios s'exécutent sans intervention"
+          },
+          {
+            "ordre": 2,
+            "texte": "Chaque objectif est jugé atteint en état A comme prévu (S-06 : port 443 vu ouvert)"
+          },
+          {
+            "ordre": 3,
+            "texte": "runs.csv et events.csv existent pour S-01"
+          }
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "r5-e5",
+        "titre": "Conduire la campagne A",
+        "quand": "20–21 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "6 scénarios × 10 exécutions en état A, dans les conditions du protocole, archivés et marqués.",
+        "pourquoi": "Section 10.3 : restaurer le snapshot et vérifier test_flux ; 2 h de trafic légitime seul ; campagne de 6 × 10 exécutions, ordre aléatoire, pause de 30 s (environ 1 h 30) ; archiver ; même version d'outils et même graine dans les deux états.",
+        "prerequis": "Étapes : parefeu-7, ids-3\nModules du cours : 9, 10",
+        "livrable": "Message aux rôles 1 et 6 : « campagne A terminée, resultats/A/2026-11-20 » (dossier daté du jour de début).",
+        "schema": "campagne-chrono",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "CAMP=resultats/A/2026-11-20",
+            "explication": "0. Rôle 1 : instantané etat-A restauré, cartes NAT débranchées (startConnected FALSE), tests-cloisonnement.sh = 19/19 1. Rôle 2 : test_flux A → 0 écart                (section 10.3, étape 1) 2. Rôle 3 : sonde démarrée, 2 h de trafic légitime seul, puis iperf3 de référence (étape 2) dossier fixé une fois pour toute la campagne (même si elle passe minuit)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "mkdir -p $CAMP/iperf",
+            "explication": "Crée un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/iperf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "ssh root@10.99.0.20 /opt/projet6/sonde/sonde.sh start",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "python3 campagne/orchestrateur.py --etat A --dossier $CAMP",
+            "explication": "3. Campagne (étape 3) — ne touchez à rien pendant 1 h 30",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "ssh root@10.99.0.20 /opt/projet6/sonde/sonde.sh stop /srv/sla/A",
+            "explication": "4. Fin : sonde arrêtée, sla.csv et iperf3 rapatriés, analyse, archivage (étape 5)\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c06",
+            "ordre": 6,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "scp root@10.99.0.20:/srv/sla/A/sla.csv $CAMP/",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "scp root@10.99.0.20:/srv/sla/iperf-A.json $CAMP/iperf/A.json",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/iperf/A.json",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c08",
+            "ordre": 8,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "python3 analyse/parse.py --dossier $CAMP",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/parse.py",
+                "texte": "lance analyse/parse.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c09",
+            "ordre": 9,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "git add resultats/A && git commit -m \"[rôle 5] Campagne A\" && git tag campagne-A",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Git : add resultats/A",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Git : commit -m",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Git : tag campagne-A",
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c10",
+            "ordre": 10,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "wc -l resultats/A/*/runs.csv",
+            "explication": "Compte des lignes.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/*/runs.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e5-c11",
+            "ordre": 11,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "ls resultats/A/*/pcap | wc -l",
+            "explication": "Liste les fichiers d'un dossier.\nDans la sortie, « 61 » : 60 exécutions + l'en-tête\nDans la sortie, « 80 » : 8 points de capture par tour (S-01 : 2, S-02 : 1, S-03 : 2, S-04 : 1, S-05 : 1, S-06 : 1) × 10 exécutions",
+            "sortie": "61 resultats/A/2026-11-20/runs.csv\n80",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/*/pcap",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Une exécution échoue au milieu",
+            "cause": "Ligne manquante dans runs.csv",
+            "solution": "Relancer seulement ce scénario avec --scenario ; noter l'incident dans docs/journal-campagnes.md."
+          },
+          {
+            "ordre": 2,
+            "symptome": "La sonde s'est arrêtée",
+            "cause": "sla.csv incomplet",
+            "solution": "Les disponibilités de la période sont invalides : relancer les exécutions concernées."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Retard sur le planning",
+            "cause": "—",
+            "solution": "Réduire N à 5 pour tous les scénarios, jamais pour un seul état (section 11.2)."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "60 lignes dans runs.csv, toutes avec un code de retour"
+          },
+          {
+            "ordre": 2,
+            "texte": "PCAP et sorties présents pour chaque exécution"
+          },
+          {
+            "ordre": 3,
+            "texte": "Tag campagne-A poussé ; rôle 1 peut figer etat-A"
+          }
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "r5-e6",
+        "titre": "Conduire la campagne B et la panne P-01",
+        "quand": "25–26 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "La même campagne en état B, puis P-01 répété 5 fois, puis la mesure iperf3 « B sans IPS ».",
+        "pourquoi": "Section 10.3, étapes 3 et 4 : même protocole qu'en A ; P-01 en état B uniquement, 5 répétitions ; débit iperf3 en B avec Suricata désactivé (référence « B sans IPS »). Section 8.5 : le comportement en panne est mesuré, pas supposé.",
+        "prerequis": "Étapes : parefeu-9, ids-6, ids-7, services-8\nModules du cours : 9, 7",
+        "livrable": "Message aux rôles 1 et 6 : « campagne B et P-01 terminées, resultats/B/2026-11-25 ».",
+        "schema": "comparateur-ab",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "CAMP=resultats/B/2026-11-25",
+            "explication": "Même préparation qu'en A : snapshot etat-B (ou état validé), test_flux B 0 écart, 2 h de trafic légitime",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "mkdir -p $CAMP/iperf",
+            "explication": "Crée un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/iperf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "ssh root@10.99.0.20 /opt/projet6/sonde/sonde.sh start",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "python3 campagne/orchestrateur.py --etat B --dossier $CAMP",
+            "explication": "60 exécutions, même graine qu'en A",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "python3 campagne/orchestrateur.py --etat B --dossier $CAMP --scenario P-01 --n 5",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c06",
+            "ordre": 6,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "ssh root@10.99.0.20 /opt/projet6/sonde/sonde.sh stop /srv/sla/B",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "scp root@10.99.0.20:/srv/sla/B/sla.csv $CAMP/",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c08",
+            "ordre": 8,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "scp root@10.99.0.20:/srv/sla/iperf-B-avec-ips.json $CAMP/iperf/B-avec-ips.json",
+            "explication": "Puis rôle 3 : iperf3 « B avec IPS » et « B sans IPS », rapatriés ici\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/iperf/B-avec-ips.json",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c09",
+            "ordre": 9,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "scp root@10.99.0.20:/srv/sla/iperf-B-sans-ips.json $CAMP/iperf/B-sans-ips.json",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "$CAMP/iperf/B-sans-ips.json",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c10",
+            "ordre": 10,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "python3 analyse/parse.py --dossier $CAMP",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/parse.py",
+                "texte": "lance analyse/parse.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c11",
+            "ordre": 11,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Déroulé (collecteur)",
+            "texte": "git add resultats/B && git commit -m \"[rôle 5] Campagne B et P-01\" && git tag campagne-B",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Git : add resultats/B",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Git : commit -m",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Git : tag campagne-B",
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c12",
+            "ordre": 12,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "grep -c ',P-01,' resultats/B/2026-11-25/runs.csv",
+            "explication": "Cherche les lignes qui contiennent un motif.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/B/2026-11-25/runs.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r5-e6-c13",
+            "ordre": 13,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "grep -c /open/ resultats/B/2026-11-25/sorties/B-S01-*.txt | head -3",
+            "explication": "Cherche les lignes qui contiennent un motif.\nDans la sortie, « 5 » : les 5 répétitions de P-01\nDans la sortie, « 0 puis 1 » : S-01 bloqué dans la plupart des exécutions ; une sonde passée avant le seuil peut révéler un port (écart E06) : c'est un résultat à rapporter, pas à masquer",
+            "sortie": "5\nresultats/B/…/B-S01-01.txt:0\nresultats/B/…/B-S01-02.txt:0\nresultats/B/…/B-S01-03.txt:1",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/B/2026-11-25/sorties/B-S01-*.txt",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Tous les scénarios WAN échouent dès la 1re exécution",
+            "cause": "Suricata bloque Kali durablement",
+            "solution": "Vérifier le timeout du rate_filter (rôle 3) ; il doit être inférieur à la pause de 30 s."
+          },
+          {
+            "ordre": 2,
+            "symptome": "P-01 : Suricata ne redémarre pas",
+            "cause": "Commande d'arrêt / démarrage non valide sur votre version",
+            "solution": "Tester les deux commandes à la main avec le rôle 3 avant la campagne."
+          },
+          {
+            "ordre": 3,
+            "symptome": "La sonde est coupée pendant P-01",
+            "cause": "C'est peut-être le résultat : l'interface ne transmet plus rien",
+            "solution": "Ne pas corriger : mesurer la durée et le temps de reprise (section 8.5)."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "60 exécutions en B, même ordre qu'en A"
+          },
+          {
+            "ordre": 2,
+            "texte": "5 exécutions de P-01"
+          },
+          {
+            "ordre": 3,
+            "texte": "Tag campagne-B poussé ; rôle 1 peut figer etat-B"
+          }
+        ]
+      }
+    ]
+  },
+  "questionsJury": [
+    {
+      "question": "Comment évitez-vous qu'une exécution influence la suivante ?",
+      "reponse": "Après chaque exécution : suppression des états pf de l'attaquant (pfctl -k), attente de 30 s pendant laquelle les blocages temporaires de Suricata expirent (timeout du rate_filter inférieur à la pause). L'ordre des scénarios est aléatoire pour ne pas favoriser un scénario par sa position."
+    },
+    {
+      "question": "Comment savez-vous qu'une attaque est bloquée ?",
+      "reponse": "Par son effet réel, défini dans scenarios.yaml : ports ouverts dans la sortie de nmap, connexion psql réussie, présence de « secret » dans la réponse, disponibilité de la sonde. On le vérifie aussi dans le PCAP côté cible (section 9.4)."
+    },
+    {
+      "question": "Vos scénarios ne favorisent-ils pas l'état B ?",
+      "reponse": "Les commandes, N, la graine, le trafic de fond et les adresses sont identiques. En revanche, les règles locales de Suricata ont été écrites en connaissant les scénarios : les taux valent pour ces attaques (section 11.3)."
+    },
+    {
+      "question": "Comment garantissez-vous qu'aucune attaque ne sort du laboratoire ?",
+      "reponse": "Toutes les cibles sont dans 203.0.113.0/24 ou les réseaux internes ; Kali n'a pas de route par défaut ; avant chaque campagne, le rôle 1 vérifie que les cartes de configuration sont débranchées. Les commandes passent par MGMT, mais les attaques partent du WAN ou des segments évalués."
+    },
+    {
+      "question": "Pourquoi l'horloge du collecteur pour t0 et t1 ?",
+      "reponse": "C'est la référence NTP du laboratoire : OPNsense et l'hôte Docker se synchronisent sur elle. Le temps de détection (première alerte − t0) compare deux horloges synchronisées."
+    }
+  ]
+}

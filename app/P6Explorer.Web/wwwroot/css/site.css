@@ -1,0 +1,198 @@
+/* P6 Explorer — feuille de style unique (pas de Bootstrap). Esthétique : docs/style-reference.md.
+   Couleurs de zone et de rôle : sources/guide/style.css ; seul le fond passe au bleu nuit de la référence. */
+
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("../fonts/IBMPlexMono-Regular.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: swap; src: url("../fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 700; font-display: swap; src: url("../fonts/IBMPlexMono-Bold.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("../fonts/IBMPlexSans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("../fonts/IBMPlexSans-SemiBold.woff2") format("woff2"); }
+
+/* ---------- Jetons : thème sombre par défaut ---------- */
+:root {
+  color-scheme: dark;
+  --bg: #0b1020; --surface: #111a30; --surface-2: #17223d; --line: #26335a; --line-fort: #3a4a78;
+  --fg: #dce4f6; --muted: #93a3c8;
+  --acc: #3db5ac; --on-acc: #05201d; --opn: var(--acc);
+  --wan: #f07167; --dmz: #e8b04b; --lan: #66bb6a; --mgmt: #a78bfa; --trunk: #64a5f5; --ids: #f08b52; --ext: #8b97b5;
+  --ok: #5cc27c; --bad: #f2696f; --warn: #e2b04a;
+  --r1: #8b85f7; --r2: #3db5ac; --r3: #f08b52; --r4: #d9a441; --r5: #f06aa6; --r6: #5db3e8;
+  --p-https: #22d3ee; --p-http: #38bdf8; --p-syslog: #94a3b8; --p-ntp: #c4b5fd;
+  --grille: rgba(147, 163, 200, .14);
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --f-texte: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-in: cubic-bezier(.5, 0, .75, 0);
+  --rayon: 3px;
+}
+
+/* Thème clair : choisi explicitement, ou demandé par le système quand aucun choix n'est mémorisé. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8fc; --surface: #ffffff; --surface-2: #e9eef7; --line: #c7d1e3; --line-fort: #9aa8c4;
+  --fg: #0f1a33; --muted: #4f5e7d;
+  --acc: #0c6a66; --on-acc: #ffffff;
+  --wan: #c0392b; --dmz: #b7791f; --lan: #2e7d32; --mgmt: #6d4fc2; --trunk: #1f6fd1; --ids: #c2510f; --ext: #5f6b85;
+  --ok: #1b7a3a; --bad: #a61b1b; --warn: #8a6100;
+  --r1: #4f46e5; --r2: #0c6a66; --r3: #c2510f; --r4: #8a5a00; --r5: #b0185d; --r6: #0e6a9e;
+  --p-https: #0e7490; --p-http: #0369a1; --p-syslog: #475569; --p-ntp: #6d28d9;
+  --grille: rgba(79, 94, 125, .16);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f6f8fc; --surface: #ffffff; --surface-2: #e9eef7; --line: #c7d1e3; --line-fort: #9aa8c4;
+    --fg: #0f1a33; --muted: #4f5e7d;
+    --acc: #0c6a66; --on-acc: #ffffff;
+    --wan: #c0392b; --dmz: #b7791f; --lan: #2e7d32; --mgmt: #6d4fc2; --trunk: #1f6fd1; --ids: #c2510f; --ext: #5f6b85;
+    --ok: #1b7a3a; --bad: #a61b1b; --warn: #8a6100;
+    --r1: #4f46e5; --r2: #0c6a66; --r3: #c2510f; --r4: #8a5a00; --r5: #b0185d; --r6: #0e6a9e;
+    --p-https: #0e7490; --p-http: #0369a1; --p-syslog: #475569; --p-ntp: #6d28d9;
+    --grille: rgba(79, 94, 125, .16);
+  }
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+  background: var(--bg); color: var(--fg);
+  font: 400 15px/1.55 var(--f-texte);
+}
+h1, h2, h3 { font-family: var(--f-mono); font-weight: 700; letter-spacing: .04em; line-height: 1.2; margin: 0 0 .5em; }
+h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.2rem); text-transform: uppercase; }
+h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: .08em; }
+h3 { font-size: .95rem; }
+a { color: var(--acc); }
+a:hover { text-decoration-thickness: 2px; }
+code { font-family: var(--f-mono); font-size: .92em; background: var(--surface-2); padding: .05em .35em; border-radius: var(--rayon); }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.visuellement-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.evitement { position: absolute; left: 1rem; top: -3rem; background: var(--acc); color: var(--on-acc); padding: .5rem .8rem; z-index: 10; border-radius: var(--rayon); }
+.evitement:focus { top: .5rem; }
+
+/* ---------- En-tête ---------- */
+.entete {
+  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  padding: .7rem clamp(1rem, 3vw, 2rem); border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.logo { display: flex; align-items: center; gap: .7rem; color: var(--fg); text-decoration: none; }
+.logo-icone { width: 32px; height: 32px; fill: none; stroke: var(--acc); stroke-width: 2; }
+.logo-icone rect:first-child { fill: color-mix(in srgb, var(--acc) 25%, transparent); }
+.logo-texte { display: flex; flex-direction: column; }
+.logo-titre { font: 700 1.15rem/1.1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
+.logo-sous { font: 400 .72rem/1.3 var(--f-mono); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.nav-principale { display: flex; gap: 1rem; font: 600 .82rem var(--f-mono); text-transform: uppercase; letter-spacing: .08em; }
+.nav-principale a { color: var(--muted); text-decoration: none; padding: .3rem 0; border-bottom: 2px solid transparent; }
+.nav-principale a:hover { color: var(--fg); border-bottom-color: var(--acc); }
+.entete-actions { margin-left: auto; display: flex; align-items: center; gap: .6rem; }
+.badge-etat {
+  font: 700 .75rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase;
+  border: 1px solid var(--acc); color: var(--acc); padding: .25rem .55rem; border-radius: var(--rayon);
+}
+.btn-icone {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; cursor: pointer;
+  background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); border-radius: var(--rayon);
+  transition: background-color .2s, border-color .2s;
+}
+.btn-icone:hover { border-color: var(--acc); }
+.btn-icone svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+
+.message-confirmation {
+  margin: 1rem auto 0; max-width: 1200px; padding: .6rem 1rem; border-left: 3px solid var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface)); animation: entree .38s var(--ease-out);
+}
+
+/* ---------- Mise en page ---------- */
+.principal { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); }
+.pied {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 2rem;
+  padding: 1rem clamp(1rem, 3vw, 2rem); border-top: 1px solid var(--line);
+  color: var(--muted); font: 400 .78rem var(--f-mono);
+}
+
+/* ---------- Accueil ---------- */
+.accueil-intro { max-width: 60rem; margin-bottom: 1.5rem; animation: entree .38s var(--ease-out) backwards; }
+.surtitre { font: 600 .78rem var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--acc); margin: 0 0 .4rem; }
+.chapeau { color: var(--muted); font-size: 1.02rem; margin: 0; max-width: 52rem; }
+.accueil-carte { margin-bottom: 2.5rem; }
+.accueil-roles h2 { margin-bottom: 1rem; }
+.cartes-roles { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.carte-role {
+  display: flex; flex-direction: column; gap: .6rem; padding: 1rem 1.1rem;
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--role);
+  border-radius: var(--rayon); transition: border-color .2s, transform .25s var(--ease-out);
+}
+.carte-role:hover { border-color: var(--role); transform: translateY(-2px); }
+.carte-entete { display: flex; align-items: center; gap: .7rem; }
+.carte-entete h3 { margin: 0; }
+.carte-numero {
+  display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--role); color: var(--bg); font: 700 .9rem var(--f-mono);
+}
+.carte-mission { margin: 0; color: var(--muted); font-size: .9rem; }
+.avancement { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.avancement-barre { display: block; height: 100%; background: var(--role); transform-origin: left; animation: remplir .7s var(--ease-out) both; }
+.carte-chiffres { display: flex; justify-content: space-between; gap: 1rem; margin: 0; font: 400 .8rem var(--f-mono); color: var(--muted); }
+.carte-chiffres strong { color: var(--fg); }
+.carte-suite { margin: 0; font-size: .85rem; }
+.etiquette { font: 700 .68rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--role); margin-right: .3rem; }
+.note-jalon { margin-top: 1.2rem; color: var(--muted); font-size: .85rem; }
+
+/* ---------- Pastilles de zone (Tag Helper <zone>) ---------- */
+.pastille-zone { display: inline-flex; align-items: center; gap: .35rem; font: 600 .72rem var(--f-mono); letter-spacing: .08em; color: var(--fg); margin-right: .8rem; white-space: nowrap; }
+.pastille-zone .puce { width: 10px; height: 10px; border-radius: 2px; background: var(--zc, var(--muted)); }
+.z-wan { --zc: var(--wan); } .z-dmz { --zc: var(--dmz); } .z-lan { --zc: var(--lan); } .z-mgmt { --zc: var(--mgmt); }
+.z-trunk { --zc: var(--trunk); } .z-ids { --zc: var(--ids); } .z-opn { --zc: var(--opn); } .z-exterieur, .z-hote { --zc: var(--ext); }
+
+/* ---------- Schéma SVG ---------- */
+.schema { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--rayon); padding: .6rem; }
+.schema-svg { display: block; width: 100%; height: auto; font-family: var(--f-mono); }
+.schema .fond { stroke: none; }
+.grille-point { fill: var(--grille); }
+.schema-legende { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 0; padding: .6rem .4rem .2rem; border-top: 1px solid var(--line); margin-top: .5rem; }
+.legende-note { color: var(--muted); font: 400 .74rem var(--f-texte); }
+
+.zone rect { fill: color-mix(in srgb, var(--zc) 7%, transparent); stroke: color-mix(in srgb, var(--zc) 70%, transparent); stroke-width: 1.2; stroke-dasharray: 0; }
+.zone.z-exterieur rect { stroke-dasharray: 5 4; }
+.zone-nom { fill: var(--zc); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+
+.lien { fill: none; stroke: var(--zc, var(--line-fort)); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.l-wan { --zc: var(--wan); } .l-dmz { --zc: var(--dmz); } .l-lan { --zc: var(--lan); } .l-mgmt { --zc: var(--mgmt); }
+.l-trunk { --zc: var(--trunk); stroke-width: 3.2; } .l-exterieur { --zc: var(--ext); stroke-width: 1.4; stroke-dasharray: 2 5; }
+.lien.debranche { stroke: var(--bad); stroke-dasharray: 4 4; opacity: .7; }
+.croix { fill: var(--bad); font-size: 12px; font-weight: 700; }
+
+.noeud .cadre { fill: var(--surface-2); stroke: var(--zc, var(--line-fort)); stroke-width: 1.4; transition: stroke-width .3s, fill .3s; }
+.noeud.n-parefeu .cadre { stroke: var(--opn); stroke-width: 2.4; fill: color-mix(in srgb, var(--opn) 14%, var(--surface-2)); }
+.noeud.n-exterieur .cadre { stroke-dasharray: 4 3; }
+.noeud-nom { fill: var(--fg); font-size: 12.5px; font-weight: 700; }
+.noeud.n-parefeu .noeud-nom { font-size: 15px; letter-spacing: .06em; }
+.noeud-ip { fill: var(--muted); font-size: 10px; }
+.noeud:hover .cadre, .noeud:focus .cadre { stroke-width: 2.6; }
+.noeud:focus { outline: none; }
+.noeud:focus-visible .cadre { stroke: var(--acc); stroke-width: 3; }
+.temporaire { display: none; }
+
+.paquet-decor { stroke: var(--bg); stroke-width: 1.5; }
+.p-https { fill: var(--p-https); } .p-http { fill: var(--p-http); } .p-syslog { fill: var(--p-syslog); } .p-ntp { fill: var(--p-ntp); }
+.calque-decor { opacity: .9; }
+
+.page-erreur { max-width: 40rem; }
+
+/* ---------- Animations ---------- */
+@keyframes entree { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes remplir { from { transform: scaleX(0); } }
+
+/* Accessibilité : animations remplacées par des états fixes. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .calque-decor { display: none; }
+}
+
+/* ---------- Petits écrans ---------- */
+@media (max-width: 720px) {
+  .entete { gap: .8rem; }
+  .logo-sous { display: none; }
+  .carte-chiffres { flex-direction: column; gap: .2rem; }
+}

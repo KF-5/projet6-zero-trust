@@ -38,6 +38,15 @@ Le SSH d'OPNsense est désactivé ; il sera réactivé sur MGMT, par clé seulem
 
 **Hypothèse suivie :** désactivé dans la topologie de référence ; une bascule « SSH OPNsense actif » (éteinte par défaut) permet de rejouer les commandes du rôle 5 telles que le guide les prévoit.
 
+### Q14 — S-03 sur la vraie API : pas de colonne « secret », injection numérique · ouvert
+
+Trouvé au jalon 2 en relisant `plateforme/labo/docker/p6-etat-a/api/app.py` et `db/` :
+
+- la vraie API colle `id` **sans guillemets** (`… WHERE id = ` + ident) : l'injection qui marche est numérique (`id=1 OR 1=1`) ; celle du guide et de `scenarios.yaml` (`id=1' OR '1'='1`) provoque une **erreur SQL 500** ;
+- la table réelle est `produit` (id, nom, prix, stock, categorie_id), **sans colonne `secret`** : le critère d'objectif de S-03 (« la sortie de curl contient « secret » », rôle 5 et `correle.py` du rôle 6) ne peut jamais être atteint en état A.
+
+**Hypothèse suivie :** le rôle 4 étape 3 (faite) montre la requête numérique réelle ; les étapes des rôles 5 et 6 (à venir) gardent le texte du guide, avec l'écart signalé. À trancher avec les rôles 4, 5 et 6 avant la campagne A (changer la commande de S-03 et son critère, ou ajouter une donnée « secrète » à la base).
+
 ---
 
 ## Questions répondues

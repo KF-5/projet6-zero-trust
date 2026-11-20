@@ -1,0 +1,23 @@
+<Project>
+  <!-- Réglages communs aux 6 projets de la solution. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Critère d'acceptation : la solution compile sans avertissement. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NeutralLanguage>fr-FR</NeutralLanguage>
+    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- AutoMapper 13.0.1 (dernière version MIT, validée le 20 nov.) : trois avis « déni de service par
+         récursion non bornée » sur des graphes d'objets très imbriqués fournis par un attaquant.
+         P6 Explorer ne mappe que ses propres entités, de profondeur fixe : risque écarté,
+         décision expliquée dans docs/choix-techniques.md. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-rvv3-g6hj-g44x" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gpwp-5797-mjff" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-6vhm-j9h7-f9gh" />
+  </ItemGroup>
+</Project>

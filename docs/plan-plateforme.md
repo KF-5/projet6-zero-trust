@@ -332,6 +332,24 @@ Une partie d'Identity (comptes, rôle `Admin` / `Membre`, claim `NumeroRole`) ar
 
 ---
 
+### 7.1 Jalon 2 — réalisé le 20 novembre
+
+| Livrable | État |
+|---|---|
+| 6 projets, Clean Architecture | fait : `dotnet build` = 0 avertissement, 0 erreur (avertissements traités comme des erreurs) |
+| `docs/modele-donnees.md` avant la migration | fait |
+| `P6DbContext`, API Fluent (une configuration par entité), TPH, owned, shadow, intercepteur | fait |
+| Migration `Initiale` | faite ; script SQL généré et relu (34 tables). **Exécution sur LocalDB non vérifiée** : LocalDB n'était pas encore installé sur ce poste |
+| Script Node + importeur | fait : 47 étapes, **348 commandes**, 448 effets proposés ; 4 effets génériques et 14 scripts à déplier listés dans `docs/a-completer.md` |
+| Amorçage au démarrage | fait (migrations, contenu, topologie A, rôles Identity, compte admin depuis les user-secrets) |
+| Layout, thème, accueil avec le SVG de l'état A | fait (sombre par défaut, clair, suit le système, choix mémorisé) |
+| `app/README.md` | fait |
+| Tests | 37 tests xUnit passent (données, topologie, amorçage sur SQLite, page d'accueil, API de santé) |
+
+**348 commandes au lieu des ≈ 394 estimées** (section 1.3) : l'estimation comptait une commande par ligne ; l'importeur regroupe les commandes écrites sur plusieurs lignes (« \ » final, here-documents, boucles `for … done`, blocs `foreach { }`) et compte un tableau ou un plan du guide comme un seul « document ». Les scripts seront dépliés en sous-commandes aux jalons 3 à 6.
+
+**Commandes réellement utilisées (étapes faites)** : règles génériques dans l'importeur (`root@` → `karim@`, `sudo` pour l'administration sur les VM, chemins `/var/log/p6/`, `p6_lan`, `p6/outils:1`, `p6.lab`, `~/p6-etat-a`, SSH d'OPNsense remplacé par la console), plus `donnees/corrections/etapes-faites.json` : blocs du rôle 4 remplacés par les vrais fichiers de `plateforme/labo/` (compose, API, schéma SQL, bind9, nginx) et les deux réglages d'OPNsense de r2-e2 (SSH désactivé, règle « Admin du pare-feu »). Le texte d'origine reste dans `TexteGuide`.
+
 ## 8. Décisions
 
 1. **Schéma à plat, pas isométrique** (validé le 20 nov.) : on garde la géométrie du guide (`schemas-base.js`, zones colorées, viewBox ≈ 1000 × 660) en la mettant à jour (Windows sur MGMT, 10.99.0.20 et .66 définitives, SSH filtré par `p6_ssh`, cartes em/ens/eth réelles, Kali avec une route par défaut via 203.0.113.1). Lisible projeté, et cohérent avec le rapport.

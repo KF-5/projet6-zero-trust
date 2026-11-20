@@ -1,0 +1,75 @@
+﻿@{
+    // Thème mémorisé dans un cookie : lu côté serveur pour éviter un éclair de la mauvaise couleur au chargement.
+    var theme = Context.Request.Cookies["theme"] is "light" or "dark" ? Context.Request.Cookies["theme"] : null;
+    var titre = ViewData["Title"] as string;
+}
+<!DOCTYPE html>
+@* Attribut écrit seulement si un choix existe (valeurs limitées à light / dark ci-dessus) : sinon le thème suit le système. *@
+<html lang="fr"@Html.Raw(theme is null ? "" : $" data-theme=\"{theme}\"")>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f8fc" media="(prefers-color-scheme: light)" />
+    <meta name="description" content="P6 Explorer rejoue graphiquement chaque commande du Projet 6 Zero Trust (GL3, INSAT)." />
+    <title>@(string.IsNullOrEmpty(titre) ? "P6 Explorer" : $"{titre} · P6 Explorer")</title>
+    <link rel="preload" href="~/fonts/IBMPlexMono-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="evitement" href="#contenu">Aller au contenu</a>
+    <header class="entete">
+        <a class="logo" asp-controller="Home" asp-action="Index" aria-label="P6 Explorer, accueil">
+            <svg class="logo-icone" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <rect x="3" y="3" width="11" height="11" rx="1.5" />
+                <rect x="18" y="18" width="11" height="11" rx="1.5" />
+                <path d="M14 8.5h6.5V18M18 23.5h-6.5V14" />
+            </svg>
+            <span class="logo-texte"><span class="logo-titre">P6 Explorer</span><span class="logo-sous">Zero Trust, commande par commande</span></span>
+        </a>
+        <nav class="nav-principale" aria-label="Navigation principale">
+            <a asp-controller="Home" asp-action="Index">Accueil</a>
+        </nav>
+        <div class="entete-actions">
+            <span class="badge-etat" title="État du laboratoire affiché : A (pare-feu périmétrique). L'état B arrive au jalon 6.">État A</span>
+            <button type="button" class="btn-icone" id="bascule-theme" aria-label="Changer de thème (sombre ou clair)" title="Thème sombre / clair">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" /></svg>
+            </button>
+        </div>
+    </header>
+
+    @if (TempData["Message"] is string message)
+    {
+        <div class="message-confirmation" role="status">@message</div>
+    }
+
+    <main id="contenu" class="principal">
+        @RenderBody()
+    </main>
+
+    <footer class="pied">
+        <span>Projet 6 · Architecture Zero Trust · GL3 INSAT</span>
+        <span>Laboratoire isolé : aucune commande de cette page n'est exécutée, elles sont rejouées.</span>
+    </footer>
+
+    <script>
+        // Bascule de thème : choix mémorisé un an dans un cookie (lu par le serveur au chargement suivant).
+        (function () {
+            var racine = document.documentElement;
+            var bouton = document.getElementById("bascule-theme");
+            function actuel() {
+                var t = racine.getAttribute("data-theme");
+                if (t === "light" || t === "dark") return t;
+                return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+            }
+            bouton.addEventListener("click", function () {
+                var suivant = actuel() === "dark" ? "light" : "dark";
+                racine.setAttribute("data-theme", suivant);
+                document.cookie = "theme=" + suivant + ";path=/;max-age=31536000;SameSite=Lax";
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

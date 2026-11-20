@@ -1,0 +1,2369 @@
+{
+  "version": 1,
+  "source": "sources/guide/data (rôle chef)",
+  "role": {
+    "numero": 1,
+    "cle": "chef",
+    "titre": "Chef de projet · plateforme",
+    "courtNom": "Plateforme",
+    "couleur": "--r1",
+    "mission": "Monter l'hôte VMware et ses 4 VM, verrouiller le réseau MGMT, ouvrir l'accès à distance de l'équipe (Tailscale, tunnels SSH, panneau, consoles VNC), tenir le dépôt Git et les états figés, puis intégrer le travail de tous jusqu'au rapport et à la démonstration.",
+    "introduction": "**Mise à jour du 17 novembre : les étapes 1 à 5 sont faites.** Le laboratoire tourne sur VMware Workstation Pro, sur ton PC Windows. L'état A est construit et prouvé (`tests.sh` 12/12, `tests-cloisonnement.sh` 19/19), et l'équipe y accède par Tailscale, un tunnel SSH, le panneau de contrôle et les consoles VNC. Le détail pas à pas est dans le récapitulatif du rôle 1.\n\nIl te reste : accueillir chaque membre (partage Tailscale, clé, compte panneau, compte OPNsense), le dépôt Git (étape 6), figer les états (7), intégrer (8), puis le rapport et la démonstration (9).",
+    "demonstration": "Ce que vous montrez en 2 minutes : la plateforme est isolée et reproductible.\n1. Panneau de contrôle (par le tunnel) : les 4 VM, leurs instantanés et le journal des actions ; dans VMware, aucune carte en mode Pont.\n2. Depuis Kali : `sudo bash tests-cloisonnement.sh` → 19/19 (box, Internet, Windows, MGMT injoignables ; seuls FA1 et FA2 passent).\n3. Liste des instantanés (panneau ou `vmrun listSnapshots`) et `git tag -n` : etat-A et etat-B liés au même contenu.\n4. Annoncer la durée mesurée d'une restauration.\nPlan de secours : captures d'écran des trois commandes dans le rapport.",
+    "etapes": [
+      {
+        "numero": 1,
+        "code": "r1-e1",
+        "titre": "Installer VMware Workstation Pro et protéger le PC hôte",
+        "quand": "14 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Étape réécrite le 17 novembre : elle décrit ce qui a été réellement fait. Proxmox, prévu à l'origine, a été écarté parce que son installateur efface le disque du PC (écart E31).",
+        "but": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+        "pourquoi": "Section 6 : tout le laboratoire tient sur un seul PC de 16 Go (ENF7). VMware Workstation Pro est gratuit, s'installe comme un logiciel ordinaire, et offre les réseaux isolés et les instantanés dont le projet a besoin. ENF1 : le laboratoire ne doit rien pouvoir atteindre hors de lui-même.",
+        "prerequis": "Modules du cours : 8\nPC du laboratoire : MSI GF63, i7-10750H (virtualisation VT-x activée), 16 Go de RAM, disque D: avec environ 230 Go libres, Windows 10.",
+        "livrable": "Message à l'équipe : plateforme = VMware sur le PC du rôle 1 (écart E31 noté dans `ECARTS.md`).",
+        "schema": "proxmox-topo",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "Navigateur",
+            "bloc": "Site de Broadcom (compte gratuit)",
+            "texte": "Site de Broadcom (compte gratuit)",
+            "explication": "Télécharger et installer **VMware Workstation Pro** (gratuit pour un usage personnel). L'ancien VMware Player a été désinstallé avant.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "site de broadcom (compte gratuit)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c02",
+            "ordre": 2,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "VMware › Modifier › Préférences",
+            "texte": "VMware › Modifier › Préférences",
+            "explication": "Dossier des VM : `D:\\Labo-P6\\vm` (le disque C: est trop plein). Cocher « laisser les machines virtuelles s'exécuter après la fermeture ».",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "préférences",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c03",
+            "ordre": 3,
+            "ou": "hote",
+            "shell": "WindowsGui",
+            "bloc": "Windows › Paramètres › Réseau › Wi-Fi",
+            "texte": "Windows › Paramètres › Réseau › Wi-Fi",
+            "explication": "Profil du réseau domestique : **Public**. Windows se montre méfiant envers les autres appareils de la maison.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "wi-fi",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "WindowsGui",
+            "bloc": "Pare-feu Windows › Règles de trafic entrant",
+            "texte": "Pare-feu Windows › Règles de trafic entrant",
+            "explication": "Règle « **P6 - bloquer le labo vers Windows** » : tout ce qui arrive depuis 10.99.0.0/24 est refusé. Même compromise, une VM ne peut pas attaquer Windows.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "changementRegle",
+                "action": "Ajouter",
+                "idRegle": "P6 - bloquer le labo vers Windows",
+                "resume": "entrées depuis 10.99.0.0/24 refusées",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c05",
+            "ordre": 5,
+            "ou": "hote",
+            "shell": "WindowsGui",
+            "bloc": "Sécurité Windows › Exclusions",
+            "texte": "Sécurité Windows › Exclusions",
+            "explication": "Exclure `D:\\Labo-P6\\vm` : Defender ne scanne pas les disques des VM (sinon il ralentit tout et supprime les outils de Kali).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "exclusions",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c06",
+            "ordre": 6,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Contrôles (PowerShell)",
+            "texte": "Get-NetIPConfiguration | Select-Object InterfaceAlias, IPv4Address",
+            "explication": "Aucune adresse 10.x sur le Wi-Fi",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c07",
+            "ordre": 7,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Contrôles (PowerShell)",
+            "texte": "Get-NetFirewallRule -DisplayName \"P6 - bloquer le labo vers Windows\" | Select-Object Enabled, Direction, Action",
+            "explication": "Commande PowerShell de lecture : affiche un réglage de Windows sans rien changer.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c08",
+            "ordre": 8,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Contrôles (PowerShell)",
+            "texte": "Get-NetIPInterface | Where-Object Forwarding -eq Enabled",
+            "explication": "Rien : Windows ne route pas entre réseaux",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e1-c09",
+            "ordre": 9,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "texte": "Get-NetFirewallRule -DisplayName \"P6 - bloquer le labo vers Windows\" | Select-Object Enabled, Direction, Action",
+            "explication": "Commande PowerShell de lecture : affiche un réglage de Windows sans rien changer.\nDans la sortie, « Inbound Block » : tout ce qui vient du laboratoire vers Windows est refusé ; les réponses à ce que Windows ouvre lui-même (navigateur, SSH) passent, car le pare-feu Windows est « stateful »",
+            "sortie": "Enabled Direction Action\n------- --------- ------\n   True   Inbound  Block",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Une VM refuse de démarrer : « VT-x is not available »",
+            "cause": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+            "solution": "Désactiver Hyper-V / « Isolation du noyau » ou laisser VMware utiliser l'hyperviseur Windows (plus lent)."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Le disque C: se remplit",
+            "cause": "Dossier des VM resté sur C:",
+            "solution": "Préférences de VMware : `D:\\Labo-P6\\vm`, puis déplacer les VM existantes VM éteintes."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "VMware Workstation Pro installé, VM dans `D:\\Labo-P6\\vm`"
+          },
+          {
+            "ordre": 2,
+            "texte": "Wi-Fi en profil Public, règle « P6 - bloquer le labo vers Windows » active"
+          },
+          {
+            "ordre": 3,
+            "texte": "Routage IP désactivé sur Windows (vérifié)"
+          }
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "r1-e2",
+        "titre": "Créer les réseaux virtuels p6-wan, p6-trunk et VMnet9",
+        "quand": "14 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Remplace l'ancienne étape « ponts vmbr1, vmbr2, vmbr9 ». Les trois réseaux jouent exactement le même rôle ; seuls leurs noms changent.",
+        "but": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+        "pourquoi": "Section 6 et figure 3 : un WAN, un trunk qui transporte tous les VLAN internes, un MGMT hors bande. ENF1 : aucun de ces réseaux ne touche la carte Wi-Fi. Passer de l'état A à l'état B ne change jamais le câblage, seulement les VLAN.",
+        "prerequis": "Étapes : chef-1\nModules du cours : 3, 8",
+        "livrable": "Table des réseaux ci-dessus dans `docs/interfaces.md`.",
+        "schema": "proxmox-topo",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e2-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "Paramètres d'une VM › Carte réseau › Segment LAN › Segments LAN… › Ajouter",
+            "texte": "Paramètres d'une VM › Carte réseau › Segment LAN › Segments LAN… › Ajouter",
+            "explication": "Créer `p6-wan` et `p6-trunk`. Un segment LAN ne relie **que des VM** : ni Windows ni Internet n'y ont accès. Il transporte les trames étiquetées 802.1Q sans rien régler.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "ajouter",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e2-c02",
+            "ordre": 2,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "Modifier › Éditeur de réseau virtuel › Ajouter un réseau › VMnet9",
+            "texte": "Modifier › Éditeur de réseau virtuel › Ajouter un réseau › VMnet9",
+            "explication": "Type **Hôte uniquement**, **DHCP décoché**, sous-réseau 10.99.0.0/24. Puis, dans Windows, donner à la carte « VMware Network Adapter VMnet9 » l'adresse fixe **10.99.0.2/24**, sans passerelle.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "vmnet9",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e2-c03",
+            "ordre": 3,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Règle permanente",
+            "texte": "Règle permanente",
+            "explication": "Jamais de mode **Pont** (VMnet0) : il brancherait une VM d'attaque directement sur la box de la maison. Le NAT de VMware (VMnet8) ne sert que pendant les installations (étape 4).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "règle permanente",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e2-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Table des réseaux",
+            "texte": "Réseau     Type VMware                 Rôle                         Plage\np6-wan     segment LAN                 WAN simulé (aucun lien réel)  203.0.113.0/24\np6-trunk   segment LAN                 trunk 802.1Q (VLAN 10, 20…)   —\nVMnet9     hôte uniquement, sans DHCP  MGMT ; Windows = 10.99.0.2     10.99.0.0/24\nVMnet8     NAT                         Internet, installations seules —",
+            "explication": "Document : Table des réseaux.\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e2-c05",
+            "ordre": 5,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "PowerShell",
+            "texte": "Get-NetIPAddress -InterfaceAlias \"*VMnet9*\" -AddressFamily IPv4 | Select-Object IPAddress, PrefixLength",
+            "explication": "Commande PowerShell de lecture : affiche un réglage de Windows sans rien changer.\nTest : PowerShell.\nDans la sortie, « 10.99.0.2/24 » : Windows est sur MGMT, à une adresse fixe autorisée par l'alias ADMINS d'OPNsense",
+            "sortie": "IPAddress PrefixLength\n--------- ------------\n10.99.0.2           24",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Une VM obtient une adresse 192.168.x.x sur MGMT",
+            "cause": "DHCP de VMnet9 resté actif",
+            "solution": "Éditeur de réseau virtuel › VMnet9 › décocher « Utiliser le service DHCP local »."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Les VLAN ne passent pas sur le trunk",
+            "cause": "Carte reliée au mauvais segment",
+            "solution": "Vérifier dans les paramètres de la VM que la carte du trunk est sur le segment `p6-trunk`."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Segments LAN `p6-wan` et `p6-trunk` créés"
+          },
+          {
+            "ordre": 2,
+            "texte": "VMnet9 hôte uniquement sans DHCP, Windows en 10.99.0.2"
+          },
+          {
+            "ordre": 3,
+            "texte": "Aucune carte de VM en mode Pont"
+          }
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "r1-e3",
+        "titre": "Créer les 4 machines virtuelles",
+        "quand": "14–16 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Remplace la création par `qm create`. Les VM s'appellent `p6-opnsense`, `p6-docker`, `p6-collecteur` et `p6-kali` (et non 100 à 103). Leurs cartes sont des cartes VMware : `em0…em3` sous OPNsense, `ens32…ens35` sous Debian, `eth0…eth2` sous Kali.",
+        "but": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+        "pourquoi": "Section 6 : un pare-feu, un hôte Docker pour tous les services et postes, un attaquant, un collecteur. Les ressources ont été réduites pour tenir à l'aise dans 16 Go avec Windows (écart E32) : 7,5 Go pour les 4 VM.",
+        "prerequis": "Étapes : chef-2\nModules du cours : 8\nISO dans `D:\\Labo-P6\\iso` : OPNsense 26.7, Debian 13 netinst, Kali 2026.3 installer.",
+        "livrable": "Tableau des VM et des MAC dans `docs/interfaces.md`.",
+        "schema": "proxmox-topo",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e3-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Les 4 VM réellement créées",
+            "texte": "VM             vCPU  RAM     Disque  Cartes (dans l'ordre)\np6-opnsense    2     3 Go    20 Go   em0 p6-wan · em1 p6-trunk · em2 VMnet9 · em3 NAT (débranchée)\np6-docker      2     2,5 Go  30 Go   ens32 VMnet9 · ens33 p6-trunk · ens34 p6-wan · ens35 NAT (débranchée)\np6-collecteur  1     1 Go    20 Go   ens32 VMnet9 · ens33 NAT (débranchée)\np6-kali        1     1,5 Go  25 Go   eth0 p6-wan · eth1 VMnet9 · eth2 NAT (débranchée)\n\nPour toutes : USB, son et imprimante retirés ; dossiers partagés désactivés ;\nglisser-déposer et copier-coller désactivés (isolation de l'invité) ; jamais de disque physique.",
+            "explication": "Document : Les 4 VM réellement créées.\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e3-c02",
+            "ordre": 2,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Vérifier qu'une carte est la bonne : comparer les MAC",
+            "texte": "ifconfig em2 | grep ether",
+            "explication": "Dans la VM (ex. OPNsense, console › 8 Shell) 00:0c:29:57:1f:b1",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e3-c03",
+            "ordre": 3,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Vérifier qu'une carte est la bonne : comparer les MAC",
+            "texte": "Select-String -Path D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx -Pattern 'ethernet\\d\\.(generatedAddress|vnet|connectionType)'",
+            "explication": "Sur Windows : la même MAC doit figurer dans le .vmx, pour la carte reliée à VMnet9",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "fichier": "D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e3-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "PowerShell : les cartes NAT ne se branchent jamais au démarrage",
+            "texte": "Select-String -Path D:\\Labo-P6\\vm\\*\\*.vmx -Pattern 'startConnected = \"FALSE\"'",
+            "explication": "Cherche un motif dans des fichiers (ici, les fichiers .vmx des VM).\nTest : PowerShell : les cartes NAT ne se branchent jamais au démarrage.\nDans la sortie, « 4 lignes » : chaque VM a sa carte NAT, et aucune ne se connecte toute seule",
+            "sortie": "p6-collecteur.vmx: ethernet1.startConnected = \"FALSE\"\np6-docker.vmx: ethernet3.startConnected = \"FALSE\"\np6-kali.vmx: ethernet2.startConnected = \"FALSE\"\np6-opnsense.vmx: ethernet3.startConnected = \"FALSE\"",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "fichier": "D:\\Labo-P6\\vm\\*\\*.vmx",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "OPNsense affecte le WAN à la mauvaise carte",
+            "cause": "Ordre des cartes ≠ ordre attendu",
+            "solution": "Comparer les MAC (`ifconfig em0`) avec le .vmx, puis réaffecter (console, option 1)."
+          },
+          {
+            "ordre": 2,
+            "symptome": "La VM Debian démarre en synthèse vocale",
+            "cause": "Le menu de l'installateur a attendu 30 s",
+            "solution": "Redémarrer la VM et appuyer sur ↓ dès le menu."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "4 VM créées avec les ressources du tableau"
+          },
+          {
+            "ordre": 2,
+            "texte": "Chaque carte vérifiée par sa MAC"
+          },
+          {
+            "ordre": 3,
+            "texte": "Les 4 cartes NAT ont `startConnected = \"FALSE\"`"
+          }
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "r1-e4",
+        "titre": "Installer les systèmes, les adresses MGMT et l'état A",
+        "quand": "14–16 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Le rôle 1 a aussi réalisé, pendant la préparation de l'hôte, les premières étapes des rôles 2 (OPNsense, VLAN, NAT, règles FA), 4 (Docker et services de l'état A) et 6 (NTP et syslog), pour que l'équipe démarre sur un état A complet et prouvé. Ces étapes portent la pastille « déjà fait » dans leurs rôles.",
+        "but": "Les 4 systèmes installés, chaque VM à son adresse MGMT fixe, l'heure commune, les journaux centralisés, et l'état A en service.",
+        "pourquoi": "Section 6 : chaque VM est administrée par MGMT. Adresses MGMT fixées (écart E03) : OPNsense 10.99.0.1, collecteur 10.99.0.10, hôte Docker 10.99.0.20, Kali 10.99.0.66. Les noms eth0…eth2 du rapport deviennent ens32…ens35 sous Debian dans VMware (écart E15).",
+        "prerequis": "Étapes : chef-3\nModules du cours : 8",
+        "livrable": "Instantanés de départ : `03-etat-A-sans-NAT` (docker), `01-collecteur-pret`, `01-kali-pret`. Message aux rôles 2, 4 et 6 : « état A en service, vos premières étapes sont faites, vérifiez-les ».",
+        "schema": "proxmox-topo",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "Installateur Debian 13 (p6-docker, p6-collecteur)",
+            "texte": "Installateur Debian 13 (p6-docker, p6-collecteur)",
+            "explication": "Pas de mot de passe root (utilisateur `karim` avec sudo), uniquement « serveur SSH » et « utilitaires usuels », aucun bureau. Noms : `docker-p6`, `collecteur`, domaine `p6.lab`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "etatNoeud",
+                "noeud": "docker",
+                "etat": "Allumee",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "etatNoeud",
+                "noeud": "collecteur",
+                "etat": "Allumee",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c02",
+            "ordre": 2,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "Installateur Kali 2026.3 (p6-kali)",
+            "texte": "Installateur Kali 2026.3 (p6-kali)",
+            "explication": "Bureau (Xfce) et « default » décochés, « top10 » gardé : Kali reste en ligne de commande.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "etatNoeud",
+                "noeud": "kali",
+                "etat": "Allumee",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c03",
+            "ordre": 3,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "OPNsense (p6-opnsense)",
+            "texte": "OPNsense (p6-opnsense)",
+            "explication": "Installation, interfaces, VLAN 10 et 20, NAT FA1/FA2/FA6, règles FA3/FA4 : voir les étapes 1 à 5 du rôle 2, marquées « déjà fait ».",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "texte": "opnsense (p6-opnsense)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "Carte NAT de la VM (installations seulement)",
+            "texte": "Carte NAT de la VM (installations seulement)",
+            "explication": "Paramètres de la VM › carte NAT › cocher « Connecté » le temps des `apt` et `docker pull`, puis la décocher, ainsi que « Connecter à la mise sous tension ».",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "etatLien",
+                "lien": "opnsense-nat",
+                "branche": false,
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "etatLien",
+                "lien": "docker-nat",
+                "branche": false,
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "etatLien",
+                "lien": "collecteur-nat",
+                "branche": false,
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "etatLien",
+                "lien": "kali-nat",
+                "branche": false,
+                "ordre": 4,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "/etc/network/interfaces.d/p6-mgmt",
+            "texte": "auto ens32\niface ens32 inet static\n    address 10.99.0.10/24",
+            "explication": "Contenu du fichier /etc/network/interfaces.d/p6-mgmt.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "/etc/network/interfaces.d/p6-mgmt",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c06",
+            "ordre": 6,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Scripts livrés par le rôle 1 (copiés depuis Windows avec scp, lancés avec sudo)",
+            "texte": "D:\\Labo-P6\\collecteur\\setup-collecteur.sh   # chrony serveur NTP (allow 10.99.0.0/24, local stratum 8) + rsyslog UDP 514 → /var/log/p6/<ip>.log\nD:\\Labo-P6\\kali\\setup-kali.sh               # adresses, outils (nmap, hping3, nikto…), chrony client, SSH écoute sur 10.99.0.66 seulement\nD:\\Labo-P6\\docker\\p6-etat-a\\setup.sh       # réseaux macvlan p6_lan / p6_dmz / p6_wan et 10 conteneurs de l'état A\nD:\\Labo-P6\\docker\\p6-etat-a\\tests.sh       # 12 tests des flux FA1 à FA5 depuis les conteneurs",
+            "explication": "Document : Scripts livrés par le rôle 1 (copiés depuis Windows avec scp, lancés avec sudo).\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c07",
+            "ordre": 7,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Copier un script dans une VM depuis Windows (PowerShell)",
+            "texte": "scp -o StrictHostKeyChecking=accept-new D:\\Labo-P6\\kali\\setup-kali.sh karim@10.99.0.66:~/",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "kali",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.66",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "kali",
+                "chemin": "~/",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c08",
+            "ordre": 8,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Copier un script dans une VM depuis Windows (PowerShell)",
+            "texte": "ssh -t karim@10.99.0.66 \"sudo bash ~/setup-kali.sh\"",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "kali",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.66",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "fichier": "~/setup-kali.sh",
+                "texte": "Lance le script setup-kali.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c09",
+            "ordre": 9,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Hôte Docker",
+            "texte": "ssh -t karim@10.99.0.20 \"cd ~/p6-etat-a && sudo bash tests.sh\"",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nTest : Hôte Docker.\nDans la sortie, « 12 / 12 » : FA1, FA2 (par NAT), FA3, FA4 passent ; les faiblesses voulues de l'état A existent ; FA5 bloque le reste. Vérifié le 16 et le 17 novembre, aussi après redémarrage",
+            "sortie": "… 12 / 12 conformes",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "tests.sh",
+                "texte": "Lance le script tests.sh.",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "resultatTest",
+                "nom": "Tests",
+                "ok": true,
+                "compteur": "12/12",
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e4-c10",
+            "ordre": 10,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Collecteur",
+            "texte": "ssh karim@10.99.0.10 \"chronyc clients; ls /var/log/p6/\"",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nTest : Collecteur.\nDans la sortie, « chronyc clients » : OPNsense, l'hôte Docker et Kali prennent l'heure sur le collecteur\nDans la sortie, « 10.99.0.1.log » : les journaux d'OPNsense (filterlog) arrivent",
+            "sortie": "10.99.0.1 … 10.99.0.20 … 10.99.0.66 …\n10.99.0.1.log",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "collecteur",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.10",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "/var/log/p6/",
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Un bloc de commandes collé dans PowerShell « perd » des lignes",
+            "cause": "`sudo` demande le mot de passe et avale la suite",
+            "solution": "`sudo -v` d'abord, puis une seule ligne avec `&&`."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Sur Kali, chrony ne tourne pas (« 506 Cannot talk to daemon »)",
+            "cause": "Kali désactive les services au démarrage",
+            "solution": "`sudo systemctl enable --now chrony` (corrigé dans le script)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "OPNsense a des heures de retard",
+            "cause": "VM restée suspendue ; NTP refuse les très gros sauts",
+            "solution": "Services › Network Time : serveur 10.99.0.10 seul, puis redémarrer le service."
+          },
+          {
+            "ordre": 4,
+            "symptome": "Tous les flux via le pare-feu échouent d'un coup",
+            "cause": "p6-opnsense est resté suspendu ou arrêté",
+            "solution": "Le démarrer en premier (panneau ou VMware), attendre 30 s, puis les autres."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "4 systèmes installés, adresses MGMT 10.99.0.1 / .10 / .20 / .66 permanentes"
+          },
+          {
+            "ordre": 2,
+            "texte": "NTP et syslog vers le collecteur vérifiés"
+          },
+          {
+            "ordre": 3,
+            "texte": "`tests.sh` = 12/12 sur l'hôte Docker"
+          },
+          {
+            "ordre": 4,
+            "texte": "Cartes NAT débranchées après les installations"
+          }
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "r1-e5",
+        "titre": "Verrouiller MGMT, prouver le confinement et ouvrir l'accès à l'équipe",
+        "quand": "16–17 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Le verrouillage est celui du rapport, adapté : Windows (10.99.0.2) est, avec le collecteur, le seul à pouvoir ouvrir une session SSH sur MGMT. La preuve est un script lancé depuis Kali (19 tests). L'accès à distance de l'équipe remplace l'interface web de Proxmox.",
+        "but": "Kali ne peut rien atteindre hors de ce qui est publié, MGMT ne sert à personne pour contourner le pare-feu, et les 5 autres membres travaillent sur le laboratoire depuis chez eux, sans mot de passe partagé.",
+        "pourquoi": "Section 2.3 : MGMT ne doit pas permettre de joindre une autre machine. Sur un même réseau, OPNsense ne voit pas les échanges directs entre VM : il faut un filtre sur chaque VM (écart E02). ENF1 : confinement prouvé. Accès à distance : sans Proxmox, il fallait un moyen gratuit et sûr d'accéder aux VM (écart E33).",
+        "prerequis": "Étapes : chef-4\nModules du cours : 3, 8",
+        "livrable": "Sorties des tests copiées dans `docs/preuve-confinement.txt` (citées dans le rapport final, écart E02). Message à l'équipe (PDF de 2 pages du 17 novembre, qui remplace celui du 16) : créer son compte Tailscale, générer sa clé `p6labo`, envoyer la ligne `.pub`.",
+        "schema": "mgmt-bypass",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c01",
+            "ordre": 1,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "OPNsense › Firewall › Settings › Advanced (26.7)",
+            "texte": "OPNsense › Firewall › Settings › Advanced (26.7)",
+            "explication": "Cocher « Disable anti-lockout rule » : la règle automatique ouvrait la console web à tout MGMT, donc à Kali. L'accès passe désormais par la seule règle « Admin du pare-feu » (MGMT, source ADMINS = 10.99.0.2 et 10.99.0.10, destination This Firewall, ports 22 et 443, **port source any**).\nChemin de menu à vérifier sur ta version.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "changementRegle",
+                "action": "Modifier",
+                "idRegle": "advanced (26.7)",
+                "resume": "Cocher « Disable anti-lockout rule » : la règle automatique ouvrait la console web à tout MGMT, donc à Kali. L'accès passe désormais par la…",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c02",
+            "ordre": 2,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "OPNsense › Firewall › NAT › Destination NAT",
+            "texte": "OPNsense › Firewall › NAT › Destination NAT",
+            "explication": "FA1 et FA2 : « Firewall rule » = **Pass** au lieu de « Register rule ». Avec Register rule, la règle créée autorisait « any → 10.20.0.10:80 » : Kali, dont la passerelle est le pare-feu, joignait le serveur directement, sans NAT.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "changementRegle",
+                "action": "Ajouter",
+                "idRegle": "Destination NAT",
+                "resume": "redirections FA1 (80, 443 → 10.20.0.10), FA2 (53 → 10.20.0.40), FA6 désactivée",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c03",
+            "ordre": 3,
+            "ou": "hote",
+            "shell": "Navigateur",
+            "bloc": "Tailscale (hôte Windows)",
+            "texte": "Tailscale (hôte Windows)",
+            "explication": "Compte gratuit du rôle 1, machine `best-technology`, adresse **100.125.208.28**. Chaque membre crée **son** compte ; le rôle 1 lui partage uniquement cette machine (⋯ › Share).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "tailscale (hôte windows)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "WindowsGui",
+            "bloc": "Serveur OpenSSH de Windows (script installer-ssh-windows.ps1, en administrateur)",
+            "texte": "Serveur OpenSSH de Windows (script installer-ssh-windows.ps1, en administrateur)",
+            "explication": "Compte `p6labo` sans droits d'administrateur, connexion **par clé uniquement**, aucun terminal (`PermitTTY no`, `ForceCommand`), tunnels limités par `PermitOpen`, pare-feu Windows limité aux adresses Tailscale 100.64.0.0/10. Une clé par membre : `ajouter-cle.ps1`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "serveur openssh de windows (script installer-ssh-windows.ps1, en administrateur)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c05",
+            "ordre": 5,
+            "ou": "hote",
+            "shell": "Navigateur",
+            "bloc": "Panneau de contrôle (D:\\Labo-P6\\panneau)",
+            "texte": "Panneau de contrôle (D:\\Labo-P6\\panneau)",
+            "explication": "Démarrer, prendre un instantané (rôle « membre ») ; arrêter, redémarrer, suspendre, revenir à un instantané (rôle « admin »). Écoute sur 127.0.0.1:8080 seulement, un compte par membre, chaque action journalisée. État mis à jour toutes les 3 s, mode sombre.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "panneau de contrôle (d:\\labo-p6\\panneau)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c06",
+            "ordre": 6,
+            "ou": "hote",
+            "shell": "VmwareGui",
+            "bloc": "VMware › Paramètres de la VM › Options › Connexions VNC",
+            "texte": "VMware › Paramètres de la VM › Options › Connexions VNC",
+            "explication": "Console de chaque VM : ports 5901 (opnsense), 5902 (docker), 5903 (collecteur), 5904 (kali), avec mot de passe, et la ligne `RemoteDisplay.vnc.ip = \"127.0.0.1\"` dans chaque .vmx : la console n'est joignable que par le tunnel.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "connexions vnc",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c07",
+            "ordre": 7,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "/etc/p6-ssh-filtre.nft",
+            "texte": "# Table séparée : ne touche pas aux règles de Docker (jamais de « flush ruleset » sur l'hôte Docker)\ntable inet p6_ssh\ndelete table inet p6_ssh\ntable inet p6_ssh {\n    chain entree {\n        type filter hook input priority -10; policy accept;\n        iifname \"lo\" accept\n        tcp dport 22 ip saddr { 10.99.0.2, 10.99.0.10 } accept   # Windows et collecteur seulement\n        tcp dport 22 counter log prefix \"p6-ssh-refuse \" drop    # tout autre essai est noté puis jeté\n    }\n}",
+            "explication": "Contenu du fichier /etc/p6-ssh-filtre.nft.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "/etc/p6-ssh-filtre.nft",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c08",
+            "ordre": 8,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Filtre SSH sur p6-docker, p6-collecteur et p6-kali (écrit par restreindre-ssh.sh ; commentaires ajoutés ici)",
+            "texte": "sudo bash restreindre-ssh.sh",
+            "explication": "Lance un script shell du projet.\nRechargée à chaque démarrage par `p6-ssh-filtre.service`, avant le démarrage de SSH. Lancement : `sudo bash restreindre-ssh.sh` sur chacune des 3 VM.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "fichier": "restreindre-ssh.sh",
+                "texte": "Lance le script restreindre-ssh.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c09",
+            "ordre": 9,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Tunnel d'un membre (PowerShell, sur son propre PC)",
+            "texte": "ssh -i $HOME\\.ssh\\p6labo -N -L 8443:10.99.0.1:443 -L 8080:127.0.0.1:8080 -L 5901:127.0.0.1:5901 -L 5902:127.0.0.1:5902 -L 5903:127.0.0.1:5903 -L 5904:127.0.0.1:5904 p6labo@100.125.208.28",
+            "explication": "Puis : https://127.0.0.1:8443 (OPNsense) · http://127.0.0.1:8080 (panneau) · TightVNC Viewer 127.0.0.1::5901 à ::5904",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "opnsense",
+                "proto": "Tcp",
+                "port": 443,
+                "adresseVisee": "10.99.0.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "hote",
+                "proto": "Tcp",
+                "port": 8080,
+                "adresseVisee": "127.0.0.1",
+                "verdict": "ACalculer",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "hote",
+                "proto": "Tcp",
+                "port": 5901,
+                "adresseVisee": "127.0.0.1",
+                "verdict": "ACalculer",
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "hote",
+                "proto": "Tcp",
+                "port": 5902,
+                "adresseVisee": "127.0.0.1",
+                "verdict": "ACalculer",
+                "ordre": 4,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "hote",
+                "proto": "Tcp",
+                "port": 5903,
+                "adresseVisee": "127.0.0.1",
+                "verdict": "ACalculer",
+                "ordre": 5,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "hote",
+                "proto": "Tcp",
+                "port": 5904,
+                "adresseVisee": "127.0.0.1",
+                "verdict": "ACalculer",
+                "ordre": 6,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "hote",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "100.125.208.28",
+                "verdict": "ACalculer",
+                "ordre": 7,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c10",
+            "ordre": 10,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Depuis Kali (lecture seule, 19 tests)",
+            "texte": "ssh -t karim@10.99.0.66 \"sudo bash ~/tests-cloisonnement.sh\"",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nTest : Depuis Kali (lecture seule, 19 tests).\nDans la sortie, « 19 / 19 » : premier passage 15/19 : quatre trous bouchés (anti-lockout, SSH sur 2 VM, NAT en Register rule). Revérifié le 17 novembre après l'ajout des consoles VNC",
+            "sortie": "… box 192.168.1.1, 8.8.8.8, Internet : bloqués\n… Windows ping / 445 / 3389 : bloqués\n… console OPNsense, SSH docker et collecteur : bloqués\n… FA1, FA2 par 203.0.113.1 : passent ; FA5, FA6 : bloqués\n19 / 19 conformes",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "kali",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.66",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "fichier": "~/tests-cloisonnement.sh",
+                "texte": "Lance le script tests-cloisonnement.sh.",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "resultatTest",
+                "nom": "Tests",
+                "ok": true,
+                "compteur": "19/19",
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e5-c11",
+            "ordre": 11,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Windows : les consoles VNC n'écoutent que sur la machine elle-même",
+            "texte": "Get-NetTCPConnection -LocalPort 5901,5902,5903,5904 -State Listen | Select-Object LocalAddress,LocalPort",
+            "explication": "Commande PowerShell de lecture : affiche un réglage de Windows sans rien changer.\nTest : Windows : les consoles VNC n'écoutent que sur la machine elle-même.\nDans la sortie, « 127.0.0.1 » : personne sur le réseau ne voit ces ports ; seul un tunnel SSH autorisé y mène",
+            "sortie": "127.0.0.1  5901\n127.0.0.1  5902\n127.0.0.1  5903\n127.0.0.1  5904",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "réglage de Windows",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Après avoir désactivé l'anti-lockout, Windows n'ouvre plus la console d'OPNsense",
+            "cause": "Règle « Admin du pare-feu » avec un port source ≠ any : elle ne correspondait jamais",
+            "solution": "Console OPNsense › 8 Shell › `pfctl -d`, corriger (port source any), Apply, `pfctl -e`. Toujours tester avec une connexion neuve."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Le tunnel s'ouvre mais la page affiche ERR_CONNECTION_CLOSED",
+            "cause": "Windows lui-même ne joint pas la cible",
+            "solution": "Tester chaque morceau : `Test-NetConnection 10.99.0.1 -Port 443` sur l'hôte."
+          },
+          {
+            "ordre": 3,
+            "symptome": "« Arrêter » dans le panneau ne fait rien sur p6-opnsense",
+            "cause": "Pas de VMware Tools dans OPNsense",
+            "solution": "L'éteindre par sa console (option 5, puis y) ou Power › Power Off dans l'interface web."
+          },
+          {
+            "ordre": 4,
+            "symptome": "TightVNC avertit « connexion non chiffrée »",
+            "cause": "Normal : VNC parle à 127.0.0.1",
+            "solution": "Le flux passe dans le tunnel SSH, qui est chiffré : « Connect without encryption »."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "`tests-cloisonnement.sh` = 19/19 depuis Kali"
+          },
+          {
+            "ordre": 2,
+            "texte": "Filtre `p6_ssh` actif sur les 3 VM, anti-lockout désactivée, règle admin corrigée"
+          },
+          {
+            "ordre": 3,
+            "texte": "Tunnel testé depuis un autre PC : OPNsense, panneau et consoles VNC"
+          },
+          {
+            "ordre": 4,
+            "texte": "Instantanés `07-vnc` (OPNsense) et `vnc-pret` (3 autres)"
+          }
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "r1-e6",
+        "titre": "Créer le dépôt Git et ses conventions",
+        "quand": "15–16 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "miseAJour": "Les VM n'ont pas Internet : le paquet du dépôt (`git bundle`) se copie **depuis Windows** avec `scp` (SSH n'est accepté que depuis Windows 10.99.0.2 et le collecteur 10.99.0.10). Les comptes des VM sont `karim` avec `sudo`, pas `root` : les commandes ci-dessous utilisent donc `karim@`, et le dépôt est rangé dans `/opt/projet6` (chemin attendu par les scripts des autres rôles), appartenant à `karim`. Les scripts déjà livrés (`p6-etat-a`, `setup-*.sh`, tests) sont dans `D:\\Labo-P6` : à commiter en premier.",
+        "but": "Un dépôt unique, structuré, où chaque rôle commite ses fichiers et où chaque état est marqué par un tag.",
+        "pourquoi": "Section 6 : chaque état est figé par un snapshot et un tag Git (etat-A, etat-B) contenant config.xml, docker-compose.yml, flows.csv et les règles Suricata. ENF2 : reproductibilité.",
+        "prerequis": "Étapes : chef-4\nModules du cours : 11",
+        "livrable": "Message à tous : adresse du dépôt, branches, conventions. Chaque rôle crée sa branche.",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c01",
+            "ordre": 1,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Arborescence et premier commit (sur le PC d'un membre)",
+            "texte": "git init projet6 && cd projet6",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : init projet6",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c02",
+            "ordre": 2,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Arborescence et premier commit (sur le PC d'un membre)",
+            "texte": "mkdir -p conception/uml docs plateforme/nftables opnsense politique services/{nginx,api,bind9,postgres} \\\n         ids sonde campagne capture analyse resultats/{A,B,synthese} rapport",
+            "explication": "Crée un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "services/{nginx,api,bind9,postgres}",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c03",
+            "ordre": 3,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Arborescence et premier commit (sur le PC d'un membre)",
+            "texte": "cp ../conception/uml/*.puml conception/uml/",
+            "explication": "Commande du guide, tapée sur la machine indiquée.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "conception/uml/",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c04",
+            "ordre": 4,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Arborescence et premier commit (sur le PC d'un membre)",
+            "texte": "cat > .gitignore <<'EOF'\n# captures trop lourdes : archivées à part (zip daté) ; pas de commentaire en fin de ligne dans .gitignore\nresultats/**/pcap/\n*.pyc\n__pycache__/\n.env\nEOF",
+            "explication": "Affiche le contenu d'un fichier sans le modifier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": ".gitignore",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c05",
+            "ordre": 5,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Arborescence et premier commit (sur le PC d'un membre)",
+            "texte": "cat > README.md <<'EOF'\nProjet 6 — Zero Trust. Une branche par rôle (role-1 … role-6), fusion dans main après relecture.\nTags : etat-A, etat-B (configurations figées), campagne-A, campagne-B (résultats archivés).\nEOF",
+            "explication": "Affiche le contenu d'un fichier sans le modifier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "README.md",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c06",
+            "ordre": 6,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Arborescence et premier commit (sur le PC d'un membre)",
+            "texte": "git add . && git commit -m \"Structure du dépôt\"",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : add .",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : commit -m",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c07",
+            "ordre": 7,
+            "ou": "pc-membre",
+            "shell": "Document",
+            "bloc": "Conventions",
+            "texte": "# Branches : role-1-plateforme, role-2-parefeu, role-3-ids, role-4-services, role-5-attaques, role-6-analyse\n# Message de commit : « [rôle N] verbe + objet », ex. « [rôle 2] Ajoute F04 à flows.csv »\n# Fusion dans main : par le rôle 1, après un test (test_flux ou exécution à blanc)\n# Jamais de mot de passe en clair : .env non versionné, modèle .env.exemple versionné",
+            "explication": "Document : Conventions.\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c08",
+            "ordre": 8,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Synchroniser les VM sans accès réseau (écart E26)",
+            "texte": "git bundle create projet6.bundle --all",
+            "explication": "Sur le PC : paquet autonome du dépôt",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : bundle create",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c09",
+            "ordre": 9,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Synchroniser les VM sans accès réseau (écart E26)",
+            "texte": "scp projet6.bundle karim@10.99.0.10:~/",
+            "explication": "Le copier depuis Windows sur le collecteur ET sur l'hôte Docker (SSH n'accepte que Windows et le collecteur) :",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "pc-membre",
+                "vers": "collecteur",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.10",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "~/",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c10",
+            "ordre": 10,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Synchroniser les VM sans accès réseau (écart E26)",
+            "texte": "scp projet6.bundle karim@10.99.0.20:~/",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "pc-membre",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "~/",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c11",
+            "ordre": 11,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Synchroniser les VM sans accès réseau (écart E26)",
+            "texte": "sudo install -d -o karim -g karim /opt/projet6 && git clone ~/projet6.bundle /opt/projet6",
+            "explication": "Puis, sur chaque VM (git absent ? rebrancher la carte NAT le temps de « sudo apt install git ») : première fois",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "/opt/projet6",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : clone ~/projet6.bundle",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c12",
+            "ordre": 12,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Synchroniser les VM sans accès réseau (écart E26)",
+            "texte": "cd /opt/projet6 && git pull ~/projet6.bundle main",
+            "explication": "Les fois suivantes",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : pull ~/projet6.bundle",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c13",
+            "ordre": 13,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "texte": "git log --oneline | head -3",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : log --oneline",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e6-c14",
+            "ordre": 14,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "texte": "git ls-files | head",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.\nDans la sortie, « conception/uml/… » : les diagrammes de référence sont versionnés",
+            "sortie": "a1b2c3d Structure du dépôt\n.gitignore\nREADME.md\nconception/uml/01_topologie_etat_A.puml\n…",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : ls-files",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Un PCAP de 500 Mo bloque le push",
+            "cause": "`git status`",
+            "solution": "Le retirer (`git rm --cached`), vérifier le .gitignore, archiver les PCAP en zip daté."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Deux rôles modifient flows.csv en même temps",
+            "cause": "Conflit de fusion",
+            "solution": "flows.csv appartient au rôle 2 : les autres proposent par message, le rôle 2 commite."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Dépôt créé, 6 membres ont accès"
+          },
+          {
+            "ordre": 2,
+            "texte": "Arborescence et conventions commitées"
+          },
+          {
+            "ordre": 3,
+            "texte": "/opt/projet6 présent sur le collecteur ET sur l'hôte Docker, synchronisation testée une fois"
+          }
+        ]
+      },
+      {
+        "numero": 7,
+        "code": "r1-e7",
+        "titre": "Figer un état : snapshots et tags",
+        "quand": "21 et 26 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Les états A et B reconstructibles à l'identique : snapshot des 4 VM et tag Git portant sur le même contenu.",
+        "pourquoi": "Section 6 et 10.3 (étape 1 : « restaurer le snapshot de l'état testé »). Risque « démonstration qui échoue » (section 11.2) : les snapshots A et B sont la parade.",
+        "prerequis": "Étapes : parefeu-7, attaques-5, parefeu-9, ids-6, attaques-6\nModules du cours : 11\netat-A : après test_flux 100 % (2.7) et la campagne A (5.5). etat-B : après test_flux B (2.9), passage en IPS (3.6) et la campagne B (5.6).",
+        "livrable": "Message à tous : « etat-A figé (commit …) ». Données de campagne archivées par le rôle 5 sous `resultats/A/<date>/`, tag `campagne-A`.",
+        "schema": "snapshot-cycle",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Figer l'état A (PowerShell, sur l'hôte Windows)",
+            "texte": "$vr = 'C:\\Program Files\\VMware\\VMware Workstation\\vmrun.exe'",
+            "explication": "VMware enregistre disques + RAM : chaque VM reprend exactement où elle était (utile pour la démo)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c02",
+            "ordre": 2,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Figer l'état A (PowerShell, sur l'hôte Windows)",
+            "texte": "foreach ($v in 'p6-opnsense','p6-docker','p6-collecteur','p6-kali') {\n  & $vr -T ws snapshot \"D:\\Labo-P6\\vm\\$v\\$v.vmx\" etat-A\n}",
+            "explication": "Répète la même commande pour chaque VM (boucle PowerShell).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "instantane",
+                "vm": "opnsense",
+                "nom": "etat-A",
+                "restauration": false,
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "instantane",
+                "vm": "docker",
+                "nom": "etat-A",
+                "restauration": false,
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "instantane",
+                "vm": "collecteur",
+                "nom": "etat-A",
+                "restauration": false,
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "instantane",
+                "vm": "kali",
+                "nom": "etat-A",
+                "restauration": false,
+                "ordre": 4,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c03",
+            "ordre": 3,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Figer l'état A (PowerShell, sur l'hôte Windows)",
+            "texte": "& $vr -T ws listSnapshots D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx",
+            "explication": "Compter quelques minutes : la RAM des 4 VM (≈ 8 Go) est écrite sur D:. Panneau : « Prendre un instantané » sur chaque VM (le nom reçoit le préfixe de l'utilisateur et la date).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "texte": "Liste des instantanés.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c04",
+            "ordre": 4,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Marquer le dépôt (PC)",
+            "texte": "git checkout main && git pull",
+            "explication": "Le rôle 2 a commité opnsense/config-etat-A.xml, le rôle 4 services/, le rôle 3 ids/",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : checkout main",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : pull",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c05",
+            "ordre": 5,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Marquer le dépôt (PC)",
+            "texte": "CAMP=resultats/A/2026-11-20",
+            "explication": "Dossier de la campagne A (rôle 5)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c06",
+            "ordre": 6,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Marquer le dépôt (PC)",
+            "texte": "echo \"commit $(git rev-parse --short HEAD) · $(date -u +%FT%TZ)\" > $CAMP/VERSION.txt",
+            "explication": "Affiche un texte (ou l'écrit dans un fichier).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "$CAMP/VERSION.txt",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c07",
+            "ordre": 7,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Marquer le dépôt (PC)",
+            "texte": "git add -A && git commit -m \"[rôle 1] Fige l'état A\"",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : add -A",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : commit -m",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c08",
+            "ordre": 8,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Marquer le dépôt (PC)",
+            "texte": "git tag -a etat-A -m \"État A : FA1–FA6, VLAN 10/20, test_flux 100 %\"",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Git : tag -a",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c09",
+            "ordre": 9,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Revenir à un état (PowerShell, ou « Revenir » dans le panneau, rôle admin)",
+            "texte": "foreach ($v in 'p6-opnsense','p6-collecteur','p6-docker','p6-kali') {\n  & $vr -T ws revertToSnapshot \"D:\\Labo-P6\\vm\\$v\\$v.vmx\" etat-A\n}",
+            "explication": "Une VM figée en marche revient suspendue : la redémarrer (« Démarrer » dans le panneau), OPNsense en premier. ATTENTION : tout ce qui n'a pas été figé depuis le dernier instantané est perdu.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "instantane",
+                "vm": "opnsense",
+                "nom": "etat-A",
+                "restauration": true,
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "etatNoeud",
+                "noeud": "opnsense",
+                "etat": "Suspendue",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "instantane",
+                "vm": "collecteur",
+                "nom": "etat-A",
+                "restauration": true,
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "etatNoeud",
+                "noeud": "collecteur",
+                "etat": "Suspendue",
+                "ordre": 4,
+                "automatique": true
+              },
+              {
+                "type": "instantane",
+                "vm": "docker",
+                "nom": "etat-A",
+                "restauration": true,
+                "ordre": 5,
+                "automatique": true
+              },
+              {
+                "type": "etatNoeud",
+                "noeud": "docker",
+                "etat": "Suspendue",
+                "ordre": 6,
+                "automatique": true
+              },
+              {
+                "type": "instantane",
+                "vm": "kali",
+                "nom": "etat-A",
+                "restauration": true,
+                "ordre": 7,
+                "automatique": true
+              },
+              {
+                "type": "etatNoeud",
+                "noeud": "kali",
+                "etat": "Suspendue",
+                "ordre": 8,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c10",
+            "ordre": 10,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "texte": "& $vr -T ws listSnapshots D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx",
+            "explication": "Pilote VMware en ligne de commande (instantanés, démarrage, arrêt).",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "texte": "Liste des instantanés.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e7-c11",
+            "ordre": 11,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "texte": "git tag -n",
+            "explication": "Commande Git : gère l'historique et les versions du dépôt du projet.\nDans la sortie, « arbre etat-A → etat-B » : etat-B est enfant de etat-A : on peut revenir à l'un ou à l'autre\nDans la sortie, « git tag -n » : chaque snapshot a son tag, avec le même contenu",
+            "sortie": "Total snapshots: 9\n01-opnsense-base\n…\n07-vnc\netat-A\netat-B\netat-A  État A : FA1–FA6, VLAN 10/20, test_flux 100 %\netat-B  État B : F01–F99, Suricata IPS, test_flux 100 %",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Git : tag -n",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "L'instantané dure plusieurs minutes et la VM semble figée",
+            "cause": "VMware écrit la RAM de la VM sur le disque",
+            "solution": "Attendre, ne pas interrompre (pas de Ctrl+C) : interrompre peut abîmer la VM. Vérifier l'activité du disque D: dans le Gestionnaire des tâches."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Après rollback, OPNsense a une heure fausse",
+            "cause": "Snapshot avec RAM restauré des jours plus tard",
+            "solution": "Laisser NTP resynchroniser ; contrôler avec le rôle 6 avant toute mesure."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Snapshot et tag ne correspondent pas",
+            "cause": "VERSION.txt absent",
+            "solution": "Toujours figer les deux dans la même demi-heure, et noter le commit dans la description du snapshot."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "etat-A : 4 snapshots + tag + VERSION.txt"
+          },
+          {
+            "ordre": 2,
+            "texte": "etat-B : idem"
+          },
+          {
+            "ordre": 3,
+            "texte": "Une restauration complète de etat-A a été chronométrée (durée notée pour la démo)"
+          }
+        ]
+      },
+      {
+        "numero": 8,
+        "code": "r1-e8",
+        "titre": "Intégrer le travail des rôles aux jalons",
+        "quand": "16–26 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Chaque jalon de la section 12 est vérifié par un test de bout en bout, pas seulement annoncé.",
+        "pourquoi": "Section 12 : dates fixes ; en cas de retard, on réduit le périmètre (N, scénarios), jamais la comparaison A/B. Vous êtes le garant des interfaces entre rôles.",
+        "prerequis": "Modules du cours : 0, 11\nMatrice des interfaces de l'accueil.",
+        "livrable": "Journal des jalons dans `docs/jalons.md`, partagé avec le groupe chaque soir.",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "cd /opt/projet6",
+            "explication": "19 nov. : socle A",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "python3 politique/c2.py --etat A && scp politique/tests.csv politique/hosts.csv root@10.99.0.20:/opt/projet6/politique/",
+            "explication": "Lance un programme Python du projet.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "politique/c2.py",
+                "texte": "lance politique/c2.py",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "/opt/projet6/politique/",
+                "cree": true,
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "ssh root@10.99.0.20 'cd /opt/projet6 && ./politique/test_flux.sh politique/tests.csv politique/hosts.csv'",
+            "explication": "Rôle 2 : 0 écart\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "./politique/test_flux.sh",
+                "texte": "Lance le script test_flux.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "python3 campagne/orchestrateur.py --etat A --scenario S-01 --n 1 --dossier resultats/A/essai",
+            "explication": "Rôle 5",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "python3 analyse/parse.py --dossier resultats/A/essai",
+            "explication": "Rôle 6",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/parse.py",
+                "texte": "lance analyse/parse.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c06",
+            "ordre": 6,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "ls resultats/A/essai/runs.csv resultats/A/essai/events.csv",
+            "explication": "Liste les fichiers d'un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/essai/events.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+            "texte": "python3 analyse/fp.py resultats/B/reglage/events.csv --duree-h 2",
+            "explication": "24 nov. : état B — mêmes commandes avec --etat B, plus : rôles 3 et 6 : ≤ 1 FP/h",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/fp.py",
+                "texte": "lance analyse/fp.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c08",
+            "ordre": 8,
+            "ou": "collecteur",
+            "shell": "Document",
+            "compte": "karim",
+            "bloc": "Point quotidien (15 min)",
+            "texte": "Chaque rôle : fait hier · prévu aujourd'hui · bloqué par qui ?\nLe rôle 1 met à jour l'état des jalons et décide d'une réduction de périmètre si un jalon glisse :\n  1) N = 5 au lieu de 10 (section 11.2)   2) retirer S-06   3) jamais supprimer l'état A ou l'état B",
+            "explication": "Document : Point quotidien (15 min).\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e8-c09",
+            "ordre": 9,
+            "ou": "collecteur",
+            "shell": "Document",
+            "compte": "karim",
+            "texte": "(lecture du tableau des jalons)",
+            "explication": "Texte de référence du guide : rien n'est exécuté.\n« ✔ » : jalon vérifié par une commande, pas seulement déclaré",
+            "sortie": "19 nov. ✔ test_flux A 100 % · ✔ runs.csv + events.csv pour S-01\n21 nov. ✔ resultats/A/2026-11-20 archivés · ✔ tag etat-A",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Le rôle 5 attend les services",
+            "cause": "Tâche t42 en retard sur le Gantt",
+            "solution": "Aider le rôle 4 (le rôle 3, qui n'a que la sonde à écrire du 16 au 19, a de la marge) ; décaler l'essai, pas la campagne."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Un fichier ne respecte pas son contrat",
+            "cause": "Colonnes différentes de la page Contrats",
+            "solution": "Refuser la fusion ; le producteur corrige."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Chaque jalon de la section 12 a sa trace de vérification"
+          },
+          {
+            "ordre": 2,
+            "texte": "Aucun contrat de données modifié sans accord"
+          }
+        ]
+      },
+      {
+        "numero": 9,
+        "code": "r1-e9",
+        "titre": "Assembler le rapport final et préparer la démonstration",
+        "quand": "27–30 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Un rapport final relu qui confirme ou infirme chaque hypothèse avec les mesures, et une démonstration de 10 minutes qui ne peut pas échouer.",
+        "pourquoi": "Section 12 : rapport + configurations + scripts + résultats le 30 novembre. Section 11.2 : snapshots A et B et vidéo de secours.",
+        "prerequis": "Étapes : analyse-6\nModules du cours : 12\nChaque rôle livre `rapport/<role>.md` le 28.",
+        "livrable": "Dépôt final (tag `remise`) : rapport, configurations, scripts, résultats. Envoi selon les consignes du sujet le 30 novembre.",
+        "schema": "snapshot-cycle",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r1-e9-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Plan du rapport final",
+            "texte": "1. Résumé (résultats chiffrés A vs B)\n2. Rappel de la conception et écarts appliqués (ECARTS.md)\n3. Réalisation : plateforme (rôle 1), pare-feu (2), services (4), IDS/IPS (3)\n4. Protocole et campagnes (rôle 5)\n5. Résultats et analyse (rôle 6) : chaque hypothèse « attendu » confirmée ou infirmée\n6. Limites, risques réalisés, pistes\nAnnexes : preuve de confinement, test_flux A et B, jeu de règles (hash), captures commentées",
+            "explication": "Document : Plan du rapport final.\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e9-c02",
+            "ordre": 2,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Démonstration (10 min, deux états)",
+            "texte": "Avant la séance : VM en etat-B démarrées ; vidéo de S-05 en état A prête (enregistrée le 26).\n1. Carte de l'architecture (guide, accueil)                                  1 min\n2. Vidéo : S-05 en état A — psql réussit, filterlog vide, PCAP du conteneur   2 min\n3. Direct : S-05 en état B — délai dépassé, filterlog F99, alerte sid 9000020 2 min\n4. Direct : S-01 en état B — alerte puis blocage temporaire                   2 min\n5. Tableaux et graphiques A vs B ; une limite assumée                        3 min\nSecours : vidéo complète des deux états, enregistrée le 29.",
+            "explication": "Document : Démonstration (10 min, deux états).\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r1-e9-c03",
+            "ordre": 3,
+            "ou": "hote",
+            "shell": "Document",
+            "texte": "(répétition générale chronométrée le 29)",
+            "explication": "Texte de référence du guide : rien n'est exécuté.\n« aucune commande tapée » : les commandes de la démo sont dans des scripts : pas de faute de frappe en direct",
+            "sortie": "Durée : 9 min 40 · aucune commande tapée à la main · vidéo de secours testée sur le vidéoprojecteur",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Une VM ne démarre pas pendant la démo",
+            "cause": "—",
+            "solution": "Passer immédiatement à la vidéo de secours, ne pas dépanner en direct."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Les chiffres du rapport ne correspondent pas aux graphiques",
+            "cause": "Graphiques régénérés après correction",
+            "solution": "Tout produire depuis resultats/synthese/ (rôle 6), jamais à la main."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Rapport relu par au moins deux membres"
+          },
+          {
+            "ordre": 2,
+            "texte": "Chaque « attendu » de la section 10.1 a son verdict mesuré"
+          },
+          {
+            "ordre": 3,
+            "texte": "Démo répétée deux fois, vidéo de secours testée"
+          },
+          {
+            "ordre": 4,
+            "texte": "Tag final `remise` poussé"
+          }
+        ]
+      }
+    ]
+  },
+  "questionsJury": [
+    {
+      "question": "Comment prouvez-vous que le laboratoire est isolé ?",
+      "reponse": "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (`startConnected = \"FALSE\"` dans chaque .vmx) ; et depuis Kali, 19 tests sur 19 échouent comme prévu vers la box, Internet, Windows et MGMT (sorties dans `docs/preuve-confinement.txt`). Les téléchargements se sont faits pendant une fenêtre d'approvisionnement documentée."
+    },
+    {
+      "question": "Pourquoi un pare-feu local sur chaque VM alors que vous avez OPNsense ?",
+      "reponse": "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le garantit."
+    },
+    {
+      "question": "Pourquoi VMware plutôt que Proxmox, prévu dans la conception ?",
+      "reponse": "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q, instantanés, pilotage en ligne de commande (`vmrun`). Ce qui manquait (accès web pour l'équipe, consoles) a été remplacé par Tailscale, un tunnel SSH, un panneau de contrôle et des consoles VNC (écarts E31 et E33)."
+    },
+    {
+      "question": "Comment garantissez-vous que l'état mesuré est bien celui décrit ?",
+      "reponse": "Chaque campagne commence par la restauration du snapshot et un test_flux à 100 % (section 10.3). Le snapshot et le tag Git citent le même commit ; VERSION.txt est archivé avec les résultats."
+    },
+    {
+      "question": "Que se passe-t-il si la RAM manque ?",
+      "reponse": "L'hôte échange sur disque et la latence mesurée devient fausse. Les 4 VM utilisent 7,5 Go sur 16 (écart E32, au lieu des 11 Go prévus), ce qui laisse environ 8 Go à Windows ; aucune autre VM ne tourne pendant les campagnes."
+    }
+  ]
+}

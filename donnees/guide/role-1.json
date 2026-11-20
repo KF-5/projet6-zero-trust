@@ -1,0 +1,712 @@
+{
+ "numero": 1,
+ "cle": "chef",
+ "titre": "Chef de projet · plateforme",
+ "court": "Plateforme",
+ "couleur": "--r1",
+ "mission": "Monter l'hôte VMware et ses 4 VM, verrouiller le réseau MGMT, ouvrir l'accès à distance de l'équipe (Tailscale, tunnels SSH, panneau, consoles VNC), tenir le dépôt Git et les états figés, puis intégrer le travail de tous jusqu'au rapport et à la démonstration.",
+ "intro": "<p><b>Mise à jour du 17 novembre : les étapes 1 à 5 sont faites.</b> Le laboratoire tourne sur VMware Workstation Pro, sur ton PC Windows. L'état A est construit et prouvé (<code>tests.sh</code> 12/12, <code>tests-cloisonnement.sh</code> 19/19), et l'équipe y accède par Tailscale, un tunnel SSH, le panneau de contrôle et les consoles VNC. Le détail pas à pas est dans le récapitulatif du rôle 1.</p><p>Il te reste : accueillir chaque membre (partage Tailscale, clé, compte panneau, compte OPNsense), le dépôt Git (étape 6), figer les états (7), intégrer (8), puis le rapport et la démonstration (9).</p>",
+ "demo": {
+  "intro": "Ce que vous montrez en 2 minutes : la plateforme est isolée et reproductible.",
+  "etapes": [
+   "Panneau de contrôle (par le tunnel) : les 4 VM, leurs instantanés et le journal des actions ; dans VMware, aucune carte en mode Pont.",
+   "Depuis Kali : <code>sudo bash tests-cloisonnement.sh</code> → 19/19 (box, Internet, Windows, MGMT injoignables ; seuls FA1 et FA2 passent).",
+   "Liste des instantanés (panneau ou <code>vmrun listSnapshots</code>) et <code>git tag -n</code> : etat-A et etat-B liés au même contenu.",
+   "Annoncer la durée mesurée d'une restauration."
+  ],
+  "secours": "captures d'écran des trois commandes dans le rapport."
+ },
+ "questions": [
+  [
+   "Comment prouvez-vous que le laboratoire est isolé ?",
+   "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (<code>startConnected = \"FALSE\"</code> dans chaque .vmx) ; et depuis Kali, 19 tests sur 19 échouent comme prévu vers la box, Internet, Windows et MGMT (sorties dans <code>docs/preuve-confinement.txt</code>). Les téléchargements se sont faits pendant une fenêtre d'approvisionnement documentée."
+  ],
+  [
+   "Pourquoi un pare-feu local sur chaque VM alors que vous avez OPNsense ?",
+   "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le garantit."
+  ],
+  [
+   "Pourquoi VMware plutôt que Proxmox, prévu dans la conception ?",
+   "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q, instantanés, pilotage en ligne de commande (<code>vmrun</code>). Ce qui manquait (accès web pour l'équipe, consoles) a été remplacé par Tailscale, un tunnel SSH, un panneau de contrôle et des consoles VNC (écarts E31 et E33)."
+  ],
+  [
+   "Comment garantissez-vous que l'état mesuré est bien celui décrit ?",
+   "Chaque campagne commence par la restauration du snapshot et un test_flux à 100 % (section 10.3). Le snapshot et le tag Git citent le même commit ; VERSION.txt est archivé avec les résultats."
+  ],
+  [
+   "Que se passe-t-il si la RAM manque ?",
+   "L'hôte échange sur disque et la latence mesurée devient fausse. Les 4 VM utilisent 7,5 Go sur 16 (écart E32, au lieu des 11 Go prévus), ce qui laisse environ 8 Go à Windows ; aucune autre VM ne tourne pendant les campagnes."
+  ]
+ ],
+ "etapes": [
+  {
+   "numero": 1,
+   "titre": "Installer VMware Workstation Pro et protéger le PC hôte",
+   "quand": "14 nov.",
+   "fait": true,
+   "maj": "<p>Étape réécrite le 17 novembre : elle décrit ce qui a été réellement fait. Proxmox, prévu à l'origine, a été écarté parce que son installateur efface le disque du PC (écart E31).</p>",
+   "but": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+   "pourquoi": "Section 6 : tout le laboratoire tient sur un seul PC de 16 Go (ENF7). VMware Workstation Pro est gratuit, s'installe comme un logiciel ordinaire, et offre les réseaux isolés et les instantanés dont le projet a besoin. ENF1 : le laboratoire ne doit rien pouvoir atteindre hors de lui-même.",
+   "prereq": {
+    "texte": "PC du laboratoire : MSI GF63, i7-10750H (virtualisation VT-x activée), 16 Go de RAM, disque D: avec environ 230 Go libres, Windows 10.",
+    "modules": [
+     8
+    ]
+   },
+   "schema": "proxmox-topo",
+   "ui": [
+    {
+     "path": "Site de Broadcom (compte gratuit)",
+     "faire": "Télécharger et installer <b>VMware Workstation Pro</b> (gratuit pour un usage personnel). L'ancien VMware Player a été désinstallé avant."
+    },
+    {
+     "path": "VMware › Modifier › Préférences",
+     "faire": "Dossier des VM : <code>D:\\Labo-P6\\vm</code> (le disque C: est trop plein). Cocher « laisser les machines virtuelles s'exécuter après la fermeture »."
+    },
+    {
+     "path": "Windows › Paramètres › Réseau › Wi-Fi",
+     "faire": "Profil du réseau domestique : <b>Public</b>. Windows se montre méfiant envers les autres appareils de la maison."
+    },
+    {
+     "path": "Pare-feu Windows › Règles de trafic entrant",
+     "faire": "Règle « <b>P6 - bloquer le labo vers Windows</b> » : tout ce qui arrive depuis 10.99.0.0/24 est refusé. Même compromise, une VM ne peut pas attaquer Windows."
+    },
+    {
+     "path": "Sécurité Windows › Exclusions",
+     "faire": "Exclure <code>D:\\Labo-P6\\vm</code> : Defender ne scanne pas les disques des VM (sinon il ralentit tout et supprime les outils de Kali)."
+    }
+   ],
+   "config": [
+    {
+     "t": "Contrôles (PowerShell)",
+     "code": "Get-NetIPConfiguration | Select-Object InterfaceAlias, IPv4Address        # aucune adresse 10.x sur le Wi-Fi\nGet-NetFirewallRule -DisplayName \"P6 - bloquer le labo vers Windows\" | Select-Object Enabled, Direction, Action\nGet-NetIPInterface | Where-Object Forwarding -eq Enabled                     # rien : Windows ne route pas entre réseaux"
+    }
+   ],
+   "tester": [
+    {
+     "cmd": "Get-NetFirewallRule -DisplayName \"P6 - bloquer le labo vers Windows\" | Select-Object Enabled, Direction, Action",
+     "sortie": "Enabled Direction Action\n------- --------- ------\n   True   Inbound  Block",
+     "sens": [
+      [
+       "Inbound Block",
+       "tout ce qui vient du laboratoire vers Windows est refusé ; les réponses à ce que Windows ouvre lui-même (navigateur, SSH) passent, car le pare-feu Windows est « stateful »"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Une VM refuse de démarrer : « VT-x is not available »",
+     "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+     "Désactiver Hyper-V / « Isolation du noyau » ou laisser VMware utiliser l'hyperviseur Windows (plus lent)."
+    ],
+    [
+     "Le disque C: se remplit",
+     "Dossier des VM resté sur C:",
+     "Préférences de VMware : <code>D:\\Labo-P6\\vm</code>, puis déplacer les VM existantes VM éteintes."
+    ]
+   ],
+   "fini": [
+    "VMware Workstation Pro installé, VM dans <code>D:\\Labo-P6\\vm</code>",
+    "Wi-Fi en profil Public, règle « P6 - bloquer le labo vers Windows » active",
+    "Routage IP désactivé sur Windows (vérifié)"
+   ],
+   "livrer": "Message à l'équipe : plateforme = VMware sur le PC du rôle 1 (écart E31 noté dans <code>ECARTS.md</code>)."
+  },
+  {
+   "numero": 2,
+   "titre": "Créer les réseaux virtuels p6-wan, p6-trunk et VMnet9",
+   "quand": "14 nov.",
+   "fait": true,
+   "maj": "<p>Remplace l'ancienne étape « ponts vmbr1, vmbr2, vmbr9 ». Les trois réseaux jouent exactement le même rôle ; seuls leurs noms changent.</p>",
+   "but": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+   "pourquoi": "Section 6 et figure 3 : un WAN, un trunk qui transporte tous les VLAN internes, un MGMT hors bande. ENF1 : aucun de ces réseaux ne touche la carte Wi-Fi. Passer de l'état A à l'état B ne change jamais le câblage, seulement les VLAN.",
+   "prereq": {
+    "etapes": [
+     "chef-1"
+    ],
+    "modules": [
+     3,
+     8
+    ]
+   },
+   "schema": "proxmox-topo",
+   "ui": [
+    {
+     "path": "Paramètres d'une VM › Carte réseau › Segment LAN › Segments LAN… › Ajouter",
+     "faire": "Créer <code>p6-wan</code> et <code>p6-trunk</code>. Un segment LAN ne relie <b>que des VM</b> : ni Windows ni Internet n'y ont accès. Il transporte les trames étiquetées 802.1Q sans rien régler."
+    },
+    {
+     "path": "Modifier › Éditeur de réseau virtuel › Ajouter un réseau › VMnet9",
+     "faire": "Type <b>Hôte uniquement</b>, <b>DHCP décoché</b>, sous-réseau 10.99.0.0/24. Puis, dans Windows, donner à la carte « VMware Network Adapter VMnet9 » l'adresse fixe <b>10.99.0.2/24</b>, sans passerelle."
+    },
+    {
+     "path": "Règle permanente",
+     "faire": "Jamais de mode <b>Pont</b> (VMnet0) : il brancherait une VM d'attaque directement sur la box de la maison. Le NAT de VMware (VMnet8) ne sert que pendant les installations (étape 4)."
+    }
+   ],
+   "config": [
+    {
+     "t": "Table des réseaux",
+     "code": "Réseau     Type VMware                 Rôle                         Plage\np6-wan     segment LAN                 WAN simulé (aucun lien réel)  203.0.113.0/24\np6-trunk   segment LAN                 trunk 802.1Q (VLAN 10, 20…)   —\nVMnet9     hôte uniquement, sans DHCP  MGMT ; Windows = 10.99.0.2     10.99.0.0/24\nVMnet8     NAT                         Internet, installations seules —"
+    }
+   ],
+   "tester": [
+    {
+     "t": "PowerShell",
+     "cmd": "Get-NetIPAddress -InterfaceAlias \"*VMnet9*\" -AddressFamily IPv4 | Select-Object IPAddress, PrefixLength",
+     "sortie": "IPAddress PrefixLength\n--------- ------------\n10.99.0.2           24",
+     "sens": [
+      [
+       "10.99.0.2/24",
+       "Windows est sur MGMT, à une adresse fixe autorisée par l'alias ADMINS d'OPNsense"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Une VM obtient une adresse 192.168.x.x sur MGMT",
+     "DHCP de VMnet9 resté actif",
+     "Éditeur de réseau virtuel › VMnet9 › décocher « Utiliser le service DHCP local »."
+    ],
+    [
+     "Les VLAN ne passent pas sur le trunk",
+     "Carte reliée au mauvais segment",
+     "Vérifier dans les paramètres de la VM que la carte du trunk est sur le segment <code>p6-trunk</code>."
+    ]
+   ],
+   "fini": [
+    "Segments LAN <code>p6-wan</code> et <code>p6-trunk</code> créés",
+    "VMnet9 hôte uniquement sans DHCP, Windows en 10.99.0.2",
+    "Aucune carte de VM en mode Pont"
+   ],
+   "livrer": "Table des réseaux ci-dessus dans <code>docs/interfaces.md</code>."
+  },
+  {
+   "numero": 3,
+   "titre": "Créer les 4 machines virtuelles",
+   "quand": "14–16 nov.",
+   "fait": true,
+   "maj": "<p>Remplace la création par <code>qm create</code>. Les VM s'appellent <code>p6-opnsense</code>, <code>p6-docker</code>, <code>p6-collecteur</code> et <code>p6-kali</code> (et non 100 à 103). Leurs cartes sont des cartes VMware : <code>em0…em3</code> sous OPNsense, <code>ens32…ens35</code> sous Debian, <code>eth0…eth2</code> sous Kali.</p>",
+   "but": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+   "pourquoi": "Section 6 : un pare-feu, un hôte Docker pour tous les services et postes, un attaquant, un collecteur. Les ressources ont été réduites pour tenir à l'aise dans 16 Go avec Windows (écart E32) : 7,5 Go pour les 4 VM.",
+   "prereq": {
+    "etapes": [
+     "chef-2"
+    ],
+    "texte": "ISO dans <code>D:\\Labo-P6\\iso</code> : OPNsense 26.7, Debian 13 netinst, Kali 2026.3 installer.",
+    "modules": [
+     8
+    ]
+   },
+   "schema": "proxmox-topo",
+   "config": [
+    {
+     "t": "Les 4 VM réellement créées",
+     "code": "VM             vCPU  RAM     Disque  Cartes (dans l'ordre)\np6-opnsense    2     3 Go    20 Go   em0 p6-wan · em1 p6-trunk · em2 VMnet9 · em3 NAT (débranchée)\np6-docker      2     2,5 Go  30 Go   ens32 VMnet9 · ens33 p6-trunk · ens34 p6-wan · ens35 NAT (débranchée)\np6-collecteur  1     1 Go    20 Go   ens32 VMnet9 · ens33 NAT (débranchée)\np6-kali        1     1,5 Go  25 Go   eth0 p6-wan · eth1 VMnet9 · eth2 NAT (débranchée)\n\nPour toutes : USB, son et imprimante retirés ; dossiers partagés désactivés ;\nglisser-déposer et copier-coller désactivés (isolation de l'invité) ; jamais de disque physique."
+    },
+    {
+     "t": "Vérifier qu'une carte est la bonne : comparer les MAC",
+     "code": "# Dans la VM (ex. OPNsense, console › 8 Shell)\nifconfig em2 | grep ether          # 00:0c:29:57:1f:b1\n# Sur Windows : la même MAC doit figurer dans le .vmx, pour la carte reliée à VMnet9\nSelect-String -Path D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx -Pattern 'ethernet\\d\\.(generatedAddress|vnet|connectionType)'"
+    }
+   ],
+   "tester": [
+    {
+     "t": "PowerShell : les cartes NAT ne se branchent jamais au démarrage",
+     "cmd": "Select-String -Path D:\\Labo-P6\\vm\\*\\*.vmx -Pattern 'startConnected = \"FALSE\"'",
+     "sortie": "p6-collecteur.vmx: ethernet1.startConnected = \"FALSE\"\np6-docker.vmx: ethernet3.startConnected = \"FALSE\"\np6-kali.vmx: ethernet2.startConnected = \"FALSE\"\np6-opnsense.vmx: ethernet3.startConnected = \"FALSE\"",
+     "sens": [
+      [
+       "4 lignes",
+       "chaque VM a sa carte NAT, et aucune ne se connecte toute seule"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "OPNsense affecte le WAN à la mauvaise carte",
+     "Ordre des cartes ≠ ordre attendu",
+     "Comparer les MAC (<code>ifconfig em0</code>) avec le .vmx, puis réaffecter (console, option 1)."
+    ],
+    [
+     "La VM Debian démarre en synthèse vocale",
+     "Le menu de l'installateur a attendu 30 s",
+     "Redémarrer la VM et appuyer sur ↓ dès le menu."
+    ]
+   ],
+   "fini": [
+    "4 VM créées avec les ressources du tableau",
+    "Chaque carte vérifiée par sa MAC",
+    "Les 4 cartes NAT ont <code>startConnected = \"FALSE\"</code>"
+   ],
+   "livrer": "Tableau des VM et des MAC dans <code>docs/interfaces.md</code>."
+  },
+  {
+   "numero": 4,
+   "titre": "Installer les systèmes, les adresses MGMT et l'état A",
+   "quand": "14–16 nov.",
+   "fait": true,
+   "maj": "<p>Le rôle 1 a aussi réalisé, pendant la préparation de l'hôte, les premières étapes des rôles 2 (OPNsense, VLAN, NAT, règles FA), 4 (Docker et services de l'état A) et 6 (NTP et syslog), pour que l'équipe démarre sur un état A complet et prouvé. Ces étapes portent la pastille « déjà fait » dans leurs rôles.</p>",
+   "but": "Les 4 systèmes installés, chaque VM à son adresse MGMT fixe, l'heure commune, les journaux centralisés, et l'état A en service.",
+   "pourquoi": "Section 6 : chaque VM est administrée par MGMT. Adresses MGMT fixées (écart E03) : OPNsense 10.99.0.1, collecteur 10.99.0.10, hôte Docker 10.99.0.20, Kali 10.99.0.66. Les noms eth0…eth2 du rapport deviennent ens32…ens35 sous Debian dans VMware (écart E15).",
+   "prereq": {
+    "etapes": [
+     "chef-3"
+    ],
+    "modules": [
+     8
+    ]
+   },
+   "schema": "proxmox-topo",
+   "ui": [
+    {
+     "path": "Installateur Debian 13 (p6-docker, p6-collecteur)",
+     "faire": "Pas de mot de passe root (utilisateur <code>karim</code> avec sudo), uniquement « serveur SSH » et « utilitaires usuels », aucun bureau. Noms : <code>docker-p6</code>, <code>collecteur</code>, domaine <code>p6.lab</code>."
+    },
+    {
+     "path": "Installateur Kali 2026.3 (p6-kali)",
+     "faire": "Bureau (Xfce) et « default » décochés, « top10 » gardé : Kali reste en ligne de commande."
+    },
+    {
+     "path": "OPNsense (p6-opnsense)",
+     "faire": "Installation, interfaces, VLAN 10 et 20, NAT FA1/FA2/FA6, règles FA3/FA4 : voir les étapes 1 à 5 du rôle 2, marquées « déjà fait »."
+    },
+    {
+     "path": "Carte NAT de la VM (installations seulement)",
+     "faire": "Paramètres de la VM › carte NAT › cocher « Connecté » le temps des <code>apt</code> et <code>docker pull</code>, puis la décocher, ainsi que « Connecter à la mise sous tension »."
+    }
+   ],
+   "config": [
+    {
+     "t": "Adresse MGMT permanente (Debian, ex. collecteur)",
+     "file": "/etc/network/interfaces.d/p6-mgmt",
+     "code": "auto ens32\niface ens32 inet static\n    address 10.99.0.10/24",
+     "note": "Pas de passerelle sur MGMT : ce réseau ne mène nulle part ailleurs."
+    },
+    {
+     "t": "Scripts livrés par le rôle 1 (copiés depuis Windows avec scp, lancés avec sudo)",
+     "code": "D:\\Labo-P6\\collecteur\\setup-collecteur.sh   # chrony serveur NTP (allow 10.99.0.0/24, local stratum 8) + rsyslog UDP 514 → /var/log/p6/<ip>.log\nD:\\Labo-P6\\kali\\setup-kali.sh               # adresses, outils (nmap, hping3, nikto…), chrony client, SSH écoute sur 10.99.0.66 seulement\nD:\\Labo-P6\\docker\\p6-etat-a\\setup.sh       # réseaux macvlan p6_lan / p6_dmz / p6_wan et 10 conteneurs de l'état A\nD:\\Labo-P6\\docker\\p6-etat-a\\tests.sh       # 12 tests des flux FA1 à FA5 depuis les conteneurs"
+    },
+    {
+     "t": "Copier un script dans une VM depuis Windows (PowerShell)",
+     "code": "scp -o StrictHostKeyChecking=accept-new D:\\Labo-P6\\kali\\setup-kali.sh karim@10.99.0.66:~/\nssh -t karim@10.99.0.66 \"sudo bash ~/setup-kali.sh\""
+    }
+   ],
+   "tester": [
+    {
+     "t": "Hôte Docker",
+     "cmd": "ssh -t karim@10.99.0.20 \"cd ~/p6-etat-a && sudo bash tests.sh\"",
+     "sortie": "… 12 / 12 conformes",
+     "sens": [
+      [
+       "12 / 12",
+       "FA1, FA2 (par NAT), FA3, FA4 passent ; les faiblesses voulues de l'état A existent ; FA5 bloque le reste. Vérifié le 16 et le 17 novembre, aussi après redémarrage"
+      ]
+     ]
+    },
+    {
+     "t": "Collecteur",
+     "cmd": "ssh karim@10.99.0.10 \"chronyc clients; ls /var/log/p6/\"",
+     "sortie": "10.99.0.1 … 10.99.0.20 … 10.99.0.66 …\n10.99.0.1.log",
+     "sens": [
+      [
+       "chronyc clients",
+       "OPNsense, l'hôte Docker et Kali prennent l'heure sur le collecteur"
+      ],
+      [
+       "10.99.0.1.log",
+       "les journaux d'OPNsense (filterlog) arrivent"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Un bloc de commandes collé dans PowerShell « perd » des lignes",
+     "<code>sudo</code> demande le mot de passe et avale la suite",
+     "<code>sudo -v</code> d'abord, puis une seule ligne avec <code>&amp;&amp;</code>."
+    ],
+    [
+     "Sur Kali, chrony ne tourne pas (« 506 Cannot talk to daemon »)",
+     "Kali désactive les services au démarrage",
+     "<code>sudo systemctl enable --now chrony</code> (corrigé dans le script)."
+    ],
+    [
+     "OPNsense a des heures de retard",
+     "VM restée suspendue ; NTP refuse les très gros sauts",
+     "Services › Network Time : serveur 10.99.0.10 seul, puis redémarrer le service."
+    ],
+    [
+     "Tous les flux via le pare-feu échouent d'un coup",
+     "p6-opnsense est resté suspendu ou arrêté",
+     "Le démarrer en premier (panneau ou VMware), attendre 30 s, puis les autres."
+    ]
+   ],
+   "fini": [
+    "4 systèmes installés, adresses MGMT 10.99.0.1 / .10 / .20 / .66 permanentes",
+    "NTP et syslog vers le collecteur vérifiés",
+    "<code>tests.sh</code> = 12/12 sur l'hôte Docker",
+    "Cartes NAT débranchées après les installations"
+   ],
+   "livrer": "Instantanés de départ : <code>03-etat-A-sans-NAT</code> (docker), <code>01-collecteur-pret</code>, <code>01-kali-pret</code>. Message aux rôles 2, 4 et 6 : « état A en service, vos premières étapes sont faites, vérifiez-les »."
+  },
+  {
+   "numero": 5,
+   "titre": "Verrouiller MGMT, prouver le confinement et ouvrir l'accès à l'équipe",
+   "quand": "16–17 nov.",
+   "fait": true,
+   "maj": "<p>Le verrouillage est celui du rapport, adapté : Windows (10.99.0.2) est, avec le collecteur, le seul à pouvoir ouvrir une session SSH sur MGMT. La preuve est un script lancé depuis Kali (19 tests). L'accès à distance de l'équipe remplace l'interface web de Proxmox.</p>",
+   "but": "Kali ne peut rien atteindre hors de ce qui est publié, MGMT ne sert à personne pour contourner le pare-feu, et les 5 autres membres travaillent sur le laboratoire depuis chez eux, sans mot de passe partagé.",
+   "pourquoi": "Section 2.3 : MGMT ne doit pas permettre de joindre une autre machine. Sur un même réseau, OPNsense ne voit pas les échanges directs entre VM : il faut un filtre sur chaque VM (écart E02). ENF1 : confinement prouvé. Accès à distance : sans Proxmox, il fallait un moyen gratuit et sûr d'accéder aux VM (écart E33).",
+   "prereq": {
+    "etapes": [
+     "chef-4"
+    ],
+    "modules": [
+     3,
+     8
+    ]
+   },
+   "schema": "mgmt-bypass",
+   "ui": [
+    {
+     "path": "OPNsense › Firewall › Settings › Advanced (26.7)",
+     "verif": true,
+     "faire": "Cocher « Disable anti-lockout rule » : la règle automatique ouvrait la console web à tout MGMT, donc à Kali. L'accès passe désormais par la seule règle « Admin du pare-feu » (MGMT, source ADMINS = 10.99.0.2 et 10.99.0.10, destination This Firewall, ports 22 et 443, <b>port source any</b>)."
+    },
+    {
+     "path": "OPNsense › Firewall › NAT › Destination NAT",
+     "faire": "FA1 et FA2 : « Firewall rule » = <b>Pass</b> au lieu de « Register rule ». Avec Register rule, la règle créée autorisait « any → 10.20.0.10:80 » : Kali, dont la passerelle est le pare-feu, joignait le serveur directement, sans NAT."
+    },
+    {
+     "path": "Tailscale (hôte Windows)",
+     "faire": "Compte gratuit du rôle 1, machine <code>best-technology</code>, adresse <b>100.125.208.28</b>. Chaque membre crée <b>son</b> compte ; le rôle 1 lui partage uniquement cette machine (⋯ › Share)."
+    },
+    {
+     "path": "Serveur OpenSSH de Windows (script installer-ssh-windows.ps1, en administrateur)",
+     "faire": "Compte <code>p6labo</code> sans droits d'administrateur, connexion <b>par clé uniquement</b>, aucun terminal (<code>PermitTTY no</code>, <code>ForceCommand</code>), tunnels limités par <code>PermitOpen</code>, pare-feu Windows limité aux adresses Tailscale 100.64.0.0/10. Une clé par membre : <code>ajouter-cle.ps1</code>."
+    },
+    {
+     "path": "Panneau de contrôle (D:\\Labo-P6\\panneau)",
+     "faire": "Démarrer, prendre un instantané (rôle « membre ») ; arrêter, redémarrer, suspendre, revenir à un instantané (rôle « admin »). Écoute sur 127.0.0.1:8080 seulement, un compte par membre, chaque action journalisée. État mis à jour toutes les 3 s, mode sombre."
+    },
+    {
+     "path": "VMware › Paramètres de la VM › Options › Connexions VNC",
+     "faire": "Console de chaque VM : ports 5901 (opnsense), 5902 (docker), 5903 (collecteur), 5904 (kali), avec mot de passe, et la ligne <code>RemoteDisplay.vnc.ip = \"127.0.0.1\"</code> dans chaque .vmx : la console n'est joignable que par le tunnel."
+    }
+   ],
+   "config": [
+    {
+     "t": "Filtre SSH sur p6-docker, p6-collecteur et p6-kali (écrit par restreindre-ssh.sh ; commentaires ajoutés ici)",
+     "file": "/etc/p6-ssh-filtre.nft",
+     "code": "# Table séparée : ne touche pas aux règles de Docker (jamais de « flush ruleset » sur l'hôte Docker)\ntable inet p6_ssh\ndelete table inet p6_ssh\ntable inet p6_ssh {\n    chain entree {\n        type filter hook input priority -10; policy accept;\n        iifname \"lo\" accept\n        tcp dport 22 ip saddr { 10.99.0.2, 10.99.0.10 } accept   # Windows et collecteur seulement\n        tcp dport 22 counter log prefix \"p6-ssh-refuse \" drop    # tout autre essai est noté puis jeté\n    }\n}",
+     "note": "Rechargée à chaque démarrage par <code>p6-ssh-filtre.service</code>, avant le démarrage de SSH. Lancement : <code>sudo bash restreindre-ssh.sh</code> sur chacune des 3 VM."
+    },
+    {
+     "t": "Tunnel d'un membre (PowerShell, sur son propre PC)",
+     "code": "ssh -i $HOME\\.ssh\\p6labo -N -L 8443:10.99.0.1:443 -L 8080:127.0.0.1:8080 -L 5901:127.0.0.1:5901 -L 5902:127.0.0.1:5902 -L 5903:127.0.0.1:5903 -L 5904:127.0.0.1:5904 p6labo@100.125.208.28\n# puis : https://127.0.0.1:8443 (OPNsense) · http://127.0.0.1:8080 (panneau) · TightVNC Viewer 127.0.0.1::5901 à ::5904"
+    }
+   ],
+   "tester": [
+    {
+     "t": "Depuis Kali (lecture seule, 19 tests)",
+     "cmd": "ssh -t karim@10.99.0.66 \"sudo bash ~/tests-cloisonnement.sh\"",
+     "sortie": "… box 192.168.1.1, 8.8.8.8, Internet : bloqués\n… Windows ping / 445 / 3389 : bloqués\n… console OPNsense, SSH docker et collecteur : bloqués\n… FA1, FA2 par 203.0.113.1 : passent ; FA5, FA6 : bloqués\n19 / 19 conformes",
+     "sens": [
+      [
+       "19 / 19",
+       "premier passage 15/19 : quatre trous bouchés (anti-lockout, SSH sur 2 VM, NAT en Register rule). Revérifié le 17 novembre après l'ajout des consoles VNC"
+      ]
+     ]
+    },
+    {
+     "t": "Windows : les consoles VNC n'écoutent que sur la machine elle-même",
+     "cmd": "Get-NetTCPConnection -LocalPort 5901,5902,5903,5904 -State Listen | Select-Object LocalAddress,LocalPort",
+     "sortie": "127.0.0.1  5901\n127.0.0.1  5902\n127.0.0.1  5903\n127.0.0.1  5904",
+     "sens": [
+      [
+       "127.0.0.1",
+       "personne sur le réseau ne voit ces ports ; seul un tunnel SSH autorisé y mène"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Après avoir désactivé l'anti-lockout, Windows n'ouvre plus la console d'OPNsense",
+     "Règle « Admin du pare-feu » avec un port source ≠ any : elle ne correspondait jamais",
+     "Console OPNsense › 8 Shell › <code>pfctl -d</code>, corriger (port source any), Apply, <code>pfctl -e</code>. Toujours tester avec une connexion neuve."
+    ],
+    [
+     "Le tunnel s'ouvre mais la page affiche ERR_CONNECTION_CLOSED",
+     "Windows lui-même ne joint pas la cible",
+     "Tester chaque morceau : <code>Test-NetConnection 10.99.0.1 -Port 443</code> sur l'hôte."
+    ],
+    [
+     "« Arrêter » dans le panneau ne fait rien sur p6-opnsense",
+     "Pas de VMware Tools dans OPNsense",
+     "L'éteindre par sa console (option 5, puis y) ou Power › Power Off dans l'interface web."
+    ],
+    [
+     "TightVNC avertit « connexion non chiffrée »",
+     "Normal : VNC parle à 127.0.0.1",
+     "Le flux passe dans le tunnel SSH, qui est chiffré : « Connect without encryption »."
+    ]
+   ],
+   "fini": [
+    "<code>tests-cloisonnement.sh</code> = 19/19 depuis Kali",
+    "Filtre <code>p6_ssh</code> actif sur les 3 VM, anti-lockout désactivée, règle admin corrigée",
+    "Tunnel testé depuis un autre PC : OPNsense, panneau et consoles VNC",
+    "Instantanés <code>07-vnc</code> (OPNsense) et <code>vnc-pret</code> (3 autres)"
+   ],
+   "livrer": "Sorties des tests copiées dans <code>docs/preuve-confinement.txt</code> (citées dans le rapport final, écart E02). Message à l'équipe (PDF de 2 pages du 17 novembre, qui remplace celui du 16) : créer son compte Tailscale, générer sa clé <code>p6labo</code>, envoyer la ligne <code>.pub</code>."
+  },
+  {
+   "numero": 6,
+   "titre": "Créer le dépôt Git et ses conventions",
+   "quand": "15–16 nov.",
+   "maj": "<p>Les VM n'ont pas Internet : le paquet du dépôt (<code>git bundle</code>) se copie <b>depuis Windows</b> avec <code>scp</code> (SSH n'est accepté que depuis Windows 10.99.0.2 et le collecteur 10.99.0.10). Les comptes des VM sont <code>karim</code> avec <code>sudo</code>, pas <code>root</code> : les commandes ci-dessous utilisent donc <code>karim@</code>, et le dépôt est rangé dans <code>/opt/projet6</code> (chemin attendu par les scripts des autres rôles), appartenant à <code>karim</code>. Les scripts déjà livrés (<code>p6-etat-a</code>, <code>setup-*.sh</code>, tests) sont dans <code>D:\\Labo-P6</code> : à commiter en premier.</p>",
+   "but": "Un dépôt unique, structuré, où chaque rôle commite ses fichiers et où chaque état est marqué par un tag.",
+   "pourquoi": "Section 6 : chaque état est figé par un snapshot et un tag Git (etat-A, etat-B) contenant config.xml, docker-compose.yml, flows.csv et les règles Suricata. ENF2 : reproductibilité.",
+   "prereq": {
+    "etapes": [
+     "chef-4"
+    ],
+    "modules": [
+     11
+    ]
+   },
+   "config": [
+    {
+     "t": "Arborescence et premier commit (sur le PC d'un membre)",
+     "code": "git init projet6 && cd projet6\nmkdir -p conception/uml docs plateforme/nftables opnsense politique services/{nginx,api,bind9,postgres} \\\n         ids sonde campagne capture analyse resultats/{A,B,synthese} rapport\ncp ../conception/uml/*.puml conception/uml/\ncat > .gitignore <<'EOF'\n# captures trop lourdes : archivées à part (zip daté) ; pas de commentaire en fin de ligne dans .gitignore\nresultats/**/pcap/\n*.pyc\n__pycache__/\n.env\nEOF\ncat > README.md <<'EOF'\nProjet 6 — Zero Trust. Une branche par rôle (role-1 … role-6), fusion dans main après relecture.\nTags : etat-A, etat-B (configurations figées), campagne-A, campagne-B (résultats archivés).\nEOF\ngit add . && git commit -m \"Structure du dépôt\""
+    },
+    {
+     "t": "Conventions",
+     "code": "# Branches : role-1-plateforme, role-2-parefeu, role-3-ids, role-4-services, role-5-attaques, role-6-analyse\n# Message de commit : « [rôle N] verbe + objet », ex. « [rôle 2] Ajoute F04 à flows.csv »\n# Fusion dans main : par le rôle 1, après un test (test_flux ou exécution à blanc)\n# Jamais de mot de passe en clair : .env non versionné, modèle .env.exemple versionné"
+    },
+    {
+     "t": "Synchroniser les VM sans accès réseau (écart E26)",
+     "code": "# Sur le PC : paquet autonome du dépôt\ngit bundle create projet6.bundle --all\n# Le copier depuis Windows sur le collecteur ET sur l'hôte Docker (SSH n'accepte que Windows et le collecteur) :\nscp projet6.bundle karim@10.99.0.10:~/\nscp projet6.bundle karim@10.99.0.20:~/\n# Puis, sur chaque VM (git absent ? rebrancher la carte NAT le temps de « sudo apt install git ») :\nsudo install -d -o karim -g karim /opt/projet6 && git clone ~/projet6.bundle /opt/projet6   # première fois\ncd /opt/projet6 && git pull ~/projet6.bundle main                                              # les fois suivantes"
+    }
+   ],
+   "tester": [
+    {
+     "cmd": "git log --oneline | head -3\ngit ls-files | head",
+     "sortie": "a1b2c3d Structure du dépôt\n.gitignore\nREADME.md\nconception/uml/01_topologie_etat_A.puml\n…",
+     "sens": [
+      [
+       "conception/uml/…",
+       "les diagrammes de référence sont versionnés"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Un PCAP de 500 Mo bloque le push",
+     "<code>git status</code>",
+     "Le retirer (<code>git rm --cached</code>), vérifier le .gitignore, archiver les PCAP en zip daté."
+    ],
+    [
+     "Deux rôles modifient flows.csv en même temps",
+     "Conflit de fusion",
+     "flows.csv appartient au rôle 2 : les autres proposent par message, le rôle 2 commite."
+    ]
+   ],
+   "fini": [
+    "Dépôt créé, 6 membres ont accès",
+    "Arborescence et conventions commitées",
+    "/opt/projet6 présent sur le collecteur ET sur l'hôte Docker, synchronisation testée une fois"
+   ],
+   "livrer": "Message à tous : adresse du dépôt, branches, conventions. Chaque rôle crée sa branche."
+  },
+  {
+   "numero": 7,
+   "titre": "Figer un état : snapshots et tags",
+   "quand": "21 et 26 nov.",
+   "but": "Les états A et B reconstructibles à l'identique : snapshot des 4 VM et tag Git portant sur le même contenu.",
+   "pourquoi": "Section 6 et 10.3 (étape 1 : « restaurer le snapshot de l'état testé »). Risque « démonstration qui échoue » (section 11.2) : les snapshots A et B sont la parade.",
+   "prereq": {
+    "etapes": [
+     "parefeu-7",
+     "attaques-5",
+     "parefeu-9",
+     "ids-6",
+     "attaques-6"
+    ],
+    "texte": "etat-A : après test_flux 100 % (2.7) et la campagne A (5.5). etat-B : après test_flux B (2.9), passage en IPS (3.6) et la campagne B (5.6).",
+    "modules": [
+     11
+    ]
+   },
+   "schema": "snapshot-cycle",
+   "config": [
+    {
+     "t": "Figer l'état A (PowerShell, sur l'hôte Windows)",
+     "code": "# VMware enregistre disques + RAM : chaque VM reprend exactement où elle était (utile pour la démo)\n$vr = 'C:\\Program Files\\VMware\\VMware Workstation\\vmrun.exe'\nforeach ($v in 'p6-opnsense','p6-docker','p6-collecteur','p6-kali') {\n  & $vr -T ws snapshot \"D:\\Labo-P6\\vm\\$v\\$v.vmx\" etat-A\n}\n& $vr -T ws listSnapshots D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx\n# Compter quelques minutes : la RAM des 4 VM (≈ 8 Go) est écrite sur D:.\n# Panneau : « Prendre un instantané » sur chaque VM (le nom reçoit le préfixe de l'utilisateur et la date)."
+    },
+    {
+     "t": "Marquer le dépôt (PC)",
+     "code": "# Le rôle 2 a commité opnsense/config-etat-A.xml, le rôle 4 services/, le rôle 3 ids/\ngit checkout main && git pull\nCAMP=resultats/A/2026-11-20        # dossier de la campagne A (rôle 5)\necho \"commit $(git rev-parse --short HEAD) · $(date -u +%FT%TZ)\" > $CAMP/VERSION.txt\ngit add -A && git commit -m \"[rôle 1] Fige l'état A\"\ngit tag -a etat-A -m \"État A : FA1–FA6, VLAN 10/20, test_flux 100 %\""
+    },
+    {
+     "t": "Revenir à un état (PowerShell, ou « Revenir » dans le panneau, rôle admin)",
+     "code": "foreach ($v in 'p6-opnsense','p6-collecteur','p6-docker','p6-kali') {\n  & $vr -T ws revertToSnapshot \"D:\\Labo-P6\\vm\\$v\\$v.vmx\" etat-A\n}\n# Une VM figée en marche revient suspendue : la redémarrer (« Démarrer » dans le panneau), OPNsense en premier.\n# ATTENTION : tout ce qui n'a pas été figé depuis le dernier instantané est perdu."
+    }
+   ],
+   "tester": [
+    {
+     "cmd": "& $vr -T ws listSnapshots D:\\Labo-P6\\vm\\p6-opnsense\\p6-opnsense.vmx\ngit tag -n",
+     "sortie": "Total snapshots: 9\n01-opnsense-base\n…\n07-vnc\netat-A\netat-B\netat-A  État A : FA1–FA6, VLAN 10/20, test_flux 100 %\netat-B  État B : F01–F99, Suricata IPS, test_flux 100 %",
+     "sens": [
+      [
+       "arbre etat-A → etat-B",
+       "etat-B est enfant de etat-A : on peut revenir à l'un ou à l'autre"
+      ],
+      [
+       "git tag -n",
+       "chaque snapshot a son tag, avec le même contenu"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "L'instantané dure plusieurs minutes et la VM semble figée",
+     "VMware écrit la RAM de la VM sur le disque",
+     "Attendre, ne pas interrompre (pas de Ctrl+C) : interrompre peut abîmer la VM. Vérifier l'activité du disque D: dans le Gestionnaire des tâches."
+    ],
+    [
+     "Après rollback, OPNsense a une heure fausse",
+     "Snapshot avec RAM restauré des jours plus tard",
+     "Laisser NTP resynchroniser ; contrôler avec le rôle 6 avant toute mesure."
+    ],
+    [
+     "Snapshot et tag ne correspondent pas",
+     "VERSION.txt absent",
+     "Toujours figer les deux dans la même demi-heure, et noter le commit dans la description du snapshot."
+    ]
+   ],
+   "fini": [
+    "etat-A : 4 snapshots + tag + VERSION.txt",
+    "etat-B : idem",
+    "Une restauration complète de etat-A a été chronométrée (durée notée pour la démo)"
+   ],
+   "livrer": "Message à tous : « etat-A figé (commit …) ». Données de campagne archivées par le rôle 5 sous <code>resultats/A/&lt;date&gt;/</code>, tag <code>campagne-A</code>."
+  },
+  {
+   "numero": 8,
+   "titre": "Intégrer le travail des rôles aux jalons",
+   "quand": "16–26 nov.",
+   "but": "Chaque jalon de la section 12 est vérifié par un test de bout en bout, pas seulement annoncé.",
+   "pourquoi": "Section 12 : dates fixes ; en cas de retard, on réduit le périmètre (N, scénarios), jamais la comparaison A/B. Vous êtes le garant des interfaces entre rôles.",
+   "prereq": {
+    "texte": "Matrice des interfaces de l'accueil.",
+    "modules": [
+     0,
+     11
+    ]
+   },
+   "config": [
+    {
+     "t": "Contrôle de bout en bout (depuis le collecteur), à chaque jalon",
+     "code": "# 19 nov. : socle A\ncd /opt/projet6\npython3 politique/c2.py --etat A && scp politique/tests.csv politique/hosts.csv root@10.99.0.20:/opt/projet6/politique/\nssh root@10.99.0.20 'cd /opt/projet6 && ./politique/test_flux.sh politique/tests.csv politique/hosts.csv'   # rôle 2 : 0 écart\npython3 campagne/orchestrateur.py --etat A --scenario S-01 --n 1 --dossier resultats/A/essai              # rôle 5\npython3 analyse/parse.py --dossier resultats/A/essai                                                      # rôle 6\nls resultats/A/essai/runs.csv resultats/A/essai/events.csv\n# 24 nov. : état B — mêmes commandes avec --etat B, plus :\npython3 analyse/fp.py resultats/B/reglage/events.csv --duree-h 2                     # rôles 3 et 6 : ≤ 1 FP/h"
+    },
+    {
+     "t": "Point quotidien (15 min)",
+     "code": "Chaque rôle : fait hier · prévu aujourd'hui · bloqué par qui ?\nLe rôle 1 met à jour l'état des jalons et décide d'une réduction de périmètre si un jalon glisse :\n  1) N = 5 au lieu de 10 (section 11.2)   2) retirer S-06   3) jamais supprimer l'état A ou l'état B"
+    }
+   ],
+   "tester": [
+    {
+     "cmd": "(lecture du tableau des jalons)",
+     "sortie": "19 nov. ✔ test_flux A 100 % · ✔ runs.csv + events.csv pour S-01\n21 nov. ✔ resultats/A/2026-11-20 archivés · ✔ tag etat-A",
+     "sens": [
+      [
+       "✔",
+       "jalon vérifié par une commande, pas seulement déclaré"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Le rôle 5 attend les services",
+     "Tâche t42 en retard sur le Gantt",
+     "Aider le rôle 4 (le rôle 3, qui n'a que la sonde à écrire du 16 au 19, a de la marge) ; décaler l'essai, pas la campagne."
+    ],
+    [
+     "Un fichier ne respecte pas son contrat",
+     "Colonnes différentes de la page Contrats",
+     "Refuser la fusion ; le producteur corrige."
+    ]
+   ],
+   "fini": [
+    "Chaque jalon de la section 12 a sa trace de vérification",
+    "Aucun contrat de données modifié sans accord"
+   ],
+   "livrer": "Journal des jalons dans <code>docs/jalons.md</code>, partagé avec le groupe chaque soir."
+  },
+  {
+   "numero": 9,
+   "titre": "Assembler le rapport final et préparer la démonstration",
+   "quand": "27–30 nov.",
+   "but": "Un rapport final relu qui confirme ou infirme chaque hypothèse avec les mesures, et une démonstration de 10 minutes qui ne peut pas échouer.",
+   "pourquoi": "Section 12 : rapport + configurations + scripts + résultats le 30 novembre. Section 11.2 : snapshots A et B et vidéo de secours.",
+   "prereq": {
+    "etapes": [
+     "analyse-6"
+    ],
+    "texte": "Chaque rôle livre <code>rapport/&lt;role&gt;.md</code> le 28.",
+    "modules": [
+     12
+    ]
+   },
+   "schema": "snapshot-cycle",
+   "config": [
+    {
+     "t": "Plan du rapport final",
+     "code": "1. Résumé (résultats chiffrés A vs B)\n2. Rappel de la conception et écarts appliqués (ECARTS.md)\n3. Réalisation : plateforme (rôle 1), pare-feu (2), services (4), IDS/IPS (3)\n4. Protocole et campagnes (rôle 5)\n5. Résultats et analyse (rôle 6) : chaque hypothèse « attendu » confirmée ou infirmée\n6. Limites, risques réalisés, pistes\nAnnexes : preuve de confinement, test_flux A et B, jeu de règles (hash), captures commentées"
+    },
+    {
+     "t": "Démonstration (10 min, deux états)",
+     "code": "Avant la séance : VM en etat-B démarrées ; vidéo de S-05 en état A prête (enregistrée le 26).\n1. Carte de l'architecture (guide, accueil)                                  1 min\n2. Vidéo : S-05 en état A — psql réussit, filterlog vide, PCAP du conteneur   2 min\n3. Direct : S-05 en état B — délai dépassé, filterlog F99, alerte sid 9000020 2 min\n4. Direct : S-01 en état B — alerte puis blocage temporaire                   2 min\n5. Tableaux et graphiques A vs B ; une limite assumée                        3 min\nSecours : vidéo complète des deux états, enregistrée le 29."
+    }
+   ],
+   "tester": [
+    {
+     "cmd": "(répétition générale chronométrée le 29)",
+     "sortie": "Durée : 9 min 40 · aucune commande tapée à la main · vidéo de secours testée sur le vidéoprojecteur",
+     "sens": [
+      [
+       "aucune commande tapée",
+       "les commandes de la démo sont dans des scripts : pas de faute de frappe en direct"
+      ]
+     ]
+    }
+   ],
+   "pannes": [
+    [
+     "Une VM ne démarre pas pendant la démo",
+     "—",
+     "Passer immédiatement à la vidéo de secours, ne pas dépanner en direct."
+    ],
+    [
+     "Les chiffres du rapport ne correspondent pas aux graphiques",
+     "Graphiques régénérés après correction",
+     "Tout produire depuis resultats/synthese/ (rôle 6), jamais à la main."
+    ]
+   ],
+   "fini": [
+    "Rapport relu par au moins deux membres",
+    "Chaque « attendu » de la section 10.1 a son verdict mesuré",
+    "Démo répétée deux fois, vidéo de secours testée",
+    "Tag final <code>remise</code> poussé"
+   ],
+   "livrer": "Dépôt final (tag <code>remise</code>) : rapport, configurations, scripts, résultats. Envoi selon les consignes du sujet le 30 novembre."
+  }
+ ]
+}

@@ -1,0 +1,2137 @@
+{
+  "version": 1,
+  "source": "sources/guide/data (rôle ids)",
+  "role": {
+    "numero": 3,
+    "cle": "ids",
+    "titre": "IDS/IPS et trafic légitime",
+    "courtNom": "IDS/IPS",
+    "couleur": "--r3",
+    "mission": "Valider netmap sur les cartes VMware d'OPNsense (em), mettre Suricata en ligne sur em0 (WAN) et le trunk (em1), écrire les règles locales, produire le trafic légitime et la sonde SLA qui mesurent faux positifs et disponibilité, puis passer en IPS et préparer la panne P-01.",
+    "introduction": "**Votre premier livrable est une décision** : netmap fonctionne-t-il sur les cartes réseau d'OPNsense sous VMware (pilote `em`) ? Le rapport l'a marquée « à valider au J1 » (section 5.3), avec deux replis : le mode Divert (proposé par OPNsense 26.7) ou l'IDS seul avec blocage par pf. Tout le reste en dépend.\n\nVous portez aussi C8, la sonde de trafic légitime : c'est elle qui mesure les faux positifs et la disponibilité dont vous avez besoin pour régler l'IPS.\n\n**Mise à jour du 17 novembre.** La plateforme est VMware, pas Proxmox : les cartes d'OPNsense sont `em0` (WAN, 203.0.113.1), `em1` (trunk, parent de `vlan01` LAN et `vlan02` DMZ), `em2` (MGMT). Les déchargements CRC, TSO, LRO et VLAN Hardware Filtering sont déjà désactivés. Le test J1 porte donc sur netmap avec `em`. Avant d'activer l'IPS, demande au rôle 1 un instantané d'OPNsense (référence actuelle : `07-vnc`) ; si l'interface web devient injoignable, la console VNC (`127.0.0.1::5901`) reste disponible.\n\n**Comptes et SSH réels.** Les VM Debian et Kali ont l'utilisateur `karim` avec `sudo`, pas de connexion `root`. SSH n'est accepté sur les VM que depuis Windows (10.99.0.2) et le collecteur (10.99.0.10) ; le SSH d'OPNsense est désactivé. Avant que l'orchestrateur tourne depuis le collecteur, le rôle 1 doit : installer la clé du collecteur sur p6-docker et p6-kali (pour `root`, ou pour `karim` avec un `sudo` sans mot de passe limité aux commandes utiles), et réactiver le SSH d'OPNsense sur MGMT, par clé seulement (la règle « Admin du pare-feu » autorise déjà le port 22 depuis 10.99.0.10).",
+    "demonstration": "Ce que vous montrez en 2 minutes : Suricata est en ligne avant pf, et il bloque sans gêner les vrais clients.\n1. Le schéma netmap : où Suricata prend le paquet.\n2. Un scan S-01 depuis Kali : alerte 9000001, puis alerte 9000002 « blocked » dans EVE et compteur de rejet en hausse dans stats.log ; aucune ligne filterlog pour les paquets rejetés.\n3. fp_par_sid.csv : ≤ 1 FP/h pour les familles en drop.\n4. La disponibilité de la sonde pendant ce temps (≥ 99 %).\nPlan de secours : extraits d'EVE et de sla.csv dans le rapport.",
+    "etapes": [
+      {
+        "numero": 0,
+        "code": "r3-e0",
+        "titre": "Préparer et tester ses règles sur son PC (avant l'hôte)",
+        "quand": "13–21 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Le fichier `ids/local.rules` de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+        "pourquoi": "Les étapes 4 et 5 ont lieu sur l'hôte, pendant des séances partagées. En arrivant avec des règles déjà validées, on n'y perd pas de temps sur la syntaxe (document « Travail en parallèle », rôle 3). Suricata analyse un fichier de capture (option `-r`) avec le même moteur que le trafic en direct : seule la partie netmap/IPS reste à tester sur l'hôte.",
+        "prerequis": "Étapes : \nModules du cours : 7, 9\nAucune étape d'un autre rôle : tout se fait sur son PC, sous WSL2 + Ubuntu (ou une VM Linux). Optionnel : une capture de trafic légitime fournie par le rôle 4.",
+        "livrable": "Dans le dépôt Git, dossier `ids/` : `local.rules` testé, `tester.sh`, captures de moins de 50 Mo, et `docs/tests-regles.md` (sortie de `tester.sh` commentée). Message au rôle 5 avec les commandes d'attaque utilisées, pour aligner `scenarios.yaml`.",
+        "schema": "seuil-sim",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c01",
+            "ordre": 1,
+            "ou": "hote",
+            "shell": "WindowsGui",
+            "bloc": "Windows › PowerShell (administrateur)",
+            "texte": "Windows › PowerShell (administrateur)",
+            "explication": "`wsl -l -v` doit afficher Ubuntu en VERSION 2. Sinon : `wsl --install -d Ubuntu`, puis redémarrer. Dans le terminal Ubuntu, coller avec un clic droit (ou Ctrl+Shift+V).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "powershell (administrateur)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c02",
+            "ordre": 2,
+            "ou": "pc-membre",
+            "shell": "Document",
+            "bloc": "Mini-laboratoire Docker",
+            "texte": "Mini-laboratoire Docker",
+            "explication": "Quatre conteneurs sur trois réseaux **isolés** (`internal: true`, aucun accès à Internet), avec les **mêmes adresses que le vrai laboratoire** : les règles de l'étape 4 s'appliquent donc sans aucune modification. L'attaquant a une patte dans chaque réseau : 203.0.113.66 (Kali), 10.20.0.80 (DMZ) et 10.10.0.12 (client-03).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "mini-laboratoire docker",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c03",
+            "ordre": 3,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "sudo apt update && sudo apt upgrade -y",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Met à jour la liste des paquets (carte NAT branchée le temps du téléchargement). · Met à jour la liste des paquets (carte NAT branchée le temps du téléchargement).",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c04",
+            "ordre": 4,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "sudo add-apt-repository -y ppa:oisf/suricata-stable",
+            "explication": "Commande du guide, tapée sur la machine indiquée.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c05",
+            "ordre": 5,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "sudo apt update",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Met à jour la liste des paquets (carte NAT branchée le temps du téléchargement).",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c06",
+            "ordre": 6,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "sudo apt install -y suricata jq tcpdump nmap docker.io docker-compose-v2",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Installe : suricata, jq, tcpdump, nmap, docker.io, docker-compose-v2",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c07",
+            "ordre": 7,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "sudo usermod -aG docker $USER",
+            "explication": "Puis fermer et rouvrir le terminal Ubuntu",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c08",
+            "ordre": 8,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "suricata -V",
+            "explication": "Noter la version (8.0.x) pour le rapport",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c09",
+            "ordre": 9,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "1. Installer les outils (terminal Ubuntu)",
+            "texte": "docker run --rm hello-world",
+            "explication": "Démarre un conteneur temporaire pour faire un test, puis le supprime (--rm).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c10",
+            "ordre": 10,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "2. Arborescence",
+            "texte": "mkdir -p ~/projet6/ids/{labo,rules,pcap,out} && cd ~/projet6/ids",
+            "explication": "Crée un dossier.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre : ~/projet6/ids/{labo,rules,pcap,out}",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c11",
+            "ordre": 11,
+            "ou": "pc-membre",
+            "shell": "Editeur",
+            "bloc": "labo/Dockerfile",
+            "texte": "FROM debian:stable-slim\nRUN apt-get update && apt-get install -y --no-install-recommends nmap hping3 curl iproute2 \\\n    && rm -rf /var/lib/apt/lists/*\nCMD [\"sleep\", \"infinity\"]",
+            "explication": "Contenu du fichier labo/Dockerfile.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "labo/Dockerfile",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c12",
+            "ordre": 12,
+            "ou": "pc-membre",
+            "shell": "Editeur",
+            "bloc": "labo/docker-compose.yml",
+            "texte": "# Mêmes adresses que le rapport. La passerelle Docker est déplacée en fin de plage (.254 / .94)\n# pour libérer 203.0.113.1, l'adresse publique visée par les règles S-01, S-02 et S-06.\nservices:\n  web:                                   # joue l'adresse publique d'OPNsense (em0)\n    image: nginx:alpine\n    networks: { wan: { ipv4_address: 203.0.113.1 } }\n  api:                                   # API Flask (DMZ-APP), simulée par un serveur HTTP\n    image: python:3.12-alpine\n    command: python -m http.server 5000\n    networks: { dmz: { ipv4_address: 10.20.0.70 } }\n  db:                                    # PostgreSQL (LAN-DB), simulé : seul le port 5432 compte\n    image: python:3.12-alpine\n    command: python -m http.server 5432\n    networks: { lan: { ipv4_address: 10.10.0.70 } }\n  attaquant:\n    build: .\n    networks:\n      wan: { ipv4_address: 203.0.113.66 }   # Kali\n      dmz: { ipv4_address: 10.20.0.80 }     # position DMZ\n      lan: { ipv4_address: 10.10.0.12 }     # client-03\nnetworks:\n  wan:\n    internal: true\n    driver_opts: { com.docker.network.bridge.name: br-wan }\n    ipam: { config: [ { subnet: 203.0.113.0/24, gateway: 203.0.113.254 } ] }\n  dmz:\n    internal: true\n    driver_opts: { com.docker.network.bridge.name: br-dmz }\n    ipam: { config: [ { subnet: 10.20.0.64/27, gateway: 10.20.0.94 } ] }\n  lan:\n    internal: true\n    driver_opts: { com.docker.network.bridge.name: br-lan }\n    ipam: { config: [ { subnet: 10.10.0.0/24, gateway: 10.10.0.254 } ] }",
+            "explication": "Contenu du fichier labo/docker-compose.yml.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "labo/docker-compose.yml",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c13",
+            "ordre": 13,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "texte": "cd labo && docker compose up -d --build && cd ..",
+            "explication": "Se place dans un dossier.\nLancer : `cd labo && docker compose up -d --build && cd ..` puis `docker ps` (4 conteneurs).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : nginx : 10.20.0.10 sur p6_dmz · iperf3 : 10.20.0.10 sur p6_dmz · dmz-pivot : 10.20.0.20 sur p6_dmz · bind9 : 10.20.0.40 sur p6_dmz · api : 10.20.0.70 sur p6_dmz · client-01 : 10.10.0.10 sur p6_lan · client-03 : 10.10.0.12 sur p6_lan · postgres : 10.10.0.70 sur p6_lan · admin : 10.10.0.100 sur p6_lan · client-ext : 203.0.113.10 sur p6_wan",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c14",
+            "ordre": 14,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "texte": "docker ps",
+            "explication": "Pilote Docker : construire, démarrer, inspecter ou entrer dans un conteneur.\nLancer : `cd labo && docker compose up -d --build && cd ..` puis `docker ps` (4 conteneurs).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : docker ps",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c15",
+            "ordre": 15,
+            "ou": "pc-membre",
+            "shell": "Editeur",
+            "bloc": "rules/local.rules",
+            "texte": "# Copier ici, sans rien changer, le bloc « ids/local.rules » de l'étape 4 (bouton Copier).\nnano rules/local.rules\nsuricata -T -S rules/local.rules -l /tmp     # -T : vérifie la syntaxe sans rien analyser",
+            "explication": "Contenu du fichier rules/local.rules.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "rules/local.rules",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c16",
+            "ordre": 16,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "cd ~/projet6/ids && sudo tcpdump -i br-wan -w pcap/s01.pcap",
+            "explication": "Terminal 1 : capture sur le pont du réseau visé (WAN pour S-01, S-02, S-06 ; DMZ pour S-03 ; LAN pour S-05) Ctrl+C quand l'attaque est finie",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Capture des paquets sur br-wan",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c17",
+            "ordre": 17,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "cd ~/projet6/ids/labo",
+            "explication": "Terminal 2 : lancer l'attaque depuis le conteneur attaquant",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Préparation (dossier, variable) : rien ne change sur le réseau.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c18",
+            "ordre": 18,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "docker compose exec attaquant nmap -sS -Pn -p 1-1024 203.0.113.1",
+            "explication": "S01.pcap  (br-wan)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre → opnsense (203.0.113.1) · Tcp",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c19",
+            "ordre": 19,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "docker compose exec attaquant timeout 3 hping3 -S --flood -p 443 203.0.113.1",
+            "explication": "S02.pcap  (br-wan)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre → opnsense (203.0.113.1) · Tcp",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c20",
+            "ordre": 20,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "docker compose exec attaquant curl -s \"http://10.20.0.70:5000/api/produit?id=1'%20OR%20'1'='1\"",
+            "explication": "S03.pcap (br-dmz)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre → api (10.20.0.70) · Http 5000",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c21",
+            "ordre": 21,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "docker compose exec attaquant nmap -sS -Pn -p 5432 10.10.0.70",
+            "explication": "S05.pcap  (br-lan)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre → postgres (10.10.0.70) · Tcp",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c22",
+            "ordre": 22,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "docker compose exec attaquant nmap -f -sS -Pn -p 443 203.0.113.1",
+            "explication": "S06.pcap  (br-wan)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre → opnsense (203.0.113.1) · Tcp",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c23",
+            "ordre": 23,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "5. Capturer chaque scénario (deux terminaux)",
+            "texte": "docker compose exec attaquant sh -c 'for i in $(seq 120); do curl -s -o /dev/null http://203.0.113.1/; sleep 1; done'",
+            "explication": "Trafic légitime (2 min, br-wan) : 1 requête web par seconde, comme la sonde C8 legitime.pcap",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Commande tapée sur cette machine. · Commande tapée sur cette machine. · Commande tapée sur cette machine.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c24",
+            "ordre": 24,
+            "ou": "pc-membre",
+            "shell": "Editeur",
+            "bloc": "tester.sh",
+            "texte": "#!/usr/bin/env bash\n# Rejoue chaque capture dans Suricata et compare les sid obtenus aux sid attendus.\ncd ~/projet6/ids\ndeclare -A ATTENDU=([s01]=\"9000001 9000002\" [s02]=\"9000003 9000004\" [s03]=\"9000010\" [s05]=\"9000020\" [s06]=\"9000030\" [legitime]=\"\")\nfor cap in s01 s02 s03 s05 s06 legitime; do\n  [ -f pcap/${cap}.pcap ] || { echo \"${cap} : capture absente\"; continue; }\n  rm -rf out/${cap} && mkdir -p out/${cap}\n  suricata -r pcap/${cap}.pcap -S rules/local.rules -k none -l out/${cap} \\\n    --set vars.address-groups.HOME_NET=\"[10.0.0.0/8,203.0.113.1/32]\" > /dev/null 2>&1\n  obtenu=$(jq -r 'select(.event_type==\"alert\") | .alert.signature_id' out/${cap}/eve.json 2>/dev/null | sort -u | xargs)\n  [ \"${obtenu}\" = \"${ATTENDU[${cap}]}\" ] && etat=\"OK\" || etat=\"ÉCART\"\n  printf '%-9s attendu [%s]  obtenu [%s]  %s\\n' \"${cap}\" \"${ATTENDU[${cap}]}\" \"${obtenu}\" \"${etat}\"\ndone",
+            "explication": "Contenu du fichier tester.sh.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "pc-membre",
+                "chemin": "tester.sh",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c25",
+            "ordre": 25,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "6. Script de vérification",
+            "texte": "chmod +x tester.sh && ./tester.sh",
+            "explication": "Change les droits d'un fichier.\nRendre exécutable puis lancer : `chmod +x tester.sh && ./tester.sh`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre : tester.sh · Lance le script tester.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c26",
+            "ordre": 26,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "texte": "./tester.sh",
+            "explication": "Lance un script shell du projet.\nDans la sortie, « OK » : la capture déclenche exactement les règles prévues pour ce scénario\nDans la sortie, « s06 ÉCART » : exemple réaliste : la règle de fragments est marquée « À VALIDER EN LABORATOIRE » ; noter le résultat, essayer une variante, ou la signaler comme limite\nDans la sortie, « legitime OK » : aucune alerte sur du trafic normal : premier indice de zéro faux positif (la vraie mesure de 2 h se fait à l'étape 6)",
+            "sortie": "s01       attendu [9000001 9000002]  obtenu [9000001 9000002]  OK\ns02       attendu [9000003 9000004]  obtenu [9000003 9000004]  OK\ns03       attendu [9000010]  obtenu [9000010]  OK\ns05       attendu [9000020]  obtenu [9000020]  OK\ns06       attendu [9000030]  obtenu []  ÉCART\nlegitime  attendu []  obtenu []  OK",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : Lance le script tester.sh.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e0-c27",
+            "ordre": 27,
+            "ou": "pc-membre",
+            "shell": "Bash",
+            "bloc": "Lire une alerte en détail",
+            "texte": "jq -c 'select(.event_type==\"alert\") | [.timestamp, .src_ip, .dest_ip, .dest_port, .alert.signature_id, .alert.signature]' out/s01/eve.json | head -3",
+            "explication": "Extrait des champs d'un fichier JSON (ici, les alertes de Suricata).\nTest : Lire une alerte en détail.\nDans la sortie, « src_ip » : l'attaquant (Kali) : c'est la source suivie par track by_src\nDans la sortie, « dest_port » : le port sondé au moment où le seuil de 20 SYN est franchi\nDans la sortie, « signature_id » : le sid de la règle : c'est lui que C11 compte pour le taux de détection",
+            "sortie": "[\"2026-11-14T10:02:11.481+0000\",\"203.0.113.66\",\"203.0.113.1\",113,9000001,\"LOCAL S-01 scan SYN > 20 en 5 s\"]",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "pc-membre",
+                "texte": "Mini-laboratoire (WSL) : pc-membre : out/s01/eve.json",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "`suricata -T` signale une erreur de règle",
+            "cause": "Le message donne le numéro de ligne et le mot-clé fautif",
+            "solution": "Corriger la ligne (souvent un guillemet ou un point-virgule manquant après un copier-coller), relancer `-T`."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Aucune alerte, `eve.json` vide",
+            "cause": "`tcpdump -nr pcap/s01.pcap | head` : la capture est vide, ou prise sur le mauvais pont",
+            "solution": "Capturer sur `br-wan`, `br-dmz` ou `br-lan` selon la cible. Jamais `-i any` : les paquets apparaissent en double et faussent les seuils."
+          },
+          {
+            "ordre": 3,
+            "symptome": "`docker compose up` : « address already in use » ou conflit de passerelle",
+            "cause": "Une adresse du compose est prise par la passerelle Docker",
+            "solution": "Vérifier les lignes `gateway:` (.254 et .94), puis `docker compose down` et relancer."
+          },
+          {
+            "ordre": 4,
+            "symptome": "`tcpdump: permission denied`",
+            "cause": "tcpdump lancé sans sudo",
+            "solution": "Relancer avec `sudo`."
+          },
+          {
+            "ordre": 5,
+            "symptome": "Le flood S-02 produit une capture énorme",
+            "cause": "hping3 en mode flood envoie des centaines de milliers de paquets",
+            "solution": "Garder `timeout 3` ; ne pas pousser ce PCAP dans Git s'il dépasse 50 Mo."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Mini-laboratoire lancé : 4 conteneurs, 3 réseaux isolés"
+          },
+          {
+            "ordre": 2,
+            "texte": "`suricata -T` accepte `local.rules` sans erreur"
+          },
+          {
+            "ordre": 3,
+            "texte": "Captures s01, s02, s03, s05, s06 et legitime enregistrées"
+          },
+          {
+            "ordre": 4,
+            "texte": "`tester.sh` : OK partout, ou écart expliqué et noté (S-06)"
+          },
+          {
+            "ordre": 5,
+            "texte": "Règles, script et tableau des résultats poussés dans Git"
+          }
+        ]
+      },
+      {
+        "numero": 1,
+        "code": "r3-e1",
+        "titre": "Test de plateforme : netmap sur les cartes VMware (em)",
+        "quand": "14–15 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "miseAJour": "Les cartes sont des cartes Intel e1000 émulées par VMware (pilote `em`), et non VirtIO. Le test reste le même : activer l'IPS sur `em0`, vérifier le trafic et `dmesg | grep netmap`. Si `em` pose problème, une option à décider avec le rôle 1 est de passer les cartes d'OPNsense en `vmxnet3` (pilote `vmx`) dans le .vmx, VM éteinte et après un instantané. Les interfaces changent alors de nom et doivent être réaffectées. Sinon, appliquer les replis prévus (Divert, ou IDS seul + pf).",
+        "but": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+        "pourquoi": "Section 5.3 : Suricata en mode IPS utilise netmap ; « repli prévu si netmap est instable sur les cartes em de VMware ». Section 11.2 : risque n° 1, test au J1. Jalon du 15 novembre.",
+        "prerequis": "Étapes : parefeu-2\nModules du cours : 7\nWAN et TRUNK affectés, offloading désactivé. Carte de configuration branchée pour télécharger ET Open.",
+        "livrable": "Fichier `docs/decision-ips.md` (version, mode retenu, résultats du test) et message à tous, en particulier aux rôles 1 et 5.",
+        "schema": "netmap-position",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c01",
+            "ordre": 1,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "Services › Intrusion Detection › Administration",
+            "texte": "Services › Intrusion Detection › Administration",
+            "explication": "Activer, cocher « IPS mode », interface : WAN seulement pour ce test. Onglet Download : ET Open, télécharger. Activer une seule famille simple (par exemple « scan »).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "opnsense",
+                "nom": "suricata",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c02",
+            "ordre": 2,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "System › Settings › Tunables",
+            "texte": "System › Settings › Tunables",
+            "explication": "Si netmap refuse la carte em, ajouter `dev.netmap.admode` = `2` (mode émulé, recommandé par le manuel IPS pour les cartes non prises en charge), redémarrer, recommencer.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "texte": "tunables",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c03",
+            "ordre": 3,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Protocole de test (10 minutes)",
+            "texte": "ping -i 1 -c 600 203.0.113.1 > /tmp/j1.txt &",
+            "explication": "Le 15 novembre, les services (rôle 4) ne sont pas encore publiés : le test se fait depuis Kali, vers OPNsense lui-même. 0. Rôle 2 : règle WAN TEMPORAIRE « pass ICMP, source 203.0.113.66, destination 203.0.113.1 » (à supprimer après le test) 1. Depuis Kali : un ping par seconde pendant tout le test (10 minutes)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "kali",
+                "vers": "opnsense",
+                "proto": "Icmp",
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c04",
+            "ordre": 4,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Protocole de test (10 minutes)",
+            "texte": "nmap -sS -Pn -p 1-200 203.0.113.1",
+            "explication": "2. Depuis Kali : un scan court",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "kali",
+                "vers": "opnsense",
+                "proto": "Tcp",
+                "port": 1,
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c05",
+            "ordre": 5,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Protocole de test (10 minutes)",
+            "texte": "dmesg | grep -i netmap | tail",
+            "explication": "3. Sur OPNsense : erreurs netmap et alertes",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c06",
+            "ordre": 6,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Protocole de test (10 minutes)",
+            "texte": "tail -n 5 /var/log/suricata/suricata.log",
+            "explication": "Affiche les dernières lignes d'un fichier (souvent un journal).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/var/log/suricata/suricata.log",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c07",
+            "ordre": 7,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Protocole de test (10 minutes)",
+            "texte": "grep -c '\"event_type\":\"alert\"' /var/log/suricata/eve.json",
+            "explication": "Cherche les lignes qui contiennent un motif.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/var/log/suricata/eve.json",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c08",
+            "ordre": 8,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Protocole de test (10 minutes)",
+            "texte": "tail -2 /tmp/j1.txt",
+            "explication": "4. Bilan, sur Kali, après les 10 minutes",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/tmp/j1.txt",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e1-c09",
+            "ordre": 9,
+            "ou": "opnsense",
+            "shell": "Document",
+            "compte": "root",
+            "texte": "(bilan du test)",
+            "explication": "Texte de référence du guide : rien n'est exécuté.\n« 597 received » : le trafic passe à travers Suricata en ligne : netmap fonctionne\n« aucune erreur répétée » : pas de blocage de l'interface\n« alertes > 0 » : Suricata voit bien le trafic du WAN",
+            "sortie": "600 packets transmitted, 597 received, 0.5% packet loss, time 599812ms\nrtt min/avg/max/mdev = 0.310/0.620/4.100/0.200 ms\n(dmesg : aucune erreur netmap répétée ; suricata.log : « engine started »)",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Plus aucun trafic après activation de l'IPS",
+            "cause": "`dmesg | grep netmap` : erreurs sur em0",
+            "solution": "Essayer `dev.netmap.admode=2` ; sinon repli Divert (mode IPS « Divert » dans l'administration IDS) ou IDS seul."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Le trafic passe mais aucune alerte",
+            "cause": "Home networks ne contient pas 203.0.113.1 (écart E05)",
+            "solution": "Étape 2 ; pour ce test, utiliser une règle qui vise l'adresse explicitement."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Latence très élevée ou pertes",
+            "cause": "Offloading encore actif",
+            "solution": "Rôle 2, étape 2 : désactiver CRC, TSO, LRO, redémarrer."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Test de 10 minutes mené (ping continu + scan), règle ICMP temporaire supprimée ensuite"
+          },
+          {
+            "ordre": 2,
+            "texte": "Décision écrite : netmap / Divert / IDS seul, version d'OPNsense notée"
+          },
+          {
+            "ordre": 3,
+            "texte": "Décision reportée dans le rapport (jalon du 15 novembre)"
+          }
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "r3-e2",
+        "titre": "Configurer l'IDS : interfaces, réseaux maison, journaux",
+        "quand": "16 nov. puis 22 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+        "pourquoi": "Section 5.3 : IPS sur em0 (WAN) et sur em1 (parent du trunk) ; avec des VLAN, l'IPS s'active sur l'interface parente. Le manuel IPS d'OPNsense : désactiver l'offloading, mode promiscuous pour les VLAN. Écart E05 : 203.0.113.1 doit être un réseau maison.",
+        "prerequis": "Étapes : ids-1, parefeu-2\nModules du cours : 7, 3",
+        "livrable": "Export de la configuration (avec le rôle 2) et message au rôle 6 : « les alertes EVE partent en syslog ; eve.json local dans /var/log/suricata/ ».",
+        "schema": "netmap-position",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e2-c01",
+            "ordre": 1,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "Services › Intrusion Detection › Administration › Settings",
+            "texte": "Services › Intrusion Detection › Administration › Settings",
+            "explication": "Enabled ; IPS mode selon la décision du J1 ; **Promiscuous mode** coché (VLAN) ; Interfaces : `WAN` et `TRUNK` (em1, affectée sans adresse par le rôle 2) ; Pattern matcher : Hyperscan si proposé, sinon Aho-Corasick.\nChemin de menu à vérifier sur ta version.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "opnsense",
+                "nom": "suricata",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e2-c02",
+            "ordre": 2,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "… › Administration › Advanced (Home networks)",
+            "texte": "… › Administration › Advanced (Home networks)",
+            "explication": "Réseaux maison : `10.0.0.0/8` et `203.0.113.1/32`. Pas tout 203.0.113.0/24 : Kali deviendrait « maison » et les règles « depuis l'extérieur » ne la verraient plus.\nChemin de menu à vérifier sur ta version.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "texte": "advanced (home networks)",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e2-c03",
+            "ordre": 3,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "… › Administration › Logging",
+            "texte": "… › Administration › Logging",
+            "explication": "Activer la sortie EVE en syslog (alertes) pour que C9 la reçoive ; garder aussi eve.json local. Rotation : quotidienne, 7 jours.\nChemin de menu à vérifier sur ta version.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "journal",
+                "de": "opnsense",
+                "ligne": "filterlog et suricata → 10.99.0.10, UDP 514",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e2-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "Document",
+            "bloc": "Jusqu'au 22 novembre",
+            "texte": "Jusqu'au 22 novembre",
+            "explication": "En état A, l'IDS reste **désactivé** : l'état A n'a pas d'inspection (section 3). Ne l'activez qu'après le passage en état B.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "hote",
+                "texte": "jusqu'au 22 novembre",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e2-c05",
+            "ordre": 5,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Shell OPNsense (état B)",
+            "texte": "grep -A3 'HOME_NET' /usr/local/etc/suricata/suricata.yaml | head -4",
+            "explication": "Cherche les lignes qui contiennent un motif.\nTest : Shell OPNsense (état B).",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/usr/local/etc/suricata/suricata.yaml",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e2-c06",
+            "ordre": 6,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Shell OPNsense (état B)",
+            "texte": "pgrep -l suricata",
+            "explication": "Cherche un programme en cours d'exécution.\nDans la sortie, « HOME_NET » : la configuration générée contient bien l'adresse publique\nDans la sortie, « suricata » : le moteur tourne",
+            "sortie": "    HOME_NET: \"[10.0.0.0/8,203.0.113.1/32]\"\n…\n12345 suricata",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Aucune alerte sur em1",
+            "cause": "TRUNK non sélectionné, ou mode promiscuous absent",
+            "solution": "Sélectionner l'interface parente, cocher promiscuous, redémarrer le service."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Les alertes n'arrivent pas au collecteur",
+            "cause": "Cible syslog sans l'application suricata",
+            "solution": "Rôle 2, étape 5 : ajouter suricata à la cible distante."
+          },
+          {
+            "ordre": 3,
+            "symptome": "L'IDS bloque déjà du trafic en état B",
+            "cause": "Une politique drop est active",
+            "solution": "Toutes les familles en alert jusqu'à l'étape 6."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "WAN et TRUNK sélectionnés, promiscuous coché"
+          },
+          {
+            "ordre": 2,
+            "texte": "Réseaux maison : 10.0.0.0/8 et 203.0.113.1/32"
+          },
+          {
+            "ordre": 3,
+            "texte": "Alertes visibles dans eve.json et sur le collecteur"
+          }
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "r3-e3",
+        "titre": "C8 : sonde SLA et trafic légitime",
+        "quand": "16–19 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Une sonde qui produit sla.csv pendant toutes les mesures, pilotable par l'orchestrateur, et les mesures de débit iperf3.",
+        "pourquoi": "Section 7.8 : 1 requête HTTPS par seconde depuis client-ext et client-01, 1 requête DNS toutes les 5 s, chaque requête enregistrée ; débit iperf3 par FA6 / F09 hors campagnes. Section 9.3 : 2 h de trafic légitime seul pour mesurer les faux positifs. ENF4 : disponibilité ≥ 99 %.",
+        "prerequis": "Étapes : services-6\nModules du cours : 10, 1\nFormat de sla.csv : page Contrats. L'image des postes doit contenir python3-requests, python3-dnspython et procps (pour pkill).",
+        "livrable": "Commit de `sonde/`. Message aux rôles 5 et 6 : « sonde.sh start | stop ; sla.csv dans /srv/sla/ sur l'hôte Docker ».",
+        "schema": "p01-panne",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e3-c01",
+            "ordre": 1,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "sonde/sonde.py",
+            "texte": "#!/usr/bin/env python3\n\"\"\"C8 — sonde SLA (section 7.8) : 1 requête HTTPS par seconde ; si un serveur DNS est donné, 1 requête DNS toutes les 5 s.\nUsage : sonde.py <client> <url> [serveur_dns]   — écrit des lignes sla.csv sur la sortie standard.\"\"\"\nimport csv, datetime as dt, sys, time\nimport dns.resolver, requests, urllib3\n\nurllib3.disable_warnings()                          # certificat auto-signé de nginx : vérification désactivée\nclient, url = sys.argv[1], sys.argv[2]\nserveur = sys.argv[3] if len(sys.argv) > 3 else None\nres = dns.resolver.Resolver(configure=False)\nif serveur:\n    res.nameservers, res.lifetime = [serveur], 2\nw = csv.writer(sys.stdout)\n\ndef horodatage():\n    return dt.datetime.now(dt.timezone.utc).isoformat(timespec=\"milliseconds\").replace(\"+00:00\", \"Z\")\n\nn = 0\nwhile True:\n    debut = time.monotonic()\n    ts = horodatage()\n    try:\n        t = time.monotonic()\n        ok = requests.get(url, timeout=2, verify=False).status_code == 200\n        w.writerow([ts, client, url, \"https\", int(ok), round((time.monotonic() - t) * 1000) if ok else \"\"])\n    except requests.RequestException:\n        w.writerow([ts, client, url, \"https\", 0, \"\"])          # délai dépassé ou connexion refusée\n    if serveur and n % 5 == 0:\n        ts = horodatage()\n        try:\n            t = time.monotonic()\n            res.resolve(\"www.labo.test\", \"A\")\n            w.writerow([ts, client, serveur, \"dns\", 1, round((time.monotonic() - t) * 1000)])\n        except Exception:\n            w.writerow([ts, client, serveur, \"dns\", 0, \"\"])\n    sys.stdout.flush()\n    n += 1\n    time.sleep(max(0, 1 - (time.monotonic() - debut)))   # une itération par seconde",
+            "explication": "Contenu du fichier sonde/sonde.py.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "sonde/sonde.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e3-c02",
+            "ordre": 2,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "sonde/sonde.sh (sur l'hôte Docker, dans /opt/projet6/sonde/)",
+            "texte": "#!/bin/bash\n# sonde/sonde.sh start | stop [dossier]   — sur l'hôte Docker ; appelé par l'orchestrateur (rôle 5)\nset -eu\nD=/opt/projet6/sonde\ncase \"$1\" in\nstart)\n  for c in client-ext client-01; do docker cp \"$D/sonde.py\" \"$c:/tmp/sonde.py\"; done\n  docker exec -d client-ext sh -c 'python3 /tmp/sonde.py client-ext https://203.0.113.1/api/produits > /tmp/sla.csv 2>/dev/null'\n  docker exec -d client-01  sh -c 'python3 /tmp/sonde.py client-01 https://10.20.0.10/api/produits 10.20.0.40 > /tmp/sla.csv 2>/dev/null'\n  echo \"sonde démarrée\" ;;\nstop)\n  for c in client-ext client-01; do docker exec \"$c\" pkill -f sonde.py || true; done\n  OUT=${2:-/srv/sla}; mkdir -p \"$OUT\"\n  { echo \"ts_utc,client,cible,type,succes,duree_ms\"\n    for c in client-ext client-01; do docker exec \"$c\" cat /tmp/sla.csv; done | sort; } > \"$OUT/sla.csv\"\n  echo \"$(($(wc -l < \"$OUT/sla.csv\") - 1)) mesures dans $OUT/sla.csv\" ;;\nesac",
+            "explication": "Contenu du fichier sonde/sonde.sh (sur l'hôte Docker, dans /opt/projet6/sonde/).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "sonde/sonde.sh",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e3-c03",
+            "ordre": 3,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Débit iperf3 (hors campagnes : A, B avec IPS, B sans IPS)",
+            "texte": "docker exec client-ext iperf3 -c 203.0.113.1 -p 5201 -t 30 -J > /srv/sla/iperf-A.json",
+            "explication": "Le rôle 2 active la redirection et la règle FA6 / F09 le temps de la mesure, puis les désactive. -J : sortie JSON (débit moyen dans end.sum_received.bits_per_second), lue par le rôle 6 état B : iperf-B-avec-ips.json, puis Suricata désactivé : iperf-B-sans-ips.json",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "client-ext",
+                "vers": "opnsense",
+                "proto": "Iperf3",
+                "port": 5201,
+                "adresseVisee": "203.0.113.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e3-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "/opt/projet6/sonde/sonde.sh start; sleep 20; /opt/projet6/sonde/sonde.sh stop /tmp/essai",
+            "explication": "Lance un script shell du projet.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e3-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "head -4 /tmp/essai/sla.csv",
+            "explication": "Affiche les premières lignes d'un fichier.\nDans la sortie, « ≈ 40 mesures en 20 s » : 2 clients × 1 requête/s, plus le DNS toutes les 5 s\nDans la sortie, « succes 1, duree_ms 41 » : requête servie en 41 ms\nDans la sortie, « horodatage …Z » : UTC, à la milliseconde : prêt pour la corrélation",
+            "sortie": "40 mesures dans /tmp/essai/sla.csv\nts_utc,client,cible,type,succes,duree_ms\n2026-11-18T14:02:11.003Z,client-01,10.20.0.40,dns,1,3\n2026-11-18T14:02:11.004Z,client-01,https://10.20.0.10/api/produits,https,1,41\n2026-11-18T14:02:11.010Z,client-ext,https://203.0.113.1/api/produits,https,1,48",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/tmp/essai/sla.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« pkill: not found »",
+            "cause": "procps absent de l'image des postes",
+            "solution": "Ajouter procps au Dockerfile des postes (rôle 4) et reconstruire."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Toutes les requêtes HTTPS échouent depuis client-01 en état B",
+            "cause": "F05 (rôle 2) ou passerelle (rôle 4)",
+            "solution": "test_flux T009 doit être conforme."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Des secondes manquent dans sla.csv",
+            "cause": "Requêtes en délai dépassé (2 s) : la boucle prend du retard",
+            "solution": "Normal pendant un flood : c'est justement l'indisponibilité mesurée."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "sla.csv produit avec les colonnes du contrat"
+          },
+          {
+            "ordre": 2,
+            "texte": "start / stop fonctionnent depuis le collecteur par SSH"
+          },
+          {
+            "ordre": 3,
+            "texte": "Une mesure iperf3 de référence (état A) enregistrée"
+          }
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "r3-e4",
+        "titre": "Écrire les règles locales et le blocage temporaire",
+        "quand": "22 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Le jeu de règles C4 : ET Open + règles locales sid 9000001 à 9000099, et le rate_filter de S-01, chargés par Suricata.",
+        "pourquoi": "Section 7.4 : seuil de scan SYN (> 20 SYN en 5 s, track by_src), seuil de SYN flood, motifs d'injection SQL sur /api/, fragments anormaux, LAN-USERS → 5432. Figure 6 : blocage temporaire de la source (rate_filter). Écart E07 : règle ajoutée pour S-04.",
+        "prerequis": "Étapes : ids-2, parefeu-8\nModules du cours : 7",
+        "livrable": "Commit de `ids/local.rules` et `ids/threshold.config` avec le hash du jeu de règles (`sha256sum`) dans `ids/VERSION.txt`.",
+        "schema": "seuil-sim",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c01",
+            "ordre": 1,
+            "ou": "opnsense",
+            "shell": "Editeur",
+            "compte": "root",
+            "bloc": "ids/local.rules",
+            "texte": "# ids/local.rules — règles locales du projet (sid 9000001 à 9000099, section 7.4). Syntaxe Suricata 8.\n# Toutes sont écrites en « alert ». Le passage en drop se fait famille par famille après le réglage (étape 6).\n\n# S-01 · scan SYN vers l'adresse publique (em0), hors ports publiés : les SYN légitimes vers 53, 80, 443\n# (sonde, clients) ne comptent pas. Détection : une alerte par fenêtre de 5 s et par source.\nalert tcp any any -> 203.0.113.1 ![53,80,443] (msg:\"LOCAL S-01 scan SYN > 20 en 5 s\"; flow:stateless; flags:S,12; threshold:type both, track by_src, count 20, seconds 5; classtype:attempted-recon; sid:9000001; rev:2;)\n# S-01 · même trafic : compteur du rate_filter (blocage temporaire, figure 6). « threshold limit » limite\n# les alertes à une par 20 s ; le rate_filter compte, lui, chaque correspondance (À VALIDER EN LABORATOIRE).\nalert tcp any any -> 203.0.113.1 ![53,80,443] (msg:\"LOCAL S-01 compteur de blocage\"; flow:stateless; flags:S,12; threshold:type limit, track by_src, count 1, seconds 20; classtype:attempted-recon; sid:9000002; rev:2;)\n\n# S-02 · SYN flood vers le web : seuil par source (un vrai client fait ~1 SYN/s). Détection : une alerte par seconde au plus.\nalert tcp any any -> 203.0.113.1 443 (msg:\"LOCAL S-02 SYN flood > 100/s\"; flow:stateless; flags:S,12; threshold:type both, track by_src, count 100, seconds 1; classtype:attempted-dos; sid:9000003; rev:2;)\n# S-02 · compteur du rate_filter de blocage (même principe que 9000002)\nalert tcp any any -> 203.0.113.1 443 (msg:\"LOCAL S-02 compteur de blocage\"; flow:stateless; flags:S,12; threshold:type limit, track by_src, count 1, seconds 20; classtype:attempted-dos; sid:9000004; rev:1;)\n\n# S-03 · injection SQL sur le saut nginx -> API, en clair (em1, section 11.3). http.uri est décodée (%20 -> espace),\n# mais un « + » reste un « + » : le motif accepte les deux séparateurs.\nalert http any any -> 10.20.0.70 5000 (msg:\"LOCAL S-03 injection SQL sur /api/\"; flow:established,to_server; http.uri; content:\"/api/\"; startswith; pcre:\"/'(\\s|\\+)*or(\\s|\\+)*'?\\d+'?(\\s|\\+)*=(\\s|\\+)*'?\\d+/i\"; classtype:web-application-attack; sid:9000010; rev:2;)\n\n# S-05 · un poste utilisateur tente de joindre la base (em1)\nalert tcp 10.10.0.0/26 any -> 10.10.0.70 5432 (msg:\"LOCAL S-05 LAN-USERS vers PostgreSQL\"; flow:stateless; flags:S,12; classtype:policy-violation; sid:9000020; rev:1;)\n# S-04 · un hôte de la DMZ autre que l'API tente de joindre la base (écart E07)\nalert tcp [10.20.0.0/24,!10.20.0.70] any -> 10.10.0.70 5432 (msg:\"LOCAL S-04 DMZ hors API vers PostgreSQL\"; flow:stateless; flags:S,12; classtype:policy-violation; sid:9000021; rev:1;)\n\n# S-06 · fragments IP minuscules (nmap -f découpe en morceaux de 8 octets) — À VALIDER EN LABORATOIRE\nalert ip any any -> 203.0.113.1 any (msg:\"LOCAL S-06 petits fragments IP\"; fragbits:M; dsize:<24; threshold:type limit, track by_src, count 1, seconds 60; classtype:misc-activity; sid:9000030; rev:1;)",
+            "explication": "Contenu du fichier ids/local.rules.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "opnsense",
+                "chemin": "ids/local.rules",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c02",
+            "ordre": 2,
+            "ou": "opnsense",
+            "shell": "Editeur",
+            "compte": "root",
+            "bloc": "ids/threshold.config",
+            "texte": "# ids/threshold.config — blocage temporaire de la source (figure 6 : « rate_filter »)\n# Après 20 correspondances de 9000002 en 5 s depuis une même source (S-01), ou 100 de 9000004 en 1 s (S-02),\n# l'action devient « drop » pour les paquets qui correspondent à cette règle, pendant 20 s.\n# timeout 20 < pause de 30 s entre deux exécutions : la source est libérée avant l'exécution suivante.\n# À VALIDER EN LABORATOIRE : le scan doit s'interrompre, et le compteur de paquets rejetés de stats.log\n# doit augmenter (nom du compteur : à vérifier sur votre version, par exemple « ips.blocked »).\n# Repli : règle compteur en « drop » avec detection_filter (blocage paquet par paquet, sans durée).\n\n# --- Phase de réglage (mode IDS, étapes 4 et 5) : ne rien bloquer, utiliser ces deux lignes ---\n# rate_filter gen_id 1, sig_id 9000002, track by_src, count 20, seconds 5, new_action alert, timeout 20\n# rate_filter gen_id 1, sig_id 9000004, track by_src, count 100, seconds 1, new_action alert, timeout 20\n\n# --- Phase IPS (étape 6, campagne B) ---\nrate_filter gen_id 1, sig_id 9000002, track by_src, count 20, seconds 5, new_action drop, timeout 20\nrate_filter gen_id 1, sig_id 9000004, track by_src, count 100, seconds 1, new_action drop, timeout 20",
+            "explication": "Contenu du fichier ids/threshold.config.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "opnsense",
+                "chemin": "ids/threshold.config",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c03",
+            "ordre": 3,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Charger les fichiers dans OPNsense",
+            "texte": "grep -n \"rule-files\" -A20 /usr/local/etc/suricata/suricata.yaml",
+            "explication": "OPNsense n'a pas d'éditeur de règles Suricata. Deux méthodes connues (forum OPNsense), à valider : A) Fichier de règles personnalisées lu par la configuration générée : repérer les fichiers chargés\nÀ vérifier sur ta version (méthode d'ajout de règles personnalisées).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/usr/local/etc/suricata/suricata.yaml",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c04",
+            "ordre": 4,
+            "ou": "hote",
+            "shell": "PowerShell",
+            "bloc": "Charger les fichiers dans OPNsense",
+            "texte": "scp ids/local.rules root@10.99.0.1:/usr/local/etc/suricata/rules/custom.rules",
+            "explication": "Copie un fichier vers (ou depuis) une autre machine, à travers une connexion SSH chiffrée.\nÀ vérifier sur ta version (méthode d'ajout de règles personnalisées).\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).\nLe SSH d'OPNsense est désactivé pour l'instant ; il sera réactivé sur MGMT, par clé seulement, pour l'orchestrateur (question Q13).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "hote",
+                "vers": "opnsense",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "opnsense",
+                "chemin": "/usr/local/etc/suricata/rules/custom.rules",
+                "cree": true,
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c05",
+            "ordre": 5,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Charger les fichiers dans OPNsense",
+            "texte": "grep -n \"threshold\" /usr/local/etc/suricata/suricata.yaml",
+            "explication": "B) Ensemble de règles « maison » déclaré par un fichier XML de métadonnées dans usr/local/opnsense/scripts/suricata/metadata/rules/ (voir le tutoriel « Adding custom rules » du forum), puis Services › Intrusion Detection › Download : l'ensemble apparaît, l'activer.  Fichier de seuils : vérifier qu'un « threshold-file » est déclaré\nÀ vérifier sur ta version (méthode d'ajout de règles personnalisées).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/usr/local/etc/suricata/suricata.yaml",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c06",
+            "ordre": 6,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Charger les fichiers dans OPNsense",
+            "texte": "configctl ids reload",
+            "explication": "S'il ne l'est pas : le manuel IPS décrit un gabarit custom.yaml pour ajouter des options à suricata.yaml.  Recharger et vérifier nom de l'action à vérifier ; sinon « Apply » dans l'interface\nÀ vérifier sur ta version (méthode d'ajout de règles personnalisées).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "opnsense",
+                "nom": "suricata",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c07",
+            "ordre": 7,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Charger les fichiers dans OPNsense",
+            "texte": "grep -c 9000 /var/log/suricata/suricata.log; tail -n 3 /var/log/suricata/suricata.log",
+            "explication": "Cherche les lignes qui contiennent un motif.\nÀ vérifier sur ta version (méthode d'ajout de règles personnalisées).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/var/log/suricata/suricata.log",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/var/log/suricata/suricata.log",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c08",
+            "ordre": 8,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Shell OPNsense",
+            "texte": "suricata -T -c /usr/local/etc/suricata/suricata.yaml 2>&1 | tail -2",
+            "explication": "Lance Suricata pour vérifier les règles, ou pour analyser une capture enregistrée.\nTest : Shell OPNsense.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e4-c09",
+            "ordre": 9,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Shell OPNsense",
+            "texte": "grep -E 'rules successfully loaded|signatures processed' /var/log/suricata/suricata.log | tail -1",
+            "explication": "Cherche les lignes qui contiennent un motif.\nDans la sortie, « successfully loaded » : la syntaxe des règles et du fichier de seuils est valide\nDans la sortie, « 0 rules failed » : aucune règle locale rejetée ; sinon le journal donne le sid fautif",
+            "sortie": "… Configuration provided was successfully loaded. Exiting.\n… 1 rule files processed. 48211 rules successfully loaded, 0 rules failed",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/var/log/suricata/suricata.log",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "« failed to parse signature » pour un sid 90000xx",
+            "cause": "Faute de syntaxe (point-virgule, guillemet)",
+            "solution": "Corriger la règle ; tester avec `suricata -T` avant de recharger."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Les règles locales disparaissent après une mise à jour des règles",
+            "cause": "Fichier écrasé par la régénération",
+            "solution": "Utiliser la méthode B (ensemble déclaré) ; garder le fichier dans Git."
+          },
+          {
+            "ordre": 3,
+            "symptome": "rate_filter sans effet",
+            "cause": "threshold-file absent de la configuration, ou interaction avec « threshold limit » de la règle",
+            "solution": "Déclarer le fichier (gabarit custom.yaml) ; vérifier dans suricata.log ; essayer la règle compteur sans threshold."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "ET Open téléchargé (fenêtre de configuration)"
+          },
+          {
+            "ordre": 2,
+            "texte": "Règles 9000001–9000030 chargées, 0 échec"
+          },
+          {
+            "ordre": 3,
+            "texte": "rate_filter de 9000002 et 9000004 chargés, en variante new_action alert"
+          },
+          {
+            "ordre": 4,
+            "texte": "Tout est en action alert"
+          }
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "r3-e5",
+        "titre": "Mode IDS : vérifier que chaque scénario est détecté",
+        "quand": "23 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Chaque scénario produit l'alerte attendue en mode IDS, sans rien bloquer.",
+        "pourquoi": "Section 7.3 : IDS (alert uniquement) pendant le réglage. Figure 12 : rejouer trafic légitime et scénarios S-01 à S-06, mesurer détection et faux positifs.",
+        "prerequis": "Étapes : ids-4, attaques-3\nModules du cours : 7, 9",
+        "livrable": "Tableau « scénario → sid observés » dans `docs/detection-ids.md`, envoyé au rôle 6.",
+        "schema": "netmap-position",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e5-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Une exécution par scénario (collecteur)",
+            "texte": "python3 campagne/orchestrateur.py --etat B --n 1",
+            "explication": "IPS en alert seulement à ce stade",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e5-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Une exécution par scénario (collecteur)",
+            "texte": "ssh root@10.99.0.1 \"grep '\\\"event_type\\\":\\\"alert\\\"' /var/log/suricata/eve.json | tail -n 50\" > /tmp/alertes.json",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).\nLe SSH d'OPNsense est désactivé pour l'instant ; il sera réactivé sur MGMT, par clé seulement, pour l'orchestrateur (question Q13).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "opnsense",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.1",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "fichier": "/var/log/suricata/eve.json",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e5-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Une exécution par scénario (collecteur)",
+            "texte": "python3 -c \"import json,collections;c=collections.Counter(json.loads(l)['alert']['signature_id'] for l in open('/tmp/alertes.json'));print(c)\"",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "programme Python",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e5-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Document",
+            "compte": "karim",
+            "texte": "(compte des alertes par sid)",
+            "explication": "Texte de référence du guide : rien n'est exécuté.\n« 9000001 » : S-01 détecté (une alerte par fenêtre de 5 s)\n« 9000002, 9000004 » : compteurs du blocage : une alerte au plus par 20 s ; en mode IDS, le rate_filter est en new_action alert\n« 9000010 » : S-03 : injection vue sur em1\n« 9000020, 9000021 » : S-05 et S-04 détectés\n« 9000030 » : S-06 : à valider ; si absent, ajuster la règle\n« sid à 7 chiffres » : règles ET Open : candidates aux faux positifs, à mesurer à l'étape 6",
+            "sortie": "Counter({9000001: 3, 9000003: 6, 9000002: 1, 9000004: 1, 9000010: 1, 9000020: 2, 9000021: 1, 9000030: 1, 2010937: 4, …})",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Pas d'alerte S-03",
+            "cause": "La requête n'arrive pas en clair sur em1, ou URI encodée",
+            "solution": "Vérifier sur em1 avec tcpdump ; http.uri est normalisée, le motif doit viser la forme décodée."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Pas d'alerte S-01",
+            "cause": "HOME_NET ou règle visant 203.0.113.1",
+            "solution": "Étape 2 ; vérifier que la règle vise l'adresse publique (em0 voit l'adresse avant NAT)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Des centaines d'alertes S-01",
+            "cause": "threshold absent sur 9000001",
+            "solution": "Une alerte par fenêtre : `threshold:type both`."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Chaque scénario a au moins une alerte locale (S-06 : à valider)"
+          },
+          {
+            "ordre": 2,
+            "texte": "Aucun paquet bloqué en mode IDS"
+          }
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "r3-e6",
+        "titre": "Régler pendant 2 h, puis passer en IPS",
+        "quand": "23–24 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Les familles validées en drop, les autres en alert, avec au plus 1 faux positif par heure et une disponibilité d'au moins 99 %.",
+        "pourquoi": "Section 9.3 et figure 12 : 2 h de trafic légitime seul (une fenêtre plus courte ne permet pas de vérifier « 1 par heure ») ; drop seulement pour les familles validées ; critère d'arrêt : ≤ 1 FP/h et disponibilité ≥ 99 %. Jalon du 24 novembre.",
+        "prerequis": "Étapes : ids-5, analyse-3\nModules du cours : 7, 10\nLe rôle 6 calcule fp_par_sid.csv à partir d'events.csv.",
+        "livrable": "Message aux rôles 1 et 5 : « IPS prêt, jeu de règles figé (hash …) ». Le rôle 1 peut préparer etat-B.",
+        "schema": "fp-tuning",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c01",
+            "ordre": 1,
+            "ou": "opnsense",
+            "shell": "OpnsenseGui",
+            "compte": "root",
+            "bloc": "Services › Intrusion Detection › Policy",
+            "texte": "Services › Intrusion Detection › Policy",
+            "explication": "Créer une politique : action « drop » pour 9000010 et pour les familles ET validées. Les blocages de S-01 et S-02 ne passent pas par la politique : ils viennent du rate_filter (lignes « Phase IPS » de threshold.config, new_action drop). Laisser 9000001, 9000003, 9000020, 9000021, 9000030 en alert : ce sont les règles de détection ; pf bloque déjà S-04 et S-05.\nChemin de menu à vérifier sur ta version d'OPNsense (gestion des politiques).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "opnsense",
+                "nom": "suricata",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "DEBUT=$(date -u +%FT%TZ)",
+            "explication": "1. 2 h de trafic légitime seul, IDS en alert (collecteur)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Commande tapée sur cette machine.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "ssh root@10.99.0.20 /opt/projet6/sonde/sonde.sh start ; sleep 7200 ; ssh root@10.99.0.20 /opt/projet6/sonde/sonde.sh stop /srv/sla/reglage",
+            "explication": "Ouvre une session chiffrée sur une autre machine, ou y lance une seule commande.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "fichier": "/opt/projet6/sonde/sonde.sh",
+                "texte": "Lance le script sonde.sh.",
+                "ordre": 4,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "FIN=$(date -u +%FT%TZ)",
+            "explication": "Commande du guide, tapée sur la machine indiquée.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Commande tapée sur cette machine.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "mkdir -p resultats/B/reglage && scp root@10.99.0.20:/srv/sla/reglage/sla.csv resultats/B/reglage/",
+            "explication": "2. Faux positifs par sid (avec le rôle 6) : toute alerte pendant ces 2 h est un faux positif\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "resultats/B/reglage",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "resultats/B/reglage/",
+                "cree": true,
+                "ordre": 3,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c06",
+            "ordre": 6,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "python3 analyse/parse.py --dossier resultats/B/reglage",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/parse.py",
+                "texte": "lance analyse/parse.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "python3 analyse/fp.py resultats/B/reglage/events.csv --debut $DEBUT --fin $FIN > resultats/B/reglage/fp_par_sid.csv",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/fp.py",
+                "texte": "lance analyse/fp.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c08",
+            "ordre": 8,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "grep '\"signature_id\":9000002' /var/log/suricata/eve.json | tail -1",
+            "explication": "3. Pour chaque sid > 0 : ajuster le seuil, restreindre la portée, ou supprimer (figure 12), puis rejouer 4. Passer en IPS : politique drop des familles validées, lignes « Phase IPS » de threshold.config, recharger. Une exécution de S-01, puis sur OPNsense : attendu : \"action\":\"blocked\"",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "/var/log/suricata/eve.json",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c09",
+            "ordre": 9,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "grep -c '\"action\":\"blocked\"' /var/log/suricata/eve.json",
+            "explication": "Cherche les lignes qui contiennent un motif.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "/var/log/suricata/eve.json",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c10",
+            "ordre": 10,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Boucle de réglage",
+            "texte": "tail -n 60 /var/log/suricata/stats.log | grep -iE 'drop|block'",
+            "explication": "Compteurs de rejet (noms : à vérifier sur votre version)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "/var/log/suricata/stats.log",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e6-c11",
+            "ordre": 11,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "column -s, -t resultats/B/reglage/fp_par_sid.csv | head -5",
+            "explication": "Met un fichier CSV en colonnes, pour le lire plus facilement.\nDans la sortie, « 3.0 > 1 » : famille à laisser en alert (ou à supprimer avec justification)\nDans la sortie, « total des familles en drop ≤ 1 » : critère de la section 9.3",
+            "sortie": "sid       alertes  fp_par_heure\n2013504   6        3.0\n2027390   1        0.5\n9000030   1        0.5",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/B/reglage/fp_par_sid.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "La sonde échoue après le passage en drop",
+            "cause": "Une règle en drop touche le trafic légitime",
+            "solution": "Remettre la famille en alert (figure 12, « remettre en alert les règles fautives »)."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Aucun « blocked » dans EVE",
+            "cause": "Politique non appliquée, ou mode IDS pcap",
+            "solution": "Vérifier le mode IPS et la politique ; relancer le service."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Kali reste bloquée longtemps",
+            "cause": "timeout du rate_filter trop long",
+            "solution": "timeout 20 s, inférieur à la pause de 30 s."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "fp_par_sid.csv sur 2 h, et décision par famille consignée"
+          },
+          {
+            "ordre": 2,
+            "texte": "Familles en drop : ≤ 1 FP/h au total"
+          },
+          {
+            "ordre": 3,
+            "texte": "Disponibilité de la sonde ≥ 99 % sur les 2 h"
+          },
+          {
+            "ordre": 4,
+            "texte": "Jeu de règles figé : hash dans ids/VERSION.txt, commit"
+          }
+        ]
+      },
+      {
+        "numero": 7,
+        "code": "r3-e7",
+        "titre": "Préparer la panne P-01",
+        "quand": "24 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Les commandes d'arrêt et de redémarrage de Suricata testées, et le protocole de mesure prêt pour l'orchestrateur.",
+        "pourquoi": "Section 8.5 et figure 9 : arrêter Suricata pendant un SYN flood ; deux comportements possibles ; on ne suppose pas, on mesure (disponibilité et alertes avant, pendant, après, temps de reprise). Section 10.3 : P-01 en état B, 5 répétitions.",
+        "prerequis": "Étapes : ids-6\nModules du cours : 7, 9",
+        "livrable": "Fichier `docs/p01.md` (commandes, durée de redémarrage observée) et message au rôle 5 : « P-01 prêt pour la campagne B ».",
+        "schema": "p01-panne",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r3-e7-c01",
+            "ordre": 1,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Commandes à valider sur OPNsense (en dehors de toute campagne)",
+            "texte": "configctl ids stop",
+            "explication": "Arrêt du moteur (figure 9 : « service suricata stop »)\nÀ vérifier sur ta version (noms des actions configctl).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "opnsense",
+                "nom": "suricata",
+                "demarre": false,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e7-c02",
+            "ordre": 2,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Commandes à valider sur OPNsense (en dehors de toute campagne)",
+            "texte": "pgrep -l suricata || echo \"Suricata arrêté\"",
+            "explication": "Cherche un programme en cours d'exécution.\nÀ vérifier sur ta version (noms des actions configctl).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e7-c03",
+            "ordre": 3,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Commandes à valider sur OPNsense (en dehors de toute campagne)",
+            "texte": "configctl ids start",
+            "explication": "Commande interne d'OPNsense pour piloter ses services (ici Suricata).\nÀ vérifier sur ta version (noms des actions configctl).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "opnsense",
+                "nom": "suricata",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e7-c04",
+            "ordre": 4,
+            "ou": "opnsense",
+            "shell": "OpnsenseShell",
+            "compte": "root",
+            "bloc": "Commandes à valider sur OPNsense (en dehors de toute campagne)",
+            "texte": "sleep 5; pgrep -l suricata",
+            "explication": "Si configctl n'a pas ces actions sur votre version : service suricata onestop / onestart, ou le bouton d'arrêt de Services › Intrusion Detection. Reporter la commande validée dans campagne/scenarios.yaml (P-01, champ actions).\nÀ vérifier sur ta version (noms des actions configctl).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "opnsense",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r3-e7-c05",
+            "ordre": 5,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Essai à blanc avec la sonde",
+            "texte": "python3 campagne/orchestrateur.py --etat B --scenario P-01 --n 1",
+            "explication": "Lance un programme Python du projet.\nTest : Essai à blanc avec la sonde.\nDans la sortie, « une exécution complète » : arrêt à t0 + 10 s, redémarrage à t0 + 40 s, sonde active : la mesure est prête",
+            "sortie": "B-P01-01 · Panne de l'IPS pendant un SYN flood\nTerminé : resultats/B/2026-11-24/runs.csv",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "campagne/orchestrateur.py",
+                "texte": "lance campagne/orchestrateur.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Suricata ne redémarre pas",
+            "cause": "`tail /var/log/suricata/suricata.log`",
+            "solution": "Démarrer depuis l'interface ; ajuster la commande dans scenarios.yaml."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Toute l'interface WAN reste coupée après le redémarrage",
+            "cause": "netmap n'a pas repris l'interface",
+            "solution": "Noter ce comportement : c'est un résultat ; redémarrer l'interface et documenter la procédure de reprise."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Pas de mesure pendant la panne",
+            "cause": "Sonde arrêtée",
+            "solution": "La sonde doit tourner avant t0 et après t1 + 30 s."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Arrêt et redémarrage testés à la main"
+          },
+          {
+            "ordre": 2,
+            "texte": "Une exécution à blanc de P-01 complète"
+          },
+          {
+            "ordre": 3,
+            "texte": "Commande définitive reportée dans scenarios.yaml"
+          }
+        ]
+      }
+    ]
+  },
+  "questionsJury": [
+    {
+      "question": "Pourquoi Suricata est-il avant pf ?",
+      "reponse": "Avec netmap, Suricata intercepte les paquets entre la carte et la pile du noyau : pour le trafic entrant, il les voit avant pf. Il détecte donc aussi les sondes vers des ports fermés, et un paquet qu'il rejette n'atteint jamais pf. Nous l'avons vérifié au test J1 : un paquet rejeté apparaît dans EVE (« blocked ») et pas dans filterlog."
+    },
+    {
+      "question": "Pourquoi ne pas tout passer en drop directement ?",
+      "reponse": "Des règles génériques se déclenchent sur du trafic légitime : en drop, elles feraient chuter la disponibilité. Nous mesurons d'abord 2 h de trafic légitime en alert, règle par règle, et ne passons en drop que les familles à moins d'1 faux positif par heure (section 9.3)."
+    },
+    {
+      "question": "Comment fonctionne le blocage de S-01 ?",
+      "reponse": "La règle 9000002 compte les SYN de chaque source vers les ports non publiés ; un rate_filter change son action en drop pendant 20 s dès 20 SYN en 5 s. S-02 suit le même principe avec 9000004 (100 SYN en 1 s). Les premières sondes passent donc : un port publié peut être découvert s'il est sondé tôt. Nous l'écrivons tel quel dans les résultats."
+    },
+    {
+      "question": "Pourquoi l'injection n'est-elle pas vue sur le WAN ?",
+      "reponse": "Elle est chiffrée en TLS jusqu'à nginx. Le saut nginx → API est en HTTP clair et passe par em1 : c'est là que la règle 9000010 la voit. C'est une limite assumée (section 11.3)."
+    },
+    {
+      "question": "Que se passe-t-il si Suricata tombe ?",
+      "reponse": "C'est P-01 : nous arrêtons Suricata pendant un SYN flood et mesurons la disponibilité et les alertes avant, pendant et après, puis le temps de reprise. Le rapport ne suppose pas le comportement : [résultat mesuré]."
+    }
+  ]
+}

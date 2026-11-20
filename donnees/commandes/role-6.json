@@ -1,0 +1,1037 @@
+{
+  "version": 1,
+  "source": "sources/guide/data (rôle analyse)",
+  "role": {
+    "numero": 6,
+    "cle": "analyse",
+    "titre": "Observabilité et analyse",
+    "courtNom": "Analyse",
+    "couleur": "--r6",
+    "mission": "Synchroniser les horloges, collecter et normaliser tous les journaux dans events.csv, corréler avec la vérité terrain, calculer les indicateurs, tracer les graphiques A vs B et commenter les captures.",
+    "introduction": "**Les chiffres du rapport final sortent de vos scripts, jamais d'un tableur rempli à la main.** Tout est rejouable à partir des fichiers bruts archivés : si une correction est faite, on relance la chaîne.\n\nTrois corrections du pseudo-code de la section 9.4 sont appliquées : filtre sur l'adresse de l'attaquant (écart E08), relais déclaré pour S-03 (écart E09), relecture des fichiers bruts plutôt que du seul syslog UDP (écart E13).\n\n**Mise à jour du 17 novembre.** Le collecteur tourne déjà (`p6-collecteur`, 10.99.0.10) : NTP pour tout MGMT et réception syslog UDP 514 rangée par machine dans `/var/log/p6/<adresse>.log` (par exemple `/var/log/p6/10.99.0.1.log` pour OPNsense), et non dans `/var/log/remote/`. Adapte les chemins de tes parseurs. Console : TightVNC sur `127.0.0.1::5903` par le tunnel.\n\n**Comptes et SSH réels.** Les VM Debian et Kali ont l'utilisateur `karim` avec `sudo`, pas de connexion `root`. SSH n'est accepté sur les VM que depuis Windows (10.99.0.2) et le collecteur (10.99.0.10) ; le SSH d'OPNsense est désactivé. Avant que l'orchestrateur tourne depuis le collecteur, le rôle 1 doit : installer la clé du collecteur sur p6-docker et p6-kali (pour `root`, ou pour `karim` avec un `sudo` sans mot de passe limité aux commandes utiles), et réactiver le SSH d'OPNsense sur MGMT, par clé seulement (la règle « Admin du pare-feu » autorise déjà le port 22 depuis 10.99.0.10).",
+    "demonstration": "Ce que vous montrez en 2 minutes : chaque chiffre vient d'un script et se vérifie à la main.\n1. Une ligne filterlog brute, puis la même ligne dans events.csv (UTC).\n2. Le schéma fenêtre [t0, t1 + 10 s] et le calcul d'un TTD sur une exécution réelle.\n3. Le tableau des indicateurs A vs B et un graphique.\n4. Une capture Wireshark commentée (S-05 en A).\nPlan de secours : images des graphiques et des captures dans le rapport.",
+    "etapes": [
+      {
+        "numero": 1,
+        "code": "r6-e1",
+        "titre": "Synchroniser les horloges du laboratoire (NTP)",
+        "quand": "14 nov.",
+        "fait": true,
+        "etatTexte": "déjà fait",
+        "statut": "Validee",
+        "miseAJour": "Fait par le rôle 1 (script `setup-collecteur.sh`) : chrony serveur sur le collecteur (`allow 10.99.0.0/24`, `local stratum 8`), clients : OPNsense (Services › Network Time, 10.99.0.10 seul), p6-docker et Kali. OPNsense avait 17 h 35 de retard après une suspension : corrigé le 16 novembre. Contrôle : `chronyc clients` sur le collecteur. Le collecteur prend son heure de départ de Windows (horloge de VMware).",
+        "but": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+        "pourquoi": "Section 6 : les horloges des 4 VM sont synchronisées par NTP sur le collecteur, condition nécessaire au calcul des temps de détection. Risque « horloges désynchronisées » (section 11.2) : contrôle du décalage avant chaque campagne.",
+        "prerequis": "Étapes : chef-4, chef-5\nModules du cours : 10",
+        "livrable": "Message à tous : « NTP en place ; contrôle à faire avant chaque campagne (commande ci-dessus) ».",
+        "schema": "fenetre-ttd",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c01",
+            "ordre": 1,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Installer chrony (collecteur, hôte Docker, Kali) pendant une fenêtre de configuration",
+            "texte": "sudo apt install chrony",
+            "texteGuide": "apt install chrony",
+            "explication": "Remplace systemd-timesyncd, désactivé automatiquement à l'installation\nCommande lancée avec sudo : sur les VM, on travaille avec le compte karim (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "Installe : chrony",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c02",
+            "ordre": 2,
+            "ou": "kali",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Installer chrony (collecteur, hôte Docker, Kali) pendant une fenêtre de configuration",
+            "texte": "systemctl is-active systemd-timesyncd chrony",
+            "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "état des services",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "/etc/chrony/chrony.conf (ajouts)",
+            "texte": "# Supprimer ou commenter les lignes « pool … » : le laboratoire n'a pas d'accès à Internet\nlocal stratum 10          # le collecteur fait référence même sans source externe\nallow 10.99.0.0/24        # sert l'heure sur MGMT uniquement",
+            "explication": "Contenu du fichier /etc/chrony/chrony.conf (ajouts).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "/etc/chrony/chrony.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Serveur NTP sur le collecteur",
+            "texte": "sudo systemctl restart chrony",
+            "texteGuide": "systemctl restart chrony",
+            "explication": "Démarre, arrête ou interroge un service du système (Debian).\nPuis `systemctl restart chrony`. Le collecteur prend son heure de départ de l'hôte Windows (horloge de VMware) : l'exactitude absolue importe peu, l'accord entre machines est ce qui compte.\nCommande lancée avec sudo : sur les VM, on travaille avec le compte karim (écart E40).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "collecteur",
+                "nom": "chrony",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "/etc/chrony/chrony.conf",
+            "texte": "# remplacer les lignes pool par :\nserver 10.99.0.10 iburst  # le collecteur, seule référence",
+            "explication": "Contenu du fichier /etc/chrony/chrony.conf.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "/etc/chrony/chrony.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c06",
+            "ordre": 6,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Avant chaque campagne, sur le collecteur",
+            "texte": "chronyc clients",
+            "explication": "Interroge le service d'heure (chrony) : qui donne l'heure, avec quel écart.\nTest : Avant chaque campagne, sur le collecteur.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e1-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Avant chaque campagne, sur le collecteur",
+            "texte": "for h in 10.99.0.20 10.99.0.66; do ssh karim@$h 'chronyc tracking | grep -E \"Reference|System time\"'; done",
+            "texteGuide": "for h in 10.99.0.20 10.99.0.66; do ssh root@$h 'chronyc tracking | grep -E \"Reference|System time\"'; done",
+            "explication": "Répète la même commande pour plusieurs valeurs.\nSur la plateforme réelle, pas de connexion root : compte karim avec sudo (écart E40).\nDans la sortie, « trois clients » : OPNsense, hôte Docker, Kali interrogent le collecteur\nDans la sortie, « 0.000041 seconds » : écart de 41 µs : négligeable devant un temps de détection en millisecondes",
+            "sortie": "Hostname         NTP   Drop Int IntL Last\n10.99.0.1         12      0   6   -    31\n10.99.0.20        12      0   6   -    40\n10.99.0.66        12      0   6   -    18\nReference ID    : 0A63000A (10.99.0.10)\nSystem time     : 0.000041210 seconds fast of NTP time",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "docker",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.20",
+                "verdict": "ACalculer",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "ordre": 2,
+                "automatique": true
+              },
+              {
+                "type": "paquet",
+                "de": "collecteur",
+                "vers": "kali",
+                "proto": "Ssh",
+                "port": 22,
+                "adresseVisee": "10.99.0.66",
+                "verdict": "ACalculer",
+                "ordre": 3,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "ordre": 4,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Un client n'apparaît pas",
+            "cause": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+            "solution": "Rôle 1, étape 5."
+          },
+          {
+            "ordre": 2,
+            "symptome": "« Reference ID : 00000000 »",
+            "cause": "Le client ne joint pas le serveur",
+            "solution": "Vérifier `server 10.99.0.10` et la route MGMT."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Écart de plusieurs secondes après un rollback",
+            "cause": "Snapshot avec RAM restauré",
+            "solution": "Attendre la resynchronisation (ou `chronyc makestep`) avant toute mesure."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Les 3 clients synchronisés sur 10.99.0.10"
+          },
+          {
+            "ordre": 2,
+            "texte": "Écart < 10 ms, noté dans docs/jalons.md avant chaque campagne"
+          }
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "r6-e2",
+        "titre": "Recevoir les journaux : rsyslog",
+        "quand": "15–16 nov.",
+        "fait": false,
+        "etatTexte": "en partie fait",
+        "statut": "Validee",
+        "miseAJour": "En partie fait par le rôle 1 : rsyslog reçoit en UDP 514 et range chaque source dans `/var/log/p6/<adresse>.log` ; OPNsense envoie déjà ses journaux (System › Settings › Logging › Remote, 10.99.0.10 UDP 514), lignes `filterlog` reçues. Restent : le journal d'accès de nginx depuis p6-docker, TCP 514 si tu le gardes (écart E13), et les noms de fichiers attendus par ton parseur.",
+        "but": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+        "pourquoi": "Section 7.9 : rsyslog reçoit filterlog et EVE JSON d'OPNsense, et les journaux Docker. Section 6 : syslog vers le collecteur est l'un des trois usages autorisés de MGMT.",
+        "prerequis": "Étapes : chef-5\nModules du cours : 10\nLa cible syslog d'OPNsense (rôle 2, étape 5) peut arriver après : le collecteur est prêt à recevoir avant.",
+        "livrable": "Commit de `analyse/rsyslog/`. Message au rôle 2 : « syslog reçu, merci de garder aussi les journaux locaux ».",
+        "schema": "pipeline-logs",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "/etc/rsyslog.d/10-projet6.conf",
+            "texte": "module(load=\"imudp\")\ninput(type=\"imudp\" port=\"514\")              # syslog UDP (cible configurée dans OPNsense)\nmodule(load=\"imtcp\")\ninput(type=\"imtcp\" port=\"514\")              # syslog TCP : moins de pertes pendant un flood (écart E13)\n# RSYSLOG_FileFormat : horodatage complet (date, microsecondes, fuseau), indispensable au calcul du TTD\nif ($fromhost-ip == \"10.99.0.1\") then {\n    action(type=\"omfile\" file=\"/var/log/remote/opnsense.log\" template=\"RSYSLOG_FileFormat\")\n    stop\n}\nif ($fromhost-ip == \"10.99.0.20\") then {\n    action(type=\"omfile\" file=\"/var/log/remote/docker.log\" template=\"RSYSLOG_FileFormat\")\n    stop\n}",
+            "explication": "Contenu du fichier /etc/rsyslog.d/10-projet6.conf.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "/etc/rsyslog.d/10-projet6.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Collecteur",
+            "texte": "apt install rsyslog",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).\nDebian 13 n'installe plus rsyslog par défaut : `apt install rsyslog` pendant une fenêtre de configuration. Puis `systemctl restart rsyslog`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Installe : rsyslog",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Collecteur",
+            "texte": "systemctl restart rsyslog",
+            "explication": "Démarre, arrête ou interroge un service du système (Debian).\nDebian 13 n'installe plus rsyslog par défaut : `apt install rsyslog` pendant une fenêtre de configuration. Puis `systemctl restart rsyslog`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "collecteur",
+                "nom": "rsyslog",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c04",
+            "ordre": 4,
+            "ou": "docker",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "/etc/rsyslog.d/20-nginx.conf (p6-docker)",
+            "texte": "module(load=\"imfile\")\ninput(type=\"imfile\" File=\"/srv/logs/nginx/projet6.log\" Tag=\"nginx:\" Facility=\"local6\")   # fichier écrit par nginx (rôle 4)\nlocal6.* action(type=\"omfwd\" target=\"10.99.0.10\" port=\"514\" protocol=\"tcp\")             # vers le collecteur",
+            "explication": "Contenu du fichier /etc/rsyslog.d/20-nginx.conf (p6-docker).",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "docker",
+                "chemin": "/etc/rsyslog.d/20-nginx.conf",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c05",
+            "ordre": 5,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Hôte Docker : envoyer le journal d'accès de nginx",
+            "texte": "apt install rsyslog",
+            "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).\nSur l'hôte Docker aussi : `apt install rsyslog` pendant une fenêtre de configuration (absent par défaut sous Debian 13), puis `systemctl restart rsyslog`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "docker",
+                "texte": "Installe : rsyslog",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c06",
+            "ordre": 6,
+            "ou": "docker",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Hôte Docker : envoyer le journal d'accès de nginx",
+            "texte": "systemctl restart rsyslog",
+            "explication": "Démarre, arrête ou interroge un service du système (Debian).\nSur l'hôte Docker aussi : `apt install rsyslog` pendant une fenêtre de configuration (absent par défaut sous Debian 13), puis `systemctl restart rsyslog`.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "service",
+                "noeud": "docker",
+                "nom": "rsyslog",
+                "demarre": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c07",
+            "ordre": 7,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "tail -n 2 /var/log/remote/opnsense.log",
+            "explication": "Affiche les dernières lignes d'un fichier (souvent un journal).\nLes journaux arrivent dans /var/log/p6/<adresse>.log sur le collecteur, pas dans /var/log/remote/ (écart E42).",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "/var/log/remote/opnsense.log",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e2-c08",
+            "ordre": 8,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "tail -n 1 /var/log/remote/docker.log",
+            "explication": "Affiche les dernières lignes d'un fichier (souvent un journal).\nLes journaux arrivent dans /var/log/p6/<adresse>.log sur le collecteur, pas dans /var/log/remote/ (écart E42).\nDans la sortie, « …420318+01:00 » : horodatage à la microseconde avec fuseau : converti en UTC par parse.py\nDans la sortie, « filterlog[412]: » : l'étiquette qui permet au parseur de reconnaître la ligne",
+            "sortie": "2026-11-17T15:02:11.420318+01:00 opnsense filterlog[412]: 77,,,fae5…,em0,match,block,in,4,0x0,,64,…,203.0.113.66,203.0.113.1,40001,22,0,S,…\n2026-11-17T15:02:12.001+01:00 opnsense suricata[901]: … (vide en état A)\n2026-11-17T16:02:11.000000+00:00 docker nginx: 203.0.113.66 - - [17/Nov/2026:16:02:11 +0000] \"GET /api/produits HTTP/1.1\" 200 112 …",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "/var/log/remote/docker.log",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Rien n'arrive",
+            "cause": "`tcpdump -ni ens32 port 514` sur le collecteur",
+            "solution": "Rien sur le fil : cible syslog d'OPNsense (rôle 2). Paquets vus mais pas de fichier : pare-feu du collecteur ou configuration rsyslog."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Horodatage sans année ni millisecondes",
+            "cause": "Modèle de fichier par défaut",
+            "solution": "Utiliser `RSYSLOG_FileFormat`."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Le journal nginx n'arrive pas",
+            "cause": "Fichier vide côté hôte Docker",
+            "solution": "Rôle 4, étape 4 : nginx doit écrire dans /srv/logs/nginx/projet6.log."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "filterlog d'OPNsense reçu avec un horodatage complet"
+          },
+          {
+            "ordre": 2,
+            "texte": "Journal d'accès nginx reçu"
+          },
+          {
+            "ordre": 3,
+            "texte": "Alertes EVE reçues (vérifiable en état B)"
+          }
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "r6-e3",
+        "titre": "Écrire le parseur : events.csv",
+        "quand": "16–19 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+        "pourquoi": "Section 7.9 : un parseur convertit chaque ligne vers le schéma commun (ts_utc, source, src_ip, dst_ip, dst_port, proto, action, sid, message). Jalon du 19 novembre : une exécution S-01 produit runs.csv et events.csv. Les fichiers bruts d'OPNsense complètent syslog (écart E13).",
+        "prerequis": "Étapes : analyse-2\nModules du cours : 10, 5\nFormat : page Contrats.",
+        "livrable": "Commit de `analyse/parse.py` et `analyse/fp.py`. Message aux rôles 1, 3, 5 : « parseur prêt ».",
+        "schema": "pipeline-logs",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e3-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "analyse/parse.py",
+            "texte": "#!/usr/bin/env python3\n\"\"\"C9 — collecte et normalisation (section 7.9). Rapatrie les journaux bruts, puis écrit events.csv au schéma commun.\nUsage : parse.py --etat A [--date AAAA-MM-JJ] [--sans-collecte]\n        parse.py --dossier resultats/A/essai [--sans-collecte]\nLes événements sont limités à la période couverte par runs.csv et sla.csv (± 1 min), s'ils existent.\"\"\"\nimport argparse, csv, datetime as dt, glob, json, os, re, subprocess\n\nUTC = dt.timezone.utc\ndef iso(d):                                                   # horodatage commun : UTC, milliseconde, suffixe Z\n    return d.astimezone(UTC).isoformat(timespec=\"milliseconds\").replace(\"+00:00\", \"Z\")\n\ndef collecter(d):                                             # fichiers d'OPNsense et de l'hôte Docker (écart E13)\n    os.makedirs(f\"{d}/brut\", exist_ok=True)\n    for src, dst in [(\"root@10.99.0.1:/var/log/filter/*.log\", \"filterlog/\"),\n                     (\"root@10.99.0.1:/var/log/suricata/eve.json*\", \"\"),      # eve.json et ses fichiers tournés\n                     (\"root@10.99.0.20:/srv/logs/nginx/projet6.log\", \"nginx.log\")]:\n        os.makedirs(f\"{d}/brut/filterlog\", exist_ok=True)\n        subprocess.run([\"scp\", \"-q\", \"-o\", \"BatchMode=yes\", src, f\"{d}/brut/{dst}\"], check=False)\n\n# filterlog : format RFC 5424 d'OPNsense (« filterlog 412 - [meta …] 82,,, ») ou format de fichier rsyslog (« filterlog[412]: 82,,, »)\nRX_FL = re.compile(r\"(\\d{4}-\\d\\d-\\d\\dT[\\d:.]+(?:Z|[+-]\\d\\d:?\\d\\d)).*?filterlog\\S*\\s+(?:\\d+\\s+-\\s+(?:\\[[^\\]]*\\]|-)\\s+)?(\\d+,.*)$\")\ndef filterlog(chemin, w):\n    for ligne in open(chemin, encoding=\"utf-8\", errors=\"replace\"):\n        m = RX_FL.search(ligne.strip())\n        if not m: continue\n        f = m.group(2).split(\",\")\n        if len(f) < 20 or f[8] != \"4\": continue              # IPv4 seulement\n        proto = f[16]\n        dport = f[21] if proto in (\"tcp\", \"udp\") and len(f) > 21 else \"\"\n        ts = dt.datetime.fromisoformat(m.group(1).replace(\"Z\", \"+00:00\"))\n        w.writerow([iso(ts), \"pf\", f[18], f[19], dport, proto, f[6], \"\", f\"règle {f[0]} {f[3][:8]} {f[4]}\"])\n\ndef eve(chemin, w):\n    for ligne in open(chemin, encoding=\"utf-8\", errors=\"replace\"):\n        try: e = json.loads(ligne)\n        except ValueError: continue\n        if e.get(\"event_type\") != \"alert\": continue\n        a = e[\"alert\"]\n        ts = dt.datetime.strptime(e[\"timestamp\"], \"%Y-%m-%dT%H:%M:%S.%f%z\")\n        w.writerow([iso(ts), \"suricata\", e.get(\"src_ip\", \"\"), e.get(\"dest_ip\", \"\"), e.get(\"dest_port\", \"\"),\n                    e.get(\"proto\", \"\").lower(), \"drop\" if a.get(\"action\") == \"blocked\" else \"alert\",\n                    a.get(\"signature_id\", \"\"), a.get(\"signature\", \"\")])\n\nRX_NG = re.compile(r'^(\\S+) \\S+ \\S+ \\[([^\\]]+)\\] \"(\\S+) (\\S+)[^\"]*\" (\\d{3}) ')\ndef nginx(chemin, w):\n    for ligne in open(chemin, encoding=\"utf-8\", errors=\"replace\"):\n        m = RX_NG.match(ligne)\n        if not m: continue\n        ts = dt.datetime.strptime(m.group(2), \"%d/%b/%Y:%H:%M:%S %z\")\n        w.writerow([iso(ts), \"nginx\", m.group(1), \"10.20.0.10\", \"443\", \"tcp\", m.group(5), \"\", f\"{m.group(3)} {m.group(4)}\"])\n\ndef bornes(d):                                                # période de la campagne : runs.csv et sla.csv\n    ts = []\n    for nom, cols in ((\"runs.csv\", (\"t0_utc\", \"t1_utc\")), (\"sla.csv\", (\"ts_utc\",))):\n        if os.path.exists(f\"{d}/{nom}\"):\n            for r in csv.DictReader(open(f\"{d}/{nom}\", encoding=\"utf-8\")):\n                ts += [dt.datetime.fromisoformat(r[c].replace(\"Z\", \"+00:00\")) for c in cols if r.get(c)]\n    if not ts: return None\n    marge = dt.timedelta(minutes=1)\n    return iso(min(ts) - marge), iso(max(ts) + marge)\n\ndef main():\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--etat\", choices=[\"A\", \"B\"])\n    ap.add_argument(\"--date\", default=dt.date.today().isoformat())\n    ap.add_argument(\"--dossier\", help=\"dossier de résultats explicite (remplace --etat et --date)\")\n    ap.add_argument(\"--sans-collecte\", action=\"store_true\")\n    a = ap.parse_args()\n    if not a.dossier and not a.etat: ap.error(\"--etat ou --dossier est obligatoire\")\n    d = a.dossier or f\"resultats/{a.etat}/{a.date}\"\n    if not a.sans_collecte: collecter(d)\n    tmp = f\"{d}/events.tmp\"\n    with open(tmp, \"w\", newline=\"\", encoding=\"utf-8\") as o:\n        w = csv.writer(o)\n        for p in sorted(glob.glob(f\"{d}/brut/filterlog/*\")): filterlog(p, w)\n        for p in sorted(glob.glob(f\"{d}/brut/eve.json*\")):\n            if not p.endswith((\".gz\", \".bz2\", \".xz\")): eve(p, w)           # fichiers compressés : décompresser d'abord\n        for p in sorted(glob.glob(f\"{d}/brut/nginx*.log\")): nginx(p, w)\n    lignes = sorted(csv.reader(open(tmp, encoding=\"utf-8\")), key=lambda r: r[0])   # ordre chronologique\n    b = bornes(d)\n    if b: lignes = [r for r in lignes if b[0] <= r[0] <= b[1]]            # même format ISO : comparaison de textes\n    with open(f\"{d}/events.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as o:\n        w = csv.writer(o)\n        w.writerow([\"ts_utc\", \"source\", \"src_ip\", \"dst_ip\", \"dst_port\", \"proto\", \"action\", \"sid\", \"message\"])\n        w.writerows(lignes)\n    os.remove(tmp)\n    print(f\"{len(lignes)} événements dans {d}/events.csv\")\n\nif __name__ == \"__main__\":\n    main()",
+            "explication": "Contenu du fichier analyse/parse.py.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "analyse/parse.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e3-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "analyse/fp.py",
+            "texte": "#!/usr/bin/env python3\n\"\"\"Faux positifs par sid sur une période de trafic légitime seul (section 9.3, utilisé par le rôle 3).\nUsage : fp.py events.csv --debut 2026-11-24T08:00:00Z --fin 2026-11-24T10:00:00Z  > fp_par_sid.csv\n        fp.py events.csv --duree-h 2          (si events.csv ne contient que la période de mesure)\"\"\"\nimport argparse, collections, csv, datetime as dt\nap = argparse.ArgumentParser(); ap.add_argument(\"events\")\nap.add_argument(\"--debut\"); ap.add_argument(\"--fin\"); ap.add_argument(\"--duree-h\", type=float)\na = ap.parse_args()\nlire = lambda s: dt.datetime.fromisoformat(s.replace(\"Z\", \"+00:00\"))\nif a.debut and a.fin: duree = (lire(a.fin) - lire(a.debut)).total_seconds() / 3600\nelif a.duree_h: duree = a.duree_h\nelse: ap.error(\"donner --debut et --fin, ou --duree-h\")\ndef dedans(r):\n    t = lire(r[\"ts_utc\"])\n    return (not a.debut or t >= lire(a.debut)) and (not a.fin or t <= lire(a.fin))\nc = collections.Counter(r[\"sid\"] for r in csv.DictReader(open(a.events, encoding=\"utf-8\")) if r[\"source\"] == \"suricata\" and dedans(r))\nprint(\"sid,alertes,fp_par_heure\")\nfor sid, n in c.most_common():\n    print(f\"{sid},{n},{n / duree:.2f}\")",
+            "explication": "Contenu du fichier analyse/fp.py.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "analyse/fp.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e3-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "python3 analyse/parse.py --etat A --date 2026-11-19",
+            "explication": "Lance un programme Python du projet.",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/parse.py",
+                "texte": "lance analyse/parse.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e3-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "head -3 resultats/A/2026-11-19/events.csv",
+            "explication": "Affiche les premières lignes d'un fichier.\nDans la sortie, « …Z » : heure convertie en UTC\nDans la sortie, « pf … block » : ligne filterlog normalisée : c'est le format attendu par correle.py",
+            "sortie": "142 événements dans resultats/A/2026-11-19/events.csv\nts_utc,source,src_ip,dst_ip,dst_port,proto,action,sid,message\n2026-11-19T09:02:10.533Z,pf,203.0.113.66,203.0.113.1,22,tcp,block,,règle 77 fae55933 em0",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/A/2026-11-19/events.csv",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "0 événement",
+            "cause": "Fichiers absents de brut/, ou période de runs.csv / sla.csv sans rapport avec les journaux",
+            "solution": "Vérifier la collecte (scp) ou utiliser --sans-collecte avec des fichiers copiés à la main ; vérifier les dates de runs.csv."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Lignes filterlog ignorées",
+            "cause": "Format de ligne différent",
+            "solution": "Comparer une ligne brute à l'expression RX_FL ; ajuster la partie qui précède les champs."
+          },
+          {
+            "ordre": 3,
+            "symptome": "« time data … does not match format »",
+            "cause": "Format d'horodatage EVE différent",
+            "solution": "Afficher une ligne d'eve.json ; adapter le format de strptime."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "events.csv produit pour l'essai du 19 novembre (`parse.py --dossier resultats/A/essai`)"
+          },
+          {
+            "ordre": 2,
+            "texte": "Les trois sources présentes (pf, suricata en état B, nginx)"
+          },
+          {
+            "ordre": 3,
+            "texte": "Ordre chronologique vérifié"
+          }
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "r6-e4",
+        "titre": "Exploiter les captures (C10)",
+        "quand": "20–26 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Pour chaque exécution, les PCAP rangés, et une vérification automatique de l'effet réel côté cible.",
+        "pourquoi": "Section 7.10 : les PCAP servent à prouver si l'attaque a atteint sa cible (critère de blocage) et à fournir les captures commentées. Section 9.4 : effet vérifié dans la sortie de l'outil et dans le PCAP côté cible.",
+        "prerequis": "Étapes : services-7, attaques-3\nModules du cours : 10, 3\nNommage : page Contrats.",
+        "livrable": "Archive datée des PCAP (hors Git) et message au rôle 1 : emplacement de l'archive.",
+        "schema": "macvlan",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e4-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Vérifications en ligne de commande (collecteur, tshark installé)",
+            "texte": "tshark -r resultats/A/2026-11-20/pcap/A-S05-01_postgres.pcap -Y \"ip.src==10.10.0.70 && ip.dst==10.10.0.12 && tcp.flags.syn==1 && tcp.flags.ack==1\"",
+            "explication": "La base a-t-elle répondu à client-03 ? (S-05)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e4-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Vérifications en ligne de commande (collecteur, tshark installé)",
+            "texte": "tshark -r resultats/A/2026-11-20/pcap/A-S03-01_api.pcap -d tcp.port==5000,http -Y 'http.request.uri contains \"OR\"' -T fields -e http.request.uri",
+            "explication": "La requête d'injection est-elle arrivée à l'API ? (S-03) -d : l'API écoute sur 5000, que tshark ne décode pas en HTTP par défaut",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e4-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "bloc": "Vérifications en ligne de commande (collecteur, tshark installé)",
+            "texte": "tshark -r resultats/A/2026-11-20/pcap/A-S06-01_kali-wan.pcap -Y \"ip.flags.mf==1 || ip.frag_offset>0\" | wc -l",
+            "explication": "Fragments vus par Kali (S-06)",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e4-c04",
+            "ordre": 4,
+            "ou": "collecteur",
+            "shell": "Document",
+            "compte": "karim",
+            "texte": "(première commande, état A puis état B)",
+            "explication": "Texte de référence du guide : rien n'est exécuté.\n« SYN, ACK de 10.10.0.70 vers 10.10.0.12 » : état A : la base a répondu à l'attaquant ; pas bloqué au réseau. Le filtre sur la destination écarte les réponses à l'API (trafic légitime F05).\n« aucune ligne » : état B : la base n'a jamais reçu le SYN ; c'est la preuve du blocage",
+            "sortie": "  2 0.000412 10.10.0.70 → 10.10.0.12 TCP 74 5432 → 43120 [SYN, ACK] Seq=0 Ack=1 …\n(état B : aucune ligne)",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "PCAP vide",
+            "cause": "Capture arrêtée par KILL, ou mauvais point",
+            "solution": "capture.sh stop envoie INT ; vérifier le point de capture dans scenarios.yaml."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Fichiers énormes pendant S-02",
+            "cause": "Capture de nginx pendant un flood",
+            "solution": "S-02 ne capture que kali-wan (scenarios.yaml)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "tshark absent",
+            "cause": "—",
+            "solution": "`apt install tshark` pendant une fenêtre de configuration."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Chaque exécution a ses PCAP au bon nom"
+          },
+          {
+            "ordre": 2,
+            "texte": "Les vérifications tshark donnent le résultat attendu sur l'essai du 19"
+          }
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "r6-e5",
+        "titre": "Écrire la corrélation C11",
+        "quand": "22–24 nov. (sur A), relancée le 27 sur B",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Pour chaque exécution : détecté, temps de détection, bloqué ; pour chaque état : faux positifs par heure, disponibilité, latence.",
+        "pourquoi": "Section 9.4 et figure 13 : fenêtre [t0, t1 + 10 s] ; détecté = au moins une alerte ; TTD = première alerte − t0 ; bloqué = objectif non atteint (outil + PCAP) ; faux positifs = alertes hors de toute fenêtre, par heure de trafic légitime. Corrections E08 et E09 appliquées.",
+        "prerequis": "Étapes : analyse-3, attaques-5\nModules du cours : 10\nÉcrite et vérifiée sur la campagne A ; relancée sur A et B dès la fin de la campagne B (attaques-6).",
+        "livrable": "Commit de `analyse/correle.py` et de `resultats/synthese/*.csv`. Message au rôle 3 : fp_par_sid.csv pour le réglage (le 24) ; au rôle 1 : indicateurs le 28.",
+        "schema": "fenetre-ttd",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e5-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "analyse/correle.py",
+            "texte": "#!/usr/bin/env python3\n\"\"\"C11 — corrélation et indicateurs (section 9.4, figure 13), avec les corrections E08 (filtre sur l'attaquant)\net E09 (relais déclarés). Usage : correle.py resultats/A/<date> resultats/B/<date>\nDépendances : apt install python3-pandas python3-yaml tshark\"\"\"\nimport argparse, os, re, subprocess\nimport pandas as pd\n\nDELTA = pd.Timedelta(seconds=10)                               # tolérance après la fin de l'attaque\nRELAIS = {\"S-03\": [(\"10.20.0.10\", \"10.20.0.70\")]}              # nginx relaie la requête de l'attaquant vers l'API\n\ndef objectif_atteint(sc, sortie, sla_fenetre):                 # l'effet réel (critère de blocage, section 9.4)\n    if sc == \"S-01\": return \"/open/\" in sortie\n    if sc in (\"S-02\", \"P-01\"): return bool(len(sla_fenetre)) and sla_fenetre[\"succes\"].mean() < 0.99\n    if sc == \"S-03\": return \"secret\" in sortie\n    if sc in (\"S-04\", \"S-05\"): return re.search(r\"\\(1 (row|ligne)\\)\", sortie) is not None\n    return None                                                # S-06 : détection seulement\n\ndef synack_dans_pcap(fichier, cible, attaquant):               # « PCAP côté cible » : la base a-t-elle répondu À L'ATTAQUANT ?\n    filtre = f\"ip.src=={cible} && ip.dst=={attaquant} && tcp.flags.syn==1 && tcp.flags.ack==1\"\n    try:                                                       # (un SYN-ACK vers l'API, trafic légitime F05, ne compte pas)\n        r = subprocess.run([\"tshark\", \"-r\", fichier, \"-Y\", filtre],\n                           capture_output=True, text=True, timeout=120)\n    except (OSError, subprocess.TimeoutExpired):\n        return None\n    return bool(r.stdout.strip())\n\ndef main():\n    ap = argparse.ArgumentParser(); ap.add_argument(\"dossiers\", nargs=\"+\")\n    a = ap.parse_args()\n    par_exec, globaux = [], []\n    for d in a.dossiers:\n        runs = pd.read_csv(f\"{d}/runs.csv\", parse_dates=[\"t0_utc\", \"t1_utc\"])\n        ev = pd.read_csv(f\"{d}/events.csv\", parse_dates=[\"ts_utc\"], dtype={\"sid\": \"string\", \"dst_port\": \"string\"})\n        sla = pd.read_csv(f\"{d}/sla.csv\", parse_dates=[\"ts_utc\"])\n        alertes = ev[ev.source == \"suricata\"]\n        en_fenetre = pd.Series(False, index=alertes.index)\n        sla_attaque = pd.Series(False, index=sla.index)\n        for _, r in runs.iterrows():\n            debut, fin = r.t0_utc, r.t1_utc + DELTA\n            f = alertes[(alertes.ts_utc >= debut) & (alertes.ts_utc <= fin)]\n            en_fenetre |= alertes.index.isin(f.index)\n            sla_attaque |= (sla.ts_utc >= debut) & (sla.ts_utc <= fin)\n            garde = (f.src_ip == r.src_ip) | (f.dst_ip == r.src_ip)        # E08 : l'attaquant, pas la cible\n            for s, c in RELAIS.get(r.scenario, []):\n                garde |= (f.src_ip == s) & (f.dst_ip == c)\n            A = f[garde]\n            chemin = f\"{d}/sorties/{r.run_id}.txt\"\n            sortie = open(chemin, encoding=\"utf-8\", errors=\"replace\").read() if os.path.exists(chemin) else \"\"\n            sla_f = sla[(sla.ts_utc >= debut) & (sla.ts_utc <= fin) & (sla.type == \"https\")]\n            atteint = objectif_atteint(r.scenario, sortie, sla_f)\n            pcap = f\"{d}/pcap/{r.run_id}_postgres.pcap\"\n            if r.scenario in (\"S-04\", \"S-05\") and os.path.exists(pcap):\n                vu = synack_dans_pcap(pcap, \"10.10.0.70\", r.src_ip)\n                if vu: atteint = True                                    # la base a répondu : pas bloqué au réseau\n            par_exec.append({\"run_id\": r.run_id, \"scenario\": r.scenario, \"etat\": r.etat, \"detecte\": len(A) > 0,\n                             \"ttd_ms\": round((A.ts_utc.min() - r.t0_utc).total_seconds() * 1000) if len(A) else None,\n                             \"bloque\": None if atteint is None else not atteint})\n        hors = alertes[~en_fenetre]                                       # faux positifs : hors de toute fenêtre\n        duree_h = (sla.ts_utc.max() - sla.ts_utc.min()).total_seconds() / 3600\n        https = sla.type == \"https\"\n        ok = sla[https & ~sla_attaque]                                    # référence : hors fenêtres d'attaque\n        sous = sla[https & sla_attaque]\n        globaux.append({\"etat\": runs.etat.iloc[0], \"fp_par_heure\": round(len(hors) / duree_h, 2) if duree_h else None,\n                        \"disponibilite_pct\": round(100 * ok.succes.mean(), 2) if len(ok) else None,           # nominale\n                        \"disponibilite_sous_attaque_pct\": round(100 * sous.succes.mean(), 2) if len(sous) else None,\n                        \"latence_mediane_ms\": ok[ok.succes == 1].duree_ms.median(),\n                        \"latence_p95_ms\": ok[ok.succes == 1].duree_ms.quantile(0.95, interpolation=\"higher\")})\n    os.makedirs(\"resultats/synthese\", exist_ok=True)\n    df = pd.DataFrame(par_exec)\n    df.to_csv(\"resultats/synthese/par_execution.csv\", index=False)\n    ind = df.groupby([\"scenario\", \"etat\"]).agg(n=(\"run_id\", \"count\"), taux_detection=(\"detecte\", \"mean\"),\n            taux_blocage=(\"bloque\", lambda s: s.dropna().astype(float).mean() if s.notna().any() else None),\n            ttd_median_ms=(\"ttd_ms\", \"median\")).reset_index()\n    ind.to_csv(\"resultats/synthese/indicateurs.csv\", index=False)\n    pd.DataFrame(globaux).to_csv(\"resultats/synthese/globaux.csv\", index=False)\n    print(ind.to_string(index=False)); print(pd.DataFrame(globaux).to_string(index=False))\n\nif __name__ == \"__main__\":\n    main()",
+            "explication": "Contenu du fichier analyse/correle.py.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "analyse/correle.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e5-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "python3 analyse/correle.py resultats/A/2026-11-20 resultats/B/2026-11-25",
+            "explication": "Lance un programme Python du projet.\nDans la sortie, « exemple de forme, pas de résultat » : les valeurs réelles viendront de vos campagnes\nDans la sortie, « disponibilite_pct » : disponibilité nominale, hors fenêtres d'attaque : c'est la valeur à comparer à l'objectif ≥ 99 % ; la disponibilité sous attaque est présentée à part\nDans la sortie, « ttd NaN en A » : aucune alerte en état A : pas de temps de détection\nDans la sortie, « taux_blocage 0.9 » : 9 exécutions sur 10 bloquées : à commenter (sondes passées avant le seuil)",
+            "sortie": "scenario etat  n  taux_detection  taux_blocage  ttd_median_ms\n    S-01    A 10             0.0           0.0            NaN\n    S-01    B 10             1.0           0.9          412.0\n    S-05    A 10             0.0           0.0            NaN\n    S-05    B 10             1.0           1.0           18.0\n…\netat  fp_par_heure  disponibilite_pct  disponibilite_sous_attaque_pct  latence_mediane_ms  latence_p95_ms\n   A          0.00             100.00                           81.30                42.0            61.0\n   B          0.40              99.90                           99.20                47.0            72.0",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/correle.py",
+                "texte": "lance analyse/correle.py",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Toutes les détections à 0 en état B",
+            "cause": "Horloges décalées ou fenêtre fausse",
+            "solution": "Comparer t0 et les premières alertes à la main ; vérifier NTP (étape 1)."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Détection de S-03 à 0",
+            "cause": "Relais non pris en compte",
+            "solution": "Vérifier RELAIS et les adresses de la ligne EVE (10.20.0.10 → 10.20.0.70)."
+          },
+          {
+            "ordre": 3,
+            "symptome": "taux_blocage vide pour S-06",
+            "cause": "Normal : pas d'objectif de blocage",
+            "solution": "Le présenter comme « détection seulement »."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "par_execution.csv, indicateurs.csv, globaux.csv produits pour A et B"
+          },
+          {
+            "ordre": 2,
+            "texte": "Chaque valeur inattendue a été vérifiée à la main sur au moins une exécution"
+          }
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "r6-e6",
+        "titre": "Produire les indicateurs et les graphiques A vs B",
+        "quand": "27–28 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Les tableaux et graphiques du rapport final, régénérables d'une commande.",
+        "pourquoi": "Section 10.2 : taux de détection, taux de blocage, temps de détection, faux positifs, disponibilité, latence introduite (sonde, iperf3 : A, B sans IPS, B avec IPS). EF7 : tableaux et graphiques A vs B. Jalon du 28 novembre.",
+        "prerequis": "Étapes : analyse-5, attaques-6\nModules du cours : 10, 12",
+        "livrable": "Commit de `resultats/synthese/` et message au rôle 1 : « indicateurs et graphiques prêts pour le rapport ».",
+        "schema": "graphes-maquette",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e6-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Editeur",
+            "compte": "karim",
+            "bloc": "analyse/graphes.py",
+            "texte": "#!/usr/bin/env python3\n\"\"\"Graphiques A vs B (section 10.2) à partir de resultats/synthese/. Dépendance : apt install python3-matplotlib\"\"\"\nimport json, glob\nimport matplotlib; matplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nimport pandas as pd\n\nS = \"resultats/synthese\"\nind = pd.read_csv(f\"{S}/indicateurs.csv\")\nglo = pd.read_csv(f\"{S}/globaux.csv\")\nscen = [\"S-01\", \"S-02\", \"S-03\", \"S-04\", \"S-05\", \"S-06\"]\n\ndef barres(col, titre, fichier):\n    fig, ax = plt.subplots(figsize=(8, 3.6))\n    for k, (etat, coul) in enumerate([(\"A\", \"#9aa3a0\"), (\"B\", \"#0c6a66\")]):\n        v = [ind[(ind.scenario == s) & (ind.etat == etat)][col].mean() for s in scen]\n        x = [i + (k - 0.5) * 0.38 for i in range(len(scen))]\n        ax.bar(x, [0 if pd.isna(y) else y for y in v], width=0.36, color=coul, label=f\"état {etat}\")\n        for xi, y in zip(x, v):\n            ax.text(xi, (0 if pd.isna(y) else y) + 0.02, \"n/a\" if pd.isna(y) else f\"{y:.0%}\", ha=\"center\", fontsize=8)\n    ax.set_xticks(range(len(scen)), scen); ax.set_ylim(0, 1.12); ax.set_ylabel(titre)\n    ax.set_title(f\"{titre} par scénario (N = {int(ind.n.max())})\"); ax.legend(frameon=False)\n    fig.tight_layout(); fig.savefig(f\"{S}/{fichier}\", dpi=150)\n\nbarres(\"taux_detection\", \"Taux de détection\", \"detection.png\")\nbarres(\"taux_blocage\", \"Taux de blocage\", \"blocage.png\")\n\nex = pd.read_csv(f\"{S}/par_execution.csv\")\nfig, ax = plt.subplots(figsize=(8, 3.4))\nb = ex[(ex.etat == \"B\") & ex.ttd_ms.notna()]\nax.boxplot([b[b.scenario == s].ttd_ms for s in scen if len(b[b.scenario == s])], tick_labels=[s for s in scen if len(b[b.scenario == s])])\nax.set_ylabel(\"ms\"); ax.set_title(\"Temps de détection en état B (première alerte − t0)\")\nfig.tight_layout(); fig.savefig(f\"{S}/ttd.png\", dpi=150)\n\ndebits = {}\nfor f in sorted(glob.glob(\"resultats/*/*/iperf/*.json\")):\n    debits[f.split(\"/\")[-1].replace(\".json\", \"\")] = json.load(open(f))[\"end\"][\"sum_received\"][\"bits_per_second\"] / 1e6\nfig, ax = plt.subplots(1, 2, figsize=(9, 3.2))\nax[0].bar(glo.etat, glo.latence_mediane_ms, color=\"#0c6a66\", label=\"médiane\"); ax[0].bar(glo.etat, glo.latence_p95_ms - glo.latence_mediane_ms, bottom=glo.latence_mediane_ms, color=\"#7fb3b0\", label=\"jusqu'au p95\")\nax[0].set_title(\"Latence HTTPS de la sonde (ms)\"); ax[0].legend(frameon=False)\nax[1].bar(list(debits), list(debits.values()), color=\"#0c6a66\"); ax[1].set_title(\"Débit iperf3 (Mbit/s)\")\nfig.tight_layout(); fig.savefig(f\"{S}/latence_debit.png\", dpi=150)\nprint(\"graphiques écrits dans\", S)",
+            "explication": "Contenu du fichier analyse/graphes.py.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "fichier",
+                "noeud": "collecteur",
+                "chemin": "analyse/graphes.py",
+                "cree": true,
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e6-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "python3 analyse/graphes.py && ls resultats/synthese/*.png",
+            "explication": "Lance un programme Python du projet.\nDans la sortie, « 4 images » : chaque graphique répond à une question du sujet",
+            "sortie": "graphiques écrits dans resultats/synthese\nresultats/synthese/blocage.png  resultats/synthese/detection.png\nresultats/synthese/latence_debit.png  resultats/synthese/ttd.png",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "analyse/graphes.py",
+                "texte": "lance analyse/graphes.py",
+                "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "fichier": "resultats/synthese/*.png",
+                "ordre": 2,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Un scénario manque dans un graphique",
+            "cause": "Aucune exécution pour cet état",
+            "solution": "Vérifier runs.csv ; ne jamais compléter à la main."
+          },
+          {
+            "ordre": 2,
+            "symptome": "Les pourcentages ne correspondent pas au tableau",
+            "cause": "Graphique ancien",
+            "solution": "Toujours régénérer après correle.py."
+          },
+          {
+            "ordre": 3,
+            "symptome": "Pas de débit iperf3",
+            "cause": "Fichiers JSON absents",
+            "solution": "Rôle 5 : iperf/A.json dans le dossier de la campagne A, iperf/B-avec-ips.json et iperf/B-sans-ips.json dans celui de la campagne B."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "Les 4 graphiques produits par script"
+          },
+          {
+            "ordre": 2,
+            "texte": "Chaque « attendu » de la section 10.1 a son verdict mesuré (confirmé / infirmé)"
+          },
+          {
+            "ordre": 3,
+            "texte": "Tableau final relu par un autre rôle"
+          }
+        ]
+      },
+      {
+        "numero": 7,
+        "code": "r6-e7",
+        "titre": "Commenter 4 à 6 captures Wireshark",
+        "quand": "27–28 nov.",
+        "fait": false,
+        "statut": "Validee",
+        "but": "Des captures commentées qui montrent, paquet par paquet, la différence entre A et B.",
+        "pourquoi": "Section 7.10 : les PCAP fournissent les captures Wireshark commentées demandées par le sujet. Elles illustrent les figures 6 et 7 avec des paquets réels.",
+        "prerequis": "Étapes : analyse-4, attaques-6\nModules du cours : 10, 1, 9",
+        "livrable": "Dossier `rapport/captures/` (pcapng + images) et message au rôle 1.",
+        "commandes": [
+          {
+            "sousCommandes": [],
+            "code": "r6-e7-c01",
+            "ordre": 1,
+            "ou": "collecteur",
+            "shell": "Document",
+            "compte": "karim",
+            "bloc": "Captures à produire et filtres d'affichage",
+            "texte": "1. S-05 état A — A-S05-01_postgres.pcap        filtre : tcp.port == 5432\n   Montrer : SYN de 10.10.0.12, SYN-ACK de 10.10.0.70, échange PostgreSQL : la connexion aboutit sans pare-feu.\n2. S-05 état B — B-S05-01_postgres.pcap        filtre : ip.addr == 10.10.0.12\n   Montrer : aucun paquet de client-03 n'arrive ; mettre en regard la ligne filterlog et l'alerte 9000020.\n3. S-01 état A — A-S01-01_kali-wan.pcap        filtre : tcp.flags.syn == 1\n   Montrer : SYN-ACK pour 80 / 443 / 53, rien pour les autres ports (filtered).\n4. S-01 état B — B-S01-01_kali-wan.pcap        Statistics › I/O Graphs (SYN envoyés, SYN-ACK reçus)\n   Montrer : les réponses cessent après le seuil de 20 SYN en 5 s.\n5. S-03 état A — A-S03-01_api.pcap             Analyze › Decode As… : TCP 5000 → HTTP, puis filtre http.request.uri contains \"OR\", puis Follow › HTTP Stream\n   Montrer : l'URL d'injection en clair et la réponse contenant « secret ».\n6. S-06 — A-S06-01_kali-wan.pcap               filtre : ip.flags.mf == 1 || ip.frag_offset > 0\n   Montrer : les fragments de 8 octets produits par nmap -f.",
+            "explication": "Document : Captures à produire et filtres d'affichage.\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e7-c02",
+            "ordre": 2,
+            "ou": "collecteur",
+            "shell": "Document",
+            "compte": "karim",
+            "bloc": "Comment annoter",
+            "texte": "Wireshark › Edit › Packet Comment… sur les paquets clés, puis File › Save As… au format pcapng (les commentaires y sont gardés).\nPour le rapport : capture d'écran de la liste des paquets + 3 à 5 lignes d'explication sous l'image\n(que montre-t-on, quel paquet regarder, quelle conclusion pour A ou B).",
+            "explication": "Document : Comment annoter.\nTexte de référence du guide : rien n'est exécuté.",
+            "estTest": false,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Document de référence : rien n'est exécuté.",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          },
+          {
+            "sousCommandes": [],
+            "code": "r6-e7-c03",
+            "ordre": 3,
+            "ou": "collecteur",
+            "shell": "Bash",
+            "compte": "karim",
+            "texte": "tshark -r captures/1-S05-A.pcapng -Y 'frame.comment' -T fields -e frame.number -e frame.comment",
+            "explication": "Lit une capture et n'affiche que les paquets qui correspondent au filtre.\nDans la sortie, « commentaires présents » : les annotations sont enregistrées dans le fichier remis",
+            "sortie": "1\tSYN de client-03 vers PostgreSQL : aucun pare-feu sur le chemin\n2\tSYN-ACK : la base accepte la connexion",
+            "estTest": true,
+            "effets": [
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "ordre": 1,
+                "automatique": true
+              }
+            ]
+          }
+        ],
+        "pannes": [
+          {
+            "ordre": 1,
+            "symptome": "Les commentaires disparaissent",
+            "cause": "Enregistré au format pcap",
+            "solution": "Enregistrer en pcapng."
+          },
+          {
+            "ordre": 2,
+            "symptome": "HTTP illisible",
+            "cause": "Capture prise sur le WAN (TLS)",
+            "solution": "Utiliser la capture côté API (saut nginx → API en clair)."
+          }
+        ],
+        "criteres": [
+          {
+            "ordre": 1,
+            "texte": "4 à 6 captures pcapng commentées"
+          },
+          {
+            "ordre": 2,
+            "texte": "Chaque capture a sa légende dans le rapport"
+          }
+        ]
+      }
+    ]
+  },
+  "questionsJury": [
+    {
+      "question": "Comment calculez-vous le taux de détection ?",
+      "reponse": "Pour chaque exécution, on cherche les alertes Suricata dans [t0, t1 + 10 s] qui concernent l'adresse de l'attaquant (ou un relais déclaré, comme nginx pour S-03). Détecté = au moins une alerte. Le taux est la moyenne sur les N exécutions d'un scénario et d'un état."
+    },
+    {
+      "question": "Pourquoi ne pas filtrer sur la cible, comme dans le pseudo-code de la conception ?",
+      "reponse": "Parce que la cible de S-02 et S-03 est nginx, que la sonde légitime interroge en permanence : une alerte causée par la sonde pendant la fenêtre aurait compté comme détection. Le filtre sur l'attaquant évite ce biais (écart E08)."
+    },
+    {
+      "question": "Comment jugez-vous qu'une attaque est bloquée ?",
+      "reponse": "Sur l'effet réel : ports ouverts dans la sortie de nmap, ligne renvoyée par psql, « secret » dans la réponse, disponibilité de la sonde ; et pour S-04 et S-05, présence ou non d'un SYN-ACK de la base dans le PCAP côté cible."
+    },
+    {
+      "question": "Qu'est-ce qu'un faux positif dans vos chiffres ?",
+      "reponse": "Une alerte hors de toute fenêtre d'attaque, rapportée à la durée de trafic légitime. La mesure de 2 h de trafic légitime seul est la référence : pendant ce temps, toute alerte est un faux positif."
+    },
+    {
+      "question": "Pourquoi la médiane et le 95e centile pour la latence ?",
+      "reponse": "Avec quelques valeurs extrêmes, la moyenne est trompeuse. La médiane décrit l'expérience typique, le p95 les lenteurs occasionnelles ; on compare A, B sans IPS et B avec IPS pour isoler le coût de Suricata."
+    }
+  ]
+}
