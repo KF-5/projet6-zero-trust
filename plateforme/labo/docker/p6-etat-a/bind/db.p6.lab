@@ -1,0 +1,13 @@
+; Zone p6.lab - vue publique (adresses joignables depuis le WAN simule via le NAT d'OPNsense)
+$TTL 300
+@       IN SOA  ns1.p6.lab. admin.p6.lab. (
+                2026111601 ; serial
+                3600       ; refresh
+                600        ; retry
+                86400      ; expire
+                300 )      ; minimum
+        IN NS   ns1.p6.lab.
+ns1     IN A    203.0.113.1
+www     IN A    203.0.113.1
+api     IN A    203.0.113.1
+fw      IN A    203.0.113.1
