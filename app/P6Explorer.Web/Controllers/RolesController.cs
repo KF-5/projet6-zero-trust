@@ -9,7 +9,7 @@ namespace P6Explorer.Web.Controllers;
 /// <summary>Vue rôle : la liste des étapes, et pour l'étape choisie le schéma, le terminal et l'explication.</summary>
 [AllowAnonymous]
 [Route("Roles")]
-public class RolesController(IEtapeService etapes, IRoleService roles, IAuthorizationService autorisation) : Controller
+public class RolesController(IEtapeService etapes, IRoleService roles, IAuthorizationService autorisation, P6Explorer.Web.Services.SchemasGuide schemasGuide) : Controller
 {
     [HttpGet("")]
     public IActionResult Index() => RedirectToAction("Index", "Home", null, "titre-roles");
@@ -32,6 +32,7 @@ public class RolesController(IEtapeService etapes, IRoleService roles, IAuthoriz
         vm.CommandeInitiale = Math.Max(1, commande ?? 1);
         vm.Vitesse = HttpContext.Session.Vitesse();
         vm.PeutModifier = (await autorisation.AuthorizeAsync(User, numero, Politiques.ModifierSonRole)).Succeeded;
+        vm.SchemaGuide = schemasGuide.Trouver(vm.Etape.Schema);
         ViewData["Title"] = $"Rôle {numero} · {vm.Etape.Titre}";
         ViewBag.CodeInitial = code;
         return View(vm);

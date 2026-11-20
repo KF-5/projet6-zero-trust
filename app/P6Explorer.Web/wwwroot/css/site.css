@@ -437,6 +437,49 @@ dfn.terme:focus { outline: 2px solid var(--acc); outline-offset: 1px; }
   .champ-trame, .terme-glossaire { grid-template-columns: minmax(0, 1fr); }
 }
 
+
+/* ---------- Schémas propres aux étapes (repris du guide) ---------- */
+.schema-guide { --f-b: var(--f-texte); --f-d: var(--f-mono); --f-m: var(--f-mono); }
+.vues-schema { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: 1rem; }
+.vue-schema { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--rayon); padding: .6rem; }
+.schema-guide-dessin svg { display: block; width: 100%; height: auto; }
+.etapes-schema { font-size: .85rem; padding-left: 1.2rem; }
+.etapes-schema li { margin: .3rem 0; }
+.legende-guide { display: flex; flex-wrap: wrap; gap: .8rem; font-size: .8rem; color: var(--muted); }
+.legende-guide i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: .3rem; vertical-align: middle; }
+.schema-guide svg text { user-select: none; }
+.schema-guide .tn { font: 600 12px var(--f-b); fill: var(--fg); }
+.schema-guide .tb { font: 700 13.5px var(--f-d); fill: var(--fg); }
+.schema-guide .ti { font: 500 10.5px var(--f-m); fill: var(--muted); }
+.schema-guide .ts { font: 500 10px var(--f-m); fill: var(--muted); }
+.schema-guide .tl { font: 600 11px var(--f-m); fill: var(--fg); }
+.schema-guide .tz { font: 700 12.5px var(--f-d); }
+.schema-guide .nd { fill: var(--surface); stroke: var(--line); stroke-width: 1.6; }
+.schema-guide .nd.acc { stroke: var(--acc); stroke-width: 2.2; }
+.schema-guide .nd.ids { stroke: var(--ids); stroke-width: 2; }
+.schema-guide .nd.off { stroke-dasharray: 4 3; opacity: .55; }
+.schema-guide .wr { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+.schema-guide .z { fill-opacity: .07; stroke-width: 1.5; }
+.schema-guide .c-wan { fill: var(--wan); stroke: var(--wan); } .schema-guide .c-dmz { fill: var(--dmz); stroke: var(--dmz); }
+.schema-guide .c-lan { fill: var(--lan); stroke: var(--lan); } .schema-guide .c-mgmt { fill: var(--mgmt); stroke: var(--mgmt); }
+.schema-guide .c-trunk { fill: var(--trunk); stroke: var(--trunk); } .schema-guide .c-acc { fill: var(--acc); stroke: var(--acc); }
+.schema-guide .c-ids { fill: var(--ids); stroke: var(--ids); }
+.schema-guide .f-warn { fill: var(--warn); } .schema-guide .s-warn { stroke: var(--warn); } .schema-guide .s-muted { stroke: var(--muted); }
+.schema-guide .f-wan { fill: var(--wan); } .schema-guide .f-dmz { fill: var(--dmz); } .schema-guide .f-lan { fill: var(--lan); }
+.schema-guide .f-mgmt { fill: var(--mgmt); } .schema-guide .f-trunk { fill: var(--trunk); } .schema-guide .f-acc { fill: var(--acc); }
+.schema-guide .f-ids { fill: var(--ids); } .schema-guide .f-ok { fill: var(--ok); } .schema-guide .f-bad { fill: var(--bad); }
+.schema-guide .f-muted { fill: var(--muted); } .schema-guide .f-on { fill: var(--on-acc); }
+.schema-guide .s-wan { stroke: var(--wan); } .schema-guide .s-dmz { stroke: var(--dmz); } .schema-guide .s-lan { stroke: var(--lan); }
+.schema-guide .s-mgmt { stroke: var(--mgmt); } .schema-guide .s-trunk { stroke: var(--trunk); } .schema-guide .s-acc { stroke: var(--acc); }
+.schema-guide .s-ids { stroke: var(--ids); } .schema-guide .s-ok { stroke: var(--ok); } .schema-guide .s-bad { stroke: var(--bad); }
+.schema-guide .pl rect { fill: var(--surface); stroke-width: 1.8; }
+.schema-guide .pl text { font: 600 11px var(--f-b); }
+.schema-guide .pl.ok rect { stroke: var(--ok); } .schema-guide .pl.ok text { fill: var(--ok); }
+.schema-guide .pl.bad rect { stroke: var(--bad); } .schema-guide .pl.bad text { fill: var(--bad); }
+.schema-guide .pl.ids rect { stroke: var(--ids); } .schema-guide .pl.ids text { fill: var(--ids); }
+.schema-guide .pl.acc rect { stroke: var(--acc); } .schema-guide .pl.acc text { fill: var(--acc); }
+.schema-guide .pl.warn rect { stroke: var(--warn); } .schema-guide .pl.warn text { fill: var(--warn); }
+
 /* ---------- Animations ---------- */
 @keyframes entree { from { opacity: 0; transform: translateY(-6px); } }
 @keyframes remplir { from { transform: scaleX(0); } }

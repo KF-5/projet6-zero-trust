@@ -97,7 +97,14 @@ public sealed partial class ConstructeurRole(string racine, Dictionary<string, L
                 etape.Criteres.Add(new CritereFin { Ordre = ++i, Texte = Texte.Nettoyer(c.GetString()) ?? "" });
         }
         if (numeroRole == 3 && numero == 0)
-            carnet.Remarques.Add("r3-e0 (mini-laboratoire WSL sur le PC d'un membre) : effets ramenés à une mise en valeur du PC ; schéma propre à dessiner au jalon 6 (plan, décision 3).");
+            carnet.Remarques.Add("r3-e0 (mini-laboratoire WSL sur le PC d'un membre) : rien ne circule dans le laboratoire ; effets ramenés à une mise en valeur du PC du membre (plan, décision 3). Le schéma du mini-laboratoire n'est pas dessiné : il reprend les adresses du laboratoire, que la carte principale montre déjà.");
+        // Bascule A → B (rôle 2 étape 8 : règles F ; rôle 4 étape 8 : réseaux Docker B) : le schéma propose l'état B.
+        if ((numeroRole, numero) is (2, 8) or (4, 8)
+            && !etape.Commandes.SelectMany(c => c.Effets).OfType<ChangementEtat>().Any()
+            && etape.Commandes.LastOrDefault(c => !c.EstTest && c.Shell != Shell.Document) is { } derniere)
+        {
+            derniere.Effets.Add(new ChangementEtat { Etat = "B", Ordre = derniere.Effets.Count + 1, Automatique = true });
+        }
         return etape;
     }
 

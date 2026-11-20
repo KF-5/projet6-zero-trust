@@ -1,0 +1,540 @@
+{
+ "home-archi": {
+  "nom": "home-archi",
+  "question": "Qui est responsable de chaque élément de l'architecture ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "home-gantt": {
+  "nom": "home-gantt",
+  "question": "Qui fait quoi, quand, et qu'est-ce qui retarde tout le monde si ça glisse ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "contrats-flux": {
+  "nom": "contrats-flux",
+  "question": "Quel rôle produit chaque fichier, et qui en dépend ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "pipeline-logs": {
+  "nom": "pipeline-logs",
+  "question": "Comment une ligne écrite par pf devient-elle une ligne de events.csv, puis un indicateur ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": null,
+    "svg": "<svg viewBox=\"0 0 1000 260\" role=\"img\" aria-label=\"Comment une ligne écrite par pf devient-elle une ligne de events.csv, puis un indicateur ?\" class=\"schema-guide-svg\"><g><g data-k=\"opn\"><rect x=\"15\" y=\"65\" width=\"150\" height=\"50\" rx=\"8\" class=\"nd \"></rect><text x=\"90\" y=\"87\" class=\"tn\" text-anchor=\"middle\">OPNsense</text><text x=\"90\" y=\"103\" class=\"ti\" text-anchor=\"middle\">filterlog, eve.json</text></g><g data-k=\"sys\"><rect x=\"195\" y=\"65\" width=\"150\" height=\"50\" rx=\"8\" class=\"nd \"></rect><text x=\"270\" y=\"87\" class=\"tn\" text-anchor=\"middle\">rsyslog</text><text x=\"270\" y=\"103\" class=\"ti\" text-anchor=\"middle\">collecteur :514</text></g><g data-k=\"file\"><rect x=\"375\" y=\"65\" width=\"150\" height=\"50\" rx=\"8\" class=\"nd \"></rect><text x=\"450\" y=\"87\" class=\"tn\" text-anchor=\"middle\">fichier brut</text><text x=\"450\" y=\"103\" class=\"ti\" text-anchor=\"middle\">/var/log/remote/</text></g><g data-k=\"parse\"><rect x=\"555\" y=\"65\" width=\"150\" height=\"50\" rx=\"8\" class=\"nd acc\"></rect><text x=\"630\" y=\"87\" class=\"tn\" text-anchor=\"middle\">parse.py</text><text x=\"630\" y=\"103\" class=\"ti\" text-anchor=\"middle\">C9</text></g><g data-k=\"ev\"><rect x=\"735\" y=\"65\" width=\"150\" height=\"50\" rx=\"8\" class=\"nd acc\"></rect><text x=\"810\" y=\"87\" class=\"tn\" text-anchor=\"middle\">events.csv</text><text x=\"810\" y=\"103\" class=\"ti\" text-anchor=\"middle\">schéma commun</text></g><g><line x1=\"165\" y1=\"90\" x2=\"193\" y2=\"90\" class=\"wr \" stroke-width=\"2\"></line><path d=\"M193 90 L184.71045105397403 93.50476508077786 L184.71045105397403 86.49523491922214 Z\" class=\"f-muted\"></path></g><g><line x1=\"345\" y1=\"90\" x2=\"373\" y2=\"90\" class=\"wr \" stroke-width=\"2\"></line><path d=\"M373 90 L364.71045105397405 93.50476508077786 L364.71045105397405 86.49523491922214 Z\" class=\"f-muted\"></path></g><g><line x1=\"525\" y1=\"90\" x2=\"553\" y2=\"90\" class=\"wr \" stroke-width=\"2\"></line><path d=\"M553 90 L544.710451053974 93.50476508077786 L544.710451053974 86.49523491922214 Z\" class=\"f-muted\"></path></g><g><line x1=\"705\" y1=\"90\" x2=\"733\" y2=\"90\" class=\"wr \" stroke-width=\"2\"></line><path d=\"M733 90 L724.710451053974 93.50476508077786 L724.710451053974 86.49523491922214 Z\" class=\"f-muted\"></path></g><g data-k=\"cor\"><rect x=\"735\" y=\"178\" width=\"150\" height=\"44\" rx=\"8\" class=\"nd acc\"></rect><text x=\"810\" y=\"197\" class=\"tn\" text-anchor=\"middle\">correle.py (C11)</text><text x=\"810\" y=\"213\" class=\"ti\" text-anchor=\"middle\">+ runs.csv, sla.csv</text></g><g><line x1=\"810\" y1=\"115\" x2=\"810\" y2=\"176\" class=\"wr \" stroke-width=\"2\"></line><path d=\"M810 176 L806.4952349192222 167.71045105397403 L813.5047650807778 167.71045105397403 Z\" class=\"f-muted\"></path></g><g data-k=\"ind\"><rect x=\"475\" y=\"178\" width=\"170\" height=\"44\" rx=\"8\" class=\"nd \"></rect><text x=\"560\" y=\"197\" class=\"tn\" text-anchor=\"middle\">indicateurs.csv</text><text x=\"560\" y=\"213\" class=\"ti\" text-anchor=\"middle\">détection, TTD, FP/h…</text></g><g><line x1=\"735\" y1=\"200\" x2=\"647\" y2=\"200\" class=\"wr \" stroke-width=\"2\"></line><path d=\"M647 200 L655.289548946026 196.49523491922216 L655.289548946026 203.50476508077784 Z\" class=\"f-muted\"></path></g><text x=\"90\" y=\"30\" class=\"ts\" text-anchor=\"start\">UDP ou TCP 514 sur MGMT (VMnet9)</text></g></svg>",
+    "etapes": [
+     "pf bloque le SYN de client-03 (S-05, état B) et écrit une ligne filterlog : une suite de champs séparés par des virgules (module 5).",
+     "OPNsense l'envoie en syslog vers 10.99.0.10:514, par le réseau MGMT. En UDP, un message peut se perdre pendant un flood (écart E13) : on relira aussi les fichiers d'OPNsense après chaque campagne.",
+     "rsyslog l'écrit dans un fichier, avec un horodatage complet (date, heure à la microseconde, fuseau). Le fichier brut est conservé : c'est la preuve.",
+     "parse.py reconnaît filterlog, lit les champs par position (action = 7e, IP source = 19e…), convertit l'heure en <b>UTC</b> et écrit une ligne au schéma commun (section 7.9).",
+     "correle.py rapproche l'exécution B-S05-03 de runs.csv des événements du même attaquant dans [t0, t1 + 10 s]. Seules les alertes Suricata comptent comme détection : ici l'alerte 9000020 du même instant. La ligne pf reste une preuve pour le rapport ; « bloqué » se juge sur l'effet réel (sortie de psql, PCAP côté base)."
+    ],
+    "fin": "Une ligne brute devient une ligne de events.csv (UTC, champs communs), puis une ligne de résultat par exécution. Chaque étape est rejouable à partir des fichiers bruts archivés."
+   }
+  ],
+  "legende": []
+ },
+ "fenetre-ttd": {
+  "nom": "fenetre-ttd",
+  "question": "Quelles alertes comptent pour une exécution, comment se calcule le temps de détection, et qu'est-ce qui fausse le résultat ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "graphes-maquette": {
+  "nom": "graphes-maquette",
+  "question": "À quoi ressembleront les graphiques du rapport final, et comment les lire ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "campagne-chrono": {
+  "nom": "campagne-chrono",
+  "question": "Que fait l'orchestrateur, dans quel ordre, pour qu'une exécution soit mesurable et n'influence pas la suivante ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": null,
+    "svg": "<svg viewBox=\"0 0 1000 330\" role=\"img\" aria-label=\"Que fait l'orchestrateur, dans quel ordre, pour qu'une exécution soit mesurable et n'influence pas la suivante ?\" class=\"schema-guide-svg\"><g><text x=\"10\" y=\"64\" class=\"tl\" text-anchor=\"start\">C6 orchestrateur (collecteur)</text><line x1=\"225\" y1=\"60\" x2=\"985\" y2=\"60\" style=\"stroke:var(--line);stroke-dasharray:2 4\"></line><text x=\"10\" y=\"110\" class=\"tl\" text-anchor=\"start\">C10 capture (hôte Docker, Kali)</text><line x1=\"225\" y1=\"106\" x2=\"985\" y2=\"106\" style=\"stroke:var(--line);stroke-dasharray:2 4\"></line><text x=\"10\" y=\"156\" class=\"tl\" text-anchor=\"start\">C7 attaquant (Kali ou conteneur)</text><line x1=\"225\" y1=\"152\" x2=\"985\" y2=\"152\" style=\"stroke:var(--line);stroke-dasharray:2 4\"></line><text x=\"10\" y=\"202\" class=\"tl\" text-anchor=\"start\">C8 sonde (en continu)</text><line x1=\"225\" y1=\"198\" x2=\"985\" y2=\"198\" style=\"stroke:var(--line);stroke-dasharray:2 4\"></line><text x=\"10\" y=\"248\" class=\"tl\" text-anchor=\"start\">OPNsense : états pf, Suricata</text><line x1=\"225\" y1=\"244\" x2=\"985\" y2=\"244\" style=\"stroke:var(--line);stroke-dasharray:2 4\"></line><line x1=\"230\" y1=\"280\" x2=\"230\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"230\" y=\"300\" class=\"ts\" text-anchor=\"middle\">0 s</text><line x1=\"322\" y1=\"280\" x2=\"322\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"322\" y=\"300\" class=\"ts\" text-anchor=\"middle\">10 s</text><line x1=\"414\" y1=\"280\" x2=\"414\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"414\" y=\"300\" class=\"ts\" text-anchor=\"middle\">20 s</text><line x1=\"506\" y1=\"280\" x2=\"506\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"506\" y=\"300\" class=\"ts\" text-anchor=\"middle\">30 s</text><line x1=\"598\" y1=\"280\" x2=\"598\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"598\" y=\"300\" class=\"ts\" text-anchor=\"middle\">40 s</text><line x1=\"690\" y1=\"280\" x2=\"690\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"690\" y=\"300\" class=\"ts\" text-anchor=\"middle\">50 s</text><line x1=\"782\" y1=\"280\" x2=\"782\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"782\" y=\"300\" class=\"ts\" text-anchor=\"middle\">60 s</text><line x1=\"874\" y1=\"280\" x2=\"874\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"874\" y=\"300\" class=\"ts\" text-anchor=\"middle\">70 s</text><line x1=\"966\" y1=\"280\" x2=\"966\" y2=\"286\" style=\"stroke:var(--muted)\"></line><text x=\"966\" y=\"300\" class=\"ts\" text-anchor=\"middle\">80 s</text><line x1=\"230\" y1=\"280\" x2=\"984.4\" y2=\"280\" style=\"stroke:var(--muted)\"></line><rect x=\"230\" y=\"191\" width=\"754.4\" height=\"14\" rx=\"4\" style=\"fill:var(--ok);fill-opacity:.25\"></rect><text x=\"607.2\" y=\"202\" class=\"tl\" text-anchor=\"middle\">HTTPS 1/s + DNS toutes les 5 s → sla.csv</text></g></svg>",
+    "etapes": [
+     "L'orchestrateur démarre la capture <b>avant</b> l'attaque (<code>capture.sh start A-S05-03 postgres</code>) : le PCAP contiendra le tout début de l'échange.",
+     "Il note <b>t0</b> avec l'horloge du collecteur, la référence NTP du laboratoire. C'est l'origine du temps de détection.",
+     "Il lance la commande du scénario par SSH (ici <code>docker exec client-03 …</code> sur l'hôte Docker), garde sa sortie dans <code>sorties/A-S05-03.txt</code> et son code de retour.",
+     "Fin de la commande : il note <b>t1</b>. La fenêtre de corrélation du rôle 6 sera [t0, t1 + 10 s].",
+     "Il arrête la capture (<code>capture.sh stop</code>, signal INT pour que tcpdump ferme proprement le fichier) et rapatrie le PCAP.",
+     "Réinitialisation : <code>pfctl -k 10.10.0.12</code> sur OPNsense supprime les états de l'attaquant. Sans cela, l'exécution suivante profiterait d'une connexion déjà ouverte.",
+     "Pause de 30 s : les blocages temporaires de Suricata (<code>rate_filter … timeout 20</code>) expirent et le trafic se calme. La sonde continue de mesurer pendant tout ce temps.",
+     "Scénario suivant, dans l'ordre tiré au hasard avec la <b>même graine</b> en A et en B (section 10.3). 6 scénarios × 10 exécutions ≈ 1 h 30."
+    ],
+    "fin": "Une exécution : capture, t0, attaque, t1, arrêt de la capture, ligne runs.csv, réinitialisation, pause. Seul l'orchestrateur sait quand une attaque a lieu : tous les indicateurs en dépendent (section 8.4)."
+   }
+  ],
+  "legende": []
+ },
+ "comparateur-ab": {
+  "nom": "comparateur-ab",
+  "question": "Pour chaque scénario, que doit-on observer en état A et en état B, et comment juger l'objectif atteint ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "proxmox-topo": {
+  "nom": "proxmox-topo",
+  "question": "Comment les 4 VM sont-elles câblées, et pourquoi le laboratoire ne peut-il rien envoyer vers Internet pendant les campagnes ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "Installations",
+    "svg": "<svg viewBox=\"0 0 1000 520\" role=\"img\" aria-label=\"Comment les 4 VM sont-elles câblées, et pourquoi le laboratoire ne peut-il rien envoyer vers Internet pendant les campagnes ?\" class=\"schema-guide-svg\"><g><rect x=\"10\" y=\"10\" width=\"980\" height=\"500\" rx=\"14\" style=\"fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:3 4\"></rect><text x=\"26\" y=\"34\" class=\"tb\" text-anchor=\"start\">PC hôte · Windows 10 · VMware Workstation Pro · 16 Go de RAM</text><g data-k=\"br-wan\"><line x1=\"30\" y1=\"110\" x2=\"960\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"3.5\"></line><text x=\"955\" y=\"103\" class=\"ts f-wan\" text-anchor=\"end\">p6-wan · segment LAN · WAN simulé 203.0.113.0/24 · aucun lien physique</text></g><g data-k=\"br-trunk\"><line x1=\"30\" y1=\"330\" x2=\"960\" y2=\"330\" class=\"wr s-trunk\" stroke-width=\"5\"></line><text x=\"955\" y=\"323\" class=\"ts f-trunk\" text-anchor=\"end\">p6-trunk · segment LAN · trunk 802.1Q · aucun lien physique</text></g><g data-k=\"br-mgmt\"><line x1=\"30\" y1=\"410\" x2=\"960\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"3.5\"></line><text x=\"955\" y=\"403\" class=\"ts f-mgmt\" text-anchor=\"end\">VMnet9 · hôte uniquement · MGMT 10.99.0.0/24 · Windows = 10.99.0.2</text></g><g data-k=\"br-phys\"><line x1=\"30\" y1=\"478\" x2=\"960\" y2=\"478\" class=\"wr \" stroke-width=\"3.5\"></line><text x=\"36\" y=\"471\" class=\"ts \" text-anchor=\"start\">VMnet8 · NAT VMware vers Internet (installations seulement)</text></g><rect x=\"880\" y=\"458\" width=\"100\" height=\"40\" rx=\"7\" class=\"nd\"></rect><text x=\"930\" y=\"474\" class=\"ts\" text-anchor=\"middle\">Windows</text><text x=\"930\" y=\"488\" class=\"tl\" text-anchor=\"middle\">hôte</text><g data-k=\"kali\"><rect x=\"40\" y=\"150\" width=\"150\" height=\"120\" rx=\"10\" class=\"nd\"></rect><text x=\"50\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-kali</text><text x=\"50\" y=\"188\" class=\"ts\" text-anchor=\"start\">1 vCPU · 1,5 Go</text></g><line x1=\"80\" y1=\"150\" x2=\"80\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"2.2\"></line><circle cx=\"80\" cy=\"110\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"84\" y=\"140\" class=\"ts\" text-anchor=\"start\">eth0</text><line x1=\"150\" y1=\"322\" x2=\"150\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"150\" y1=\"270\" x2=\"150\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"150\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"154\" y=\"284\" class=\"ts\" text-anchor=\"start\">eth1</text><line x1=\"175\" y1=\"322\" x2=\"175\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"175\" y1=\"402\" x2=\"175\" y2=\"418\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"175\" y1=\"270\" x2=\"175\" y2=\"478\" class=\"wr\" stroke-width=\"2\" stroke-dasharray=\"5 4\"></line><circle cx=\"175\" cy=\"478\" r=\"4.5\" style=\"fill:var(--warn)\"></circle><text x=\"171\" y=\"296\" class=\"ts\" text-anchor=\"end\">NAT</text><g data-k=\"opn\"><rect x=\"220\" y=\"150\" width=\"200\" height=\"120\" rx=\"10\" class=\"nd acc\"></rect><text x=\"230\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-opnsense</text><text x=\"230\" y=\"188\" class=\"ts\" text-anchor=\"start\">2 vCPU · 3 Go</text></g><line x1=\"250\" y1=\"150\" x2=\"250\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"2.2\"></line><circle cx=\"250\" cy=\"110\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"254\" y=\"140\" class=\"ts\" text-anchor=\"start\">em0</text><line x1=\"320\" y1=\"270\" x2=\"320\" y2=\"330\" class=\"wr s-trunk\" stroke-width=\"2.2\"></line><circle cx=\"320\" cy=\"330\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"324\" y=\"284\" class=\"ts\" text-anchor=\"start\">em1</text><line x1=\"385\" y1=\"322\" x2=\"385\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"385\" y1=\"270\" x2=\"385\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"385\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"389\" y=\"284\" class=\"ts\" text-anchor=\"start\">em2</text><line x1=\"410\" y1=\"322\" x2=\"410\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"410\" y1=\"402\" x2=\"410\" y2=\"418\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"410\" y1=\"270\" x2=\"410\" y2=\"478\" class=\"wr\" stroke-width=\"2\" stroke-dasharray=\"5 4\"></line><circle cx=\"410\" cy=\"478\" r=\"4.5\" style=\"fill:var(--warn)\"></circle><text x=\"406\" y=\"296\" class=\"ts\" text-anchor=\"end\">NAT</text><g data-k=\"dock\"><rect x=\"450\" y=\"150\" width=\"250\" height=\"120\" rx=\"10\" class=\"nd\"></rect><text x=\"460\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-docker</text><text x=\"460\" y=\"188\" class=\"ts\" text-anchor=\"start\">2 vCPU · 2,5 Go</text></g><line x1=\"480\" y1=\"150\" x2=\"480\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"2.2\"></line><circle cx=\"480\" cy=\"110\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"484\" y=\"140\" class=\"ts\" text-anchor=\"start\">ens34</text><line x1=\"570\" y1=\"270\" x2=\"570\" y2=\"330\" class=\"wr s-trunk\" stroke-width=\"2.2\"></line><circle cx=\"570\" cy=\"330\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"574\" y=\"284\" class=\"ts\" text-anchor=\"start\">ens33</text><line x1=\"660\" y1=\"322\" x2=\"660\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"660\" y1=\"270\" x2=\"660\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"660\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"664\" y=\"284\" class=\"ts\" text-anchor=\"start\">ens32</text><line x1=\"690\" y1=\"322\" x2=\"690\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"690\" y1=\"402\" x2=\"690\" y2=\"418\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"690\" y1=\"270\" x2=\"690\" y2=\"478\" class=\"wr\" stroke-width=\"2\" stroke-dasharray=\"5 4\"></line><circle cx=\"690\" cy=\"478\" r=\"4.5\" style=\"fill:var(--warn)\"></circle><text x=\"686\" y=\"296\" class=\"ts\" text-anchor=\"end\">NAT</text><g data-k=\"coll\"><rect x=\"740\" y=\"150\" width=\"150\" height=\"120\" rx=\"10\" class=\"nd\"></rect><text x=\"750\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-collecteur</text><text x=\"750\" y=\"188\" class=\"ts\" text-anchor=\"start\">1 vCPU · 1 Go</text></g><line x1=\"800\" y1=\"322\" x2=\"800\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"800\" y1=\"270\" x2=\"800\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"800\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"804\" y=\"284\" class=\"ts\" text-anchor=\"start\">ens32</text><line x1=\"875\" y1=\"322\" x2=\"875\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"875\" y1=\"402\" x2=\"875\" y2=\"418\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"875\" y1=\"270\" x2=\"875\" y2=\"478\" class=\"wr\" stroke-width=\"2\" stroke-dasharray=\"5 4\"></line><circle cx=\"875\" cy=\"478\" r=\"4.5\" style=\"fill:var(--warn)\"></circle><text x=\"871\" y=\"296\" class=\"ts\" text-anchor=\"end\">NAT</text><line x1=\"960\" y1=\"478\" x2=\"930\" y2=\"478\" class=\"wr\" stroke-width=\"3.5\"></line><text x=\"30\" y=\"500\" class=\"tl \" text-anchor=\"start\">Installations : carte NAT branchée (pointillés) sur VMnet8</text></g></svg>",
+    "etapes": [
+     "Les VM ne touchent jamais la carte Wi-Fi de Windows : aucune n'est en mode « pont ». Windows n'est relié au laboratoire que par <b>VMnet9</b> (MGMT, 10.99.0.2) et, pendant les installations seulement, par le <b>NAT</b> de VMware (VMnet8). L'équipe arrive sur Windows par Tailscale et des tunnels SSH (étape 5).",
+     "<b>p6-wan</b> est le WAN simulé : Kali (eth0), OPNsense (em0) et l'hôte Docker (ens34, pour client-ext) s'y branchent. C'est un « segment LAN » VMware : il ne relie que des VM, le trafic reste dans le PC.",
+     "<b>p6-trunk</b> transporte tous les VLAN internes avec leur étiquette 802.1Q, entre l'hôte Docker (ens33) et OPNsense (em1). Un segment LAN VMware laisse passer les trames étiquetées sans rien configurer.",
+     "<b>VMnet9</b> est le réseau MGMT : Windows (10.99.0.2) et le collecteur y administrent les VM en SSH, le collecteur y reçoit syslog et donne l'heure. OPNsense ne filtre que ce qui passe par lui : chaque VM a donc son propre filtre SSH (étape 5).",
+     "Pendant une installation seulement, la carte <b>NAT</b> de la VM est branchée : <code>apt</code>, <code>docker pull</code>, règles ET Open. On la rebranche dans VMware (Paramètres › Carte réseau NAT › Connecté), puis on la débranche et on décoche « Connecter à la mise sous tension » (écarts E25, E27)."
+    ],
+    "fin": "Installations : une VM télécharge par sa carte NAT branchée. À débrancher juste après."
+   },
+   {
+    "etat": "B",
+    "libelle": "En service",
+    "svg": "<svg viewBox=\"0 0 1000 520\" role=\"img\" aria-label=\"Comment les 4 VM sont-elles câblées, et pourquoi le laboratoire ne peut-il rien envoyer vers Internet pendant les campagnes ?\" class=\"schema-guide-svg\"><g><rect x=\"10\" y=\"10\" width=\"980\" height=\"500\" rx=\"14\" style=\"fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:3 4\"></rect><text x=\"26\" y=\"34\" class=\"tb\" text-anchor=\"start\">PC hôte · Windows 10 · VMware Workstation Pro · 16 Go de RAM</text><g data-k=\"br-wan\"><line x1=\"30\" y1=\"110\" x2=\"960\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"3.5\"></line><text x=\"955\" y=\"103\" class=\"ts f-wan\" text-anchor=\"end\">p6-wan · segment LAN · WAN simulé 203.0.113.0/24 · aucun lien physique</text></g><g data-k=\"br-trunk\"><line x1=\"30\" y1=\"330\" x2=\"960\" y2=\"330\" class=\"wr s-trunk\" stroke-width=\"5\"></line><text x=\"955\" y=\"323\" class=\"ts f-trunk\" text-anchor=\"end\">p6-trunk · segment LAN · trunk 802.1Q · aucun lien physique</text></g><g data-k=\"br-mgmt\"><line x1=\"30\" y1=\"410\" x2=\"960\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"3.5\"></line><text x=\"955\" y=\"403\" class=\"ts f-mgmt\" text-anchor=\"end\">VMnet9 · hôte uniquement · MGMT 10.99.0.0/24 · Windows = 10.99.0.2</text></g><g data-k=\"br-phys\"><line x1=\"30\" y1=\"478\" x2=\"960\" y2=\"478\" class=\"wr \" stroke-width=\"3.5\"></line><text x=\"36\" y=\"471\" class=\"ts \" text-anchor=\"start\">VMnet8 · NAT VMware vers Internet (installations seulement)</text></g><rect x=\"880\" y=\"458\" width=\"100\" height=\"40\" rx=\"7\" class=\"nd\"></rect><text x=\"930\" y=\"474\" class=\"ts\" text-anchor=\"middle\">Windows</text><text x=\"930\" y=\"488\" class=\"tl\" text-anchor=\"middle\">hôte</text><g data-k=\"kali\"><rect x=\"40\" y=\"150\" width=\"150\" height=\"120\" rx=\"10\" class=\"nd\"></rect><text x=\"50\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-kali</text><text x=\"50\" y=\"188\" class=\"ts\" text-anchor=\"start\">1 vCPU · 1,5 Go</text></g><line x1=\"80\" y1=\"150\" x2=\"80\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"2.2\"></line><circle cx=\"80\" cy=\"110\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"84\" y=\"140\" class=\"ts\" text-anchor=\"start\">eth0</text><line x1=\"150\" y1=\"322\" x2=\"150\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"150\" y1=\"270\" x2=\"150\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"150\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"154\" y=\"284\" class=\"ts\" text-anchor=\"start\">eth1</text><g data-k=\"opn\"><rect x=\"220\" y=\"150\" width=\"200\" height=\"120\" rx=\"10\" class=\"nd acc\"></rect><text x=\"230\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-opnsense</text><text x=\"230\" y=\"188\" class=\"ts\" text-anchor=\"start\">2 vCPU · 3 Go</text></g><line x1=\"250\" y1=\"150\" x2=\"250\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"2.2\"></line><circle cx=\"250\" cy=\"110\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"254\" y=\"140\" class=\"ts\" text-anchor=\"start\">em0</text><line x1=\"320\" y1=\"270\" x2=\"320\" y2=\"330\" class=\"wr s-trunk\" stroke-width=\"2.2\"></line><circle cx=\"320\" cy=\"330\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"324\" y=\"284\" class=\"ts\" text-anchor=\"start\">em1</text><line x1=\"385\" y1=\"322\" x2=\"385\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"385\" y1=\"270\" x2=\"385\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"385\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"389\" y=\"284\" class=\"ts\" text-anchor=\"start\">em2</text><g data-k=\"dock\"><rect x=\"450\" y=\"150\" width=\"250\" height=\"120\" rx=\"10\" class=\"nd\"></rect><text x=\"460\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-docker</text><text x=\"460\" y=\"188\" class=\"ts\" text-anchor=\"start\">2 vCPU · 2,5 Go</text></g><line x1=\"480\" y1=\"150\" x2=\"480\" y2=\"110\" class=\"wr s-wan\" stroke-width=\"2.2\"></line><circle cx=\"480\" cy=\"110\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"484\" y=\"140\" class=\"ts\" text-anchor=\"start\">ens34</text><line x1=\"570\" y1=\"270\" x2=\"570\" y2=\"330\" class=\"wr s-trunk\" stroke-width=\"2.2\"></line><circle cx=\"570\" cy=\"330\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"574\" y=\"284\" class=\"ts\" text-anchor=\"start\">ens33</text><line x1=\"660\" y1=\"322\" x2=\"660\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"660\" y1=\"270\" x2=\"660\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"660\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"664\" y=\"284\" class=\"ts\" text-anchor=\"start\">ens32</text><g data-k=\"coll\"><rect x=\"740\" y=\"150\" width=\"150\" height=\"120\" rx=\"10\" class=\"nd\"></rect><text x=\"750\" y=\"172\" class=\"tb\" text-anchor=\"start\">p6-collecteur</text><text x=\"750\" y=\"188\" class=\"ts\" text-anchor=\"start\">1 vCPU · 1 Go</text></g><line x1=\"800\" y1=\"322\" x2=\"800\" y2=\"338\" style=\"stroke:var(--surface);stroke-width:9\"></line><line x1=\"800\" y1=\"270\" x2=\"800\" y2=\"410\" class=\"wr s-mgmt\" stroke-width=\"2.2\"></line><circle cx=\"800\" cy=\"410\" r=\"4.5\" style=\"fill:var(--fg)\"></circle><text x=\"804\" y=\"284\" class=\"ts\" text-anchor=\"start\">ens32</text><line x1=\"960\" y1=\"478\" x2=\"930\" y2=\"478\" class=\"wr\" stroke-width=\"3.5\"></line><text x=\"30\" y=\"500\" class=\"tl f-ok\" text-anchor=\"start\">En service : cartes NAT débranchées (« non connectée au démarrage »), aucune sortie possible</text></g></svg>",
+    "etapes": [
+     "Les VM ne touchent jamais la carte Wi-Fi de Windows : aucune n'est en mode « pont ». Windows n'est relié au laboratoire que par <b>VMnet9</b> (MGMT, 10.99.0.2) et, pendant les installations seulement, par le <b>NAT</b> de VMware (VMnet8). L'équipe arrive sur Windows par Tailscale et des tunnels SSH (étape 5).",
+     "<b>p6-wan</b> est le WAN simulé : Kali (eth0), OPNsense (em0) et l'hôte Docker (ens34, pour client-ext) s'y branchent. C'est un « segment LAN » VMware : il ne relie que des VM, le trafic reste dans le PC.",
+     "<b>p6-trunk</b> transporte tous les VLAN internes avec leur étiquette 802.1Q, entre l'hôte Docker (ens33) et OPNsense (em1). Un segment LAN VMware laisse passer les trames étiquetées sans rien configurer.",
+     "<b>VMnet9</b> est le réseau MGMT : Windows (10.99.0.2) et le collecteur y administrent les VM en SSH, le collecteur y reçoit syslog et donne l'heure. OPNsense ne filtre que ce qui passe par lui : chaque VM a donc son propre filtre SSH (étape 5).",
+     "En service, un paquet de Kali vers une adresse d'Internet n'a nulle part où aller : p6-wan n'a aucun lien physique et toutes les cartes NAT sont débranchées. Prouvé depuis Kali le 16 et le 17 novembre : <code>tests-cloisonnement.sh</code> = 19/19 (ENF1)."
+    ],
+    "fin": "En service : 2 segments LAN sans lien physique + VMnet9, 4 VM, cartes NAT débranchées. Le seul lien avec l'extérieur est Windows (VMnet9), atteint par l'équipe via Tailscale et des tunnels SSH limités."
+   }
+  ],
+  "legende": [
+   {
+    "couleur": "var(--wan)",
+    "texte": "p6-wan WAN"
+   },
+   {
+    "couleur": "var(--trunk)",
+    "texte": "p6-trunk trunk"
+   },
+   {
+    "couleur": "var(--mgmt)",
+    "texte": "VMnet9 MGMT"
+   },
+   {
+    "couleur": "var(--muted)",
+    "texte": "VMnet8 NAT (installations)"
+   }
+  ]
+ },
+ "snapshot-cycle": {
+  "nom": "snapshot-cycle",
+  "question": "Que contient un état figé, et que perd-on exactement en revenant à un snapshot ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": null,
+    "svg": "<svg viewBox=\"0 0 1000 330\" role=\"img\" aria-label=\"Que contient un état figé, et que perd-on exactement en revenant à un snapshot ?\" class=\"schema-guide-svg\"><g><line x1=\"40\" y1=\"120\" x2=\"960\" y2=\"120\" class=\"wr\" stroke-width=\"2\"></line><g data-k=\"t0\"><circle cx=\"70\" cy=\"120\" r=\"8\" class=\"nd\"></circle><text x=\"70\" y=\"96\" class=\"tl\" text-anchor=\"middle\">Installation</text></g><g data-k=\"t1\"><circle cx=\"190\" cy=\"120\" r=\"8\" class=\"nd\"></circle><text x=\"190\" y=\"96\" class=\"tl\" text-anchor=\"middle\">Config. état A</text></g><g data-k=\"t2\"><circle cx=\"310\" cy=\"120\" r=\"8\" class=\"nd\"></circle><text x=\"310\" y=\"96\" class=\"tl\" text-anchor=\"middle\">test_flux A 100 %</text></g><g data-k=\"t3\"><rect x=\"418\" y=\"108\" width=\"24\" height=\"24\" rx=\"4\" class=\"nd acc\"></rect><text x=\"430\" y=\"96\" class=\"tl\" text-anchor=\"middle\">snapshot etat-A</text></g><g data-k=\"t4\"><circle cx=\"550\" cy=\"120\" r=\"8\" class=\"nd\"></circle><text x=\"550\" y=\"96\" class=\"tl\" text-anchor=\"middle\">Campagne A</text></g><g data-k=\"t5\"><circle cx=\"670\" cy=\"120\" r=\"8\" class=\"nd\"></circle><text x=\"670\" y=\"96\" class=\"tl\" text-anchor=\"middle\">Config. état B</text></g><g data-k=\"t6\"><rect x=\"778\" y=\"108\" width=\"24\" height=\"24\" rx=\"4\" class=\"nd acc\"></rect><text x=\"790\" y=\"96\" class=\"tl\" text-anchor=\"middle\">snapshot etat-B</text></g><g data-k=\"t7\"><circle cx=\"910\" cy=\"120\" r=\"8\" class=\"nd\"></circle><text x=\"910\" y=\"96\" class=\"tl\" text-anchor=\"middle\">Campagne B</text></g><g data-k=\"s-etat-A\"><rect x=\"345\" y=\"165\" width=\"170\" height=\"96\" rx=\"8\" class=\"nd acc\"></rect><text x=\"430\" y=\"184\" class=\"tn\" text-anchor=\"middle\">snapshot etat-A</text><text x=\"354\" y=\"202\" class=\"ts\" text-anchor=\"start\">disques + RAM des 4 VM</text><text x=\"354\" y=\"218\" class=\"ts\" text-anchor=\"start\">tag Git etat-A :</text><text x=\"354\" y=\"232\" class=\"ts\" text-anchor=\"start\">config.xml, compose, flows.csv</text><text x=\"354\" y=\"246\" class=\"ts\" text-anchor=\"start\">règles Suricata, VERSION.txt</text></g><line x1=\"430\" y1=\"132\" x2=\"430\" y2=\"165\" class=\"wr s-acc\" stroke-dasharray=\"3 3\"></line><g data-k=\"s-etat-B\"><rect x=\"705\" y=\"165\" width=\"170\" height=\"96\" rx=\"8\" class=\"nd acc\"></rect><text x=\"790\" y=\"184\" class=\"tn\" text-anchor=\"middle\">snapshot etat-B</text><text x=\"714\" y=\"202\" class=\"ts\" text-anchor=\"start\">disques + RAM des 4 VM</text><text x=\"714\" y=\"218\" class=\"ts\" text-anchor=\"start\">tag Git etat-B :</text><text x=\"714\" y=\"232\" class=\"ts\" text-anchor=\"start\">config.xml, compose, flows.csv</text><text x=\"714\" y=\"246\" class=\"ts\" text-anchor=\"start\">règles Suricata, VERSION.txt</text></g><line x1=\"790\" y1=\"132\" x2=\"790\" y2=\"165\" class=\"wr s-acc\" stroke-dasharray=\"3 3\"></line><text x=\"40\" y=\"300\" class=\"ts\" text-anchor=\"start\">VMware garde les instantanés dans un arbre : on peut revenir à l'un ou à l'autre.</text></g></svg>",
+    "etapes": [
+     "On installe, puis on configure l'état A (rôles 2 et 4). Rien n'est encore figé : une erreur ici se corrige à la main.",
+     "test_flux est à 100 % : on fige. Instantané <code>etat-A</code> des 4 VM (<code>vmrun snapshot</code> ou le panneau) et <code>git tag etat-A</code> sur le dépôt. Les deux doivent citer le même commit.",
+     "Campagne A (N = 10). Les résultats vont dans <code>resultats/A/&lt;date&gt;/</code>, hors des VM : ils survivent à toute restauration.",
+     "On modifie pour l'état B (VLAN, règles, Suricata). On teste, puis on fige <code>etat-B</code>, enfant de <code>etat-A</code> dans l'arbre.",
+     "Restaurer <code>etat-A</code> (démo, nouvelle mesure) : <code>vmrun revertToSnapshot</code> (ou « Revenir » dans le panneau) remet les disques et la RAM. <b>Tout ce qui n'a pas été figé depuis le dernier snapshot est perdu.</b> etat-B reste disponible."
+    ],
+    "fin": "Deux états figés, chacun lié à un tag Git. Les résultats des campagnes sont stockés hors des VM. On passe d'un état à l'autre en quelques minutes, ce qui sécurise la démonstration."
+   }
+  ],
+  "legende": []
+ },
+ "mgmt-bypass": {
+  "nom": "mgmt-bypass",
+  "question": "Kali peut-elle utiliser le réseau MGMT pour atteindre l'hôte Docker sans passer par OPNsense ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "Sans filtre local",
+    "svg": "<svg viewBox=\"0 0 1000 300\" role=\"img\" aria-label=\"Kali peut-elle utiliser le réseau MGMT pour atteindre l'hôte Docker sans passer par OPNsense ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"960\" height=\"250\" rx=\"12\" class=\"z c-mgmt\"></rect><text x=\"32\" y=\"50\" class=\"tz f-mgmt\" text-anchor=\"start\">VMnet9 · MGMT 10.99.0.0/24 · un seul domaine L2 (Windows = 10.99.0.2)</text></g><line x1=\"60\" y1=\"200\" x2=\"940\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"3.5\"></line><g data-k=\"kali\"><rect x=\"55\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"140\" y=\"107\" class=\"tn\" text-anchor=\"middle\">Kali</text><text x=\"140\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.66</text></g><line x1=\"140\" y1=\"138\" x2=\"140\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><g data-k=\"opn\"><rect x=\"295\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd acc\"></rect><text x=\"380\" y=\"107\" class=\"tn\" text-anchor=\"middle\">OPNsense</text><text x=\"380\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.1</text></g><line x1=\"380\" y1=\"138\" x2=\"380\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><g data-k=\"dock\"><rect x=\"535\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"620\" y=\"107\" class=\"tn\" text-anchor=\"middle\">Hôte Docker</text><text x=\"620\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.20</text></g><line x1=\"620\" y1=\"138\" x2=\"620\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><g data-k=\"coll\"><rect x=\"775\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"860\" y=\"107\" class=\"tn\" text-anchor=\"middle\">Collecteur</text><text x=\"860\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.10</text></g><line x1=\"860\" y1=\"138\" x2=\"860\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line></g></svg>",
+    "etapes": [
+     "Kali envoie un SYN vers l'hôte Docker (10.99.0.20, port 22). La trame traverse VMnet9 directement : <b>OPNsense ne la voit jamais</b>, ses règles MGMT ne peuvent rien.",
+     "Le collecteur (10.99.0.10) ouvre une session SSH vers l'hôte Docker. Avec Windows (10.99.0.2), ce sont les deux seuls accès autorisés.",
+     "Sans pare-feu local, Kali joindrait aussi le collecteur (syslog, SSH) et pourrait fausser les journaux."
+    ],
+    "fin": "Sans pare-feu local, le réseau MGMT est un raccourci qui contourne OPNsense : c'est l'écart E02."
+   },
+   {
+    "etat": "B",
+    "libelle": "Avec nftables (étape 5)",
+    "svg": "<svg viewBox=\"0 0 1000 300\" role=\"img\" aria-label=\"Kali peut-elle utiliser le réseau MGMT pour atteindre l'hôte Docker sans passer par OPNsense ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"960\" height=\"250\" rx=\"12\" class=\"z c-mgmt\"></rect><text x=\"32\" y=\"50\" class=\"tz f-mgmt\" text-anchor=\"start\">VMnet9 · MGMT 10.99.0.0/24 · un seul domaine L2 (Windows = 10.99.0.2)</text></g><line x1=\"60\" y1=\"200\" x2=\"940\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"3.5\"></line><g data-k=\"kali\"><rect x=\"55\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"140\" y=\"107\" class=\"tn\" text-anchor=\"middle\">Kali</text><text x=\"140\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.66</text></g><line x1=\"140\" y1=\"138\" x2=\"140\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><g data-k=\"opn\"><rect x=\"295\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd acc\"></rect><text x=\"380\" y=\"107\" class=\"tn\" text-anchor=\"middle\">OPNsense</text><text x=\"380\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.1</text></g><line x1=\"380\" y1=\"138\" x2=\"380\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><g data-k=\"dock\"><rect x=\"535\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"620\" y=\"107\" class=\"tn\" text-anchor=\"middle\">Hôte Docker</text><text x=\"620\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.20</text></g><line x1=\"620\" y1=\"138\" x2=\"620\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><g data-k=\"coll\"><rect x=\"775\" y=\"82\" width=\"170\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"860\" y=\"107\" class=\"tn\" text-anchor=\"middle\">Collecteur</text><text x=\"860\" y=\"123\" class=\"ti\" text-anchor=\"middle\">10.99.0.10</text></g><line x1=\"860\" y1=\"138\" x2=\"860\" y2=\"200\" class=\"wr s-mgmt\" stroke-width=\"2\"></line><rect x=\"70\" y=\"150\" width=\"140\" height=\"18\" rx=\"4\" style=\"fill:var(--ok);fill-opacity:.15;stroke:var(--ok)\"></rect><text x=\"140\" y=\"163\" class=\"ts\" text-anchor=\"middle\">nftables p6_ssh</text><rect x=\"550\" y=\"150\" width=\"140\" height=\"18\" rx=\"4\" style=\"fill:var(--ok);fill-opacity:.15;stroke:var(--ok)\"></rect><text x=\"620\" y=\"163\" class=\"ts\" text-anchor=\"middle\">nftables p6_ssh</text><rect x=\"790\" y=\"150\" width=\"140\" height=\"18\" rx=\"4\" style=\"fill:var(--ok);fill-opacity:.15;stroke:var(--ok)\"></rect><text x=\"860\" y=\"163\" class=\"ts\" text-anchor=\"middle\">nftables p6_ssh</text></g></svg>",
+    "etapes": [
+     "Kali envoie un SYN vers l'hôte Docker (10.99.0.20, port 22). La trame traverse VMnet9 directement : <b>OPNsense ne la voit jamais</b>, ses règles MGMT ne peuvent rien.",
+     "Le collecteur (10.99.0.10) ouvre une session SSH vers l'hôte Docker. Avec Windows (10.99.0.2), ce sont les deux seuls accès autorisés.",
+     "La même tentative vers le collecteur est jetée par son propre nftables. Preuve : tests 2 et 3 de <code>tests-cloisonnement.sh</code> (19/19), à citer dans le rapport final."
+    ],
+    "fin": "Avec nftables sur chaque VM, seuls Windows et le collecteur ouvrent des sessions SSH sur MGMT. Kali ne peut plus s'en servir pour contourner le pare-feu."
+   }
+  ],
+  "legende": []
+ },
+ "netmap-position": {
+  "nom": "netmap-position",
+  "question": "Où Suricata prend-il les paquets, et pourquoi un paquet rejeté par Suricata n'apparaît-il jamais dans filterlog ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "IDS (copie)",
+    "svg": "<svg viewBox=\"0 0 1000 330\" role=\"img\" aria-label=\"Où Suricata prend-il les paquets, et pourquoi un paquet rejeté par Suricata n'apparaît-il jamais dans filterlog ?\" class=\"schema-guide-svg\"><g><rect x=\"150\" y=\"30\" width=\"830\" height=\"270\" rx=\"12\" class=\"nd acc\"></rect><text x=\"166\" y=\"52\" class=\"tb\" text-anchor=\"start\">VM OPNsense (FreeBSD)</text><polyline points=\"125,150 170,150\" class=\"wr \"></polyline><polyline points=\"600,150 610,150\" class=\"wr \"></polyline><polyline points=\"730,150 760,150\" class=\"wr \"></polyline><polyline points=\"260,150 470,150\" class=\"wr \"></polyline><path d=\"M275 150 V200 H365 V176\" class=\"wr s-ids\" stroke-dasharray=\"4 3\"></path><text x=\"279\" y=\"214\" class=\"ts f-ids\" text-anchor=\"start\">copie</text><polyline points=\"670,173 670,242\" class=\"wr \"></polyline><polyline points=\"365,176 365,242\" class=\"wr s-ids\"></polyline><g data-k=\"wire\"><rect x=\"15\" y=\"127\" width=\"110\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"70\" y=\"147\" class=\"tn\" text-anchor=\"middle\">câble virtuel</text><text x=\"70\" y=\"163\" class=\"ti\" text-anchor=\"middle\">p6-wan (WAN)</text></g><g data-k=\"nic\"><rect x=\"170\" y=\"127\" width=\"90\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"215\" y=\"147\" class=\"tn\" text-anchor=\"middle\">em0</text><text x=\"215\" y=\"163\" class=\"ti\" text-anchor=\"middle\">carte (pilote)</text></g><g data-k=\"sur\"><rect x=\"290\" y=\"124\" width=\"150\" height=\"52\" rx=\"8\" class=\"nd ids\"></rect><text x=\"365\" y=\"147\" class=\"tn\" text-anchor=\"middle\">Suricata</text><text x=\"365\" y=\"163\" class=\"ti\" text-anchor=\"middle\">reçoit une copie</text></g><g data-k=\"stack\"><rect x=\"470\" y=\"127\" width=\"130\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"535\" y=\"154\" class=\"tn\" text-anchor=\"middle\">pile IP du noyau</text></g><g data-k=\"pf\"><rect x=\"610\" y=\"127\" width=\"120\" height=\"46\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"670\" y=\"149\" class=\"tb f-on\" text-anchor=\"middle\">pf</text><text x=\"670\" y=\"165\" class=\"ts\" text-anchor=\"middle\" style=\"fill:var(--on-acc);stroke:none\">état, NAT, règles</text></g><g data-k=\"out\"><rect x=\"760\" y=\"127\" width=\"140\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"830\" y=\"154\" class=\"tn\" text-anchor=\"middle\">em1 → trunk</text></g><g data-k=\"log\"><rect x=\"595\" y=\"242\" width=\"150\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"670\" y=\"264\" class=\"tn\" text-anchor=\"middle\">filterlog</text></g><g data-k=\"eve\"><rect x=\"295\" y=\"242\" width=\"140\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"365\" y=\"264\" class=\"tn\" text-anchor=\"middle\">EVE JSON</text></g></g></svg>",
+    "etapes": [
+     "En mode IDS (capture pcap), le paquet va directement de em0 à la pile IP. Suricata reçoit une <b>copie</b> : il peut alerter, jamais bloquer.",
+     "pf traite le paquet original : état, redirection, règles. S'il le bloque, une ligne part dans filterlog.",
+     "Pendant ce temps, Suricata analyse sa copie et écrit éventuellement une alerte EVE. Le paquet est déjà passé : c'est la phase de réglage du rapport (alert seulement)."
+    ],
+    "fin": "En IDS, Suricata analyse une copie : il voit tout, alerte, mais ne retarde ni ne bloque rien."
+   },
+   {
+    "etat": "B",
+    "libelle": "IPS en ligne (netmap)",
+    "svg": "<svg viewBox=\"0 0 1000 330\" role=\"img\" aria-label=\"Où Suricata prend-il les paquets, et pourquoi un paquet rejeté par Suricata n'apparaît-il jamais dans filterlog ?\" class=\"schema-guide-svg\"><g><rect x=\"150\" y=\"30\" width=\"830\" height=\"270\" rx=\"12\" class=\"nd acc\"></rect><text x=\"166\" y=\"52\" class=\"tb\" text-anchor=\"start\">VM OPNsense (FreeBSD)</text><rect x=\"280\" y=\"70\" width=\"170\" height=\"160\" rx=\"10\" style=\"fill:var(--ids);fill-opacity:.08;stroke:var(--ids);stroke-dasharray:5 4\"></rect><text x=\"290\" y=\"88\" class=\"tl f-ids\" text-anchor=\"start\">netmap</text><polyline points=\"125,150 170,150\" class=\"wr \"></polyline><polyline points=\"600,150 610,150\" class=\"wr \"></polyline><polyline points=\"730,150 760,150\" class=\"wr \"></polyline><polyline points=\"260,150 290,150\" class=\"wr s-ids\"></polyline><polyline points=\"440,150 470,150\" class=\"wr s-ids\"></polyline><polyline points=\"670,173 670,242\" class=\"wr \"></polyline><polyline points=\"365,176 365,242\" class=\"wr s-ids\"></polyline><g data-k=\"wire\"><rect x=\"15\" y=\"127\" width=\"110\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"70\" y=\"147\" class=\"tn\" text-anchor=\"middle\">câble virtuel</text><text x=\"70\" y=\"163\" class=\"ti\" text-anchor=\"middle\">p6-wan (WAN)</text></g><g data-k=\"nic\"><rect x=\"170\" y=\"127\" width=\"90\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"215\" y=\"147\" class=\"tn\" text-anchor=\"middle\">em0</text><text x=\"215\" y=\"163\" class=\"ti\" text-anchor=\"middle\">carte (pilote)</text></g><g data-k=\"sur\"><rect x=\"290\" y=\"124\" width=\"150\" height=\"52\" rx=\"8\" class=\"nd ids\"></rect><text x=\"365\" y=\"147\" class=\"tn\" text-anchor=\"middle\">Suricata</text><text x=\"365\" y=\"163\" class=\"ti\" text-anchor=\"middle\">décide : passe / drop</text></g><g data-k=\"stack\"><rect x=\"470\" y=\"127\" width=\"130\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"535\" y=\"154\" class=\"tn\" text-anchor=\"middle\">pile IP du noyau</text></g><g data-k=\"pf\"><rect x=\"610\" y=\"127\" width=\"120\" height=\"46\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"670\" y=\"149\" class=\"tb f-on\" text-anchor=\"middle\">pf</text><text x=\"670\" y=\"165\" class=\"ts\" text-anchor=\"middle\" style=\"fill:var(--on-acc);stroke:none\">état, NAT, règles</text></g><g data-k=\"out\"><rect x=\"760\" y=\"127\" width=\"140\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"830\" y=\"147\" class=\"tn\" text-anchor=\"middle\">em1 → trunk</text><text x=\"830\" y=\"163\" class=\"ti\" text-anchor=\"middle\">Suricata 2e passage</text></g><g data-k=\"log\"><rect x=\"595\" y=\"242\" width=\"150\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"670\" y=\"264\" class=\"tn\" text-anchor=\"middle\">filterlog</text></g><g data-k=\"eve\"><rect x=\"295\" y=\"242\" width=\"140\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"365\" y=\"264\" class=\"tn\" text-anchor=\"middle\">EVE JSON</text></g></g></svg>",
+    "etapes": [
+     "Le paquet arrive sur em0. Avec <b>netmap</b>, l'anneau de réception de la carte est détourné : le paquet ne monte pas vers la pile, il est remis à Suricata.",
+     "Suricata décode (Ethernet, VLAN, IP, TCP/UDP), suit le flux, compare aux signatures et aux seuils. Verdict : passe, ou drop.",
+     "Si le verdict est <b>drop</b>, le paquet n'est pas réinjecté : il disparaît ici. pf ne l'a jamais vu, donc <b>aucune ligne filterlog</b>. La trace est dans EVE (alerte « blocked ») et dans le compteur de rejets de stats.log : avec un seuil, une seule alerte peut couvrir de nombreux paquets rejetés.",
+     "Si le verdict est <b>passe</b>, Suricata réinjecte le paquet vers la pile IP, puis pf applique état, NAT et règles (section 9.1).",
+     "Le paquet routé sort par em1, où Suricata est aussi actif : <b>seconde inspection</b>, cette fois avec les adresses internes (après NAT). Ce coût entre dans la latence mesurée."
+    ],
+    "fin": "En IPS netmap, Suricata est avant pf pour le trafic entrant : un drop ne laisse aucune trace dans filterlog. À vérifier au test J1 sur les cartes em (VMware) ; repli : mode Divert ou IDS seul (section 5.3)."
+   }
+  ],
+  "legende": [
+   {
+    "couleur": "var(--ids)",
+    "texte": "Suricata / netmap"
+   },
+   {
+    "couleur": "var(--acc)",
+    "texte": "pf"
+   },
+   {
+    "couleur": "var(--bad)",
+    "texte": "paquet rejeté"
+   }
+  ]
+ },
+ "seuil-sim": {
+  "nom": "seuil-sim",
+  "question": "Avec « 20 SYN en 5 s par source », quel trafic déclenche une alerte, quels paquets sont rejetés, et que se passe-t-il pour un vrai client ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "fp-tuning": {
+  "nom": "fp-tuning",
+  "question": "Après chaque passe de réglage, quelles familles respectent « au plus 1 faux positif par heure » et peuvent passer en drop ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "p01-panne": {
+  "nom": "p01-panne",
+  "question": "Que mesure-t-on pendant P-01, et à quoi ressemblerait chacune des deux hypothèses du rapport ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "Hypothèse 1 : passe sans inspection",
+    "svg": "<svg viewBox=\"0 0 1000 290\" role=\"img\" aria-label=\"Que mesure-t-on pendant P-01, et à quoi ressemblerait chacune des deux hypothèses du rapport ?\" class=\"schema-guide-svg\"><g><line x1=\"80\" y1=\"200\" x2=\"950\" y2=\"200\" style=\"stroke:var(--muted)\"></line><line x1=\"80\" y1=\"200\" x2=\"80\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"80\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 0 s</text><line x1=\"225\" y1=\"200\" x2=\"225\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"225\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 10 s</text><line x1=\"370\" y1=\"200\" x2=\"370\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"370\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 20 s</text><line x1=\"515\" y1=\"200\" x2=\"515\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"515\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 30 s</text><line x1=\"660\" y1=\"200\" x2=\"660\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"660\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 40 s</text><line x1=\"805\" y1=\"200\" x2=\"805\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"805\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 50 s</text><line x1=\"950\" y1=\"200\" x2=\"950\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"950\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 60 s</text><rect x=\"225\" y=\"40\" width=\"435\" height=\"160\" style=\"fill:var(--warn);fill-opacity:.1\"></rect><text x=\"442.5\" y=\"36\" class=\"tl\" text-anchor=\"middle\">Suricata arrêté</text><text x=\"10\" y=\"120\" class=\"tl\" text-anchor=\"start\">sonde</text><text x=\"10\" y=\"136\" class=\"ts\" text-anchor=\"start\">1 req/s</text><text x=\"80\" y=\"254\" class=\"ts\" text-anchor=\"start\">Chaque barre = une requête de la sonde : haute et verte si servie, basse et rouge si échec. Illustration : le vrai résultat est mesuré, pas supposé (section 8.5).</text></g></svg>",
+    "etapes": [
+     "De t0 à t0 + 10 s : le SYN flood est en cours, Suricata le rejette. La sonde (client-ext) est servie normalement.",
+     "t0 + 10 s : l'orchestrateur arrête Suricata sur OPNsense. Avec netmap, c'est le chemin même des paquets qui est en jeu.",
+     "Hypothèse 1 : l'interface laisse passer sans inspection. Le flood atteint pf et nginx comme en état A : la sonde est servie par intermittence.",
+     "t0 + 40 s : redémarrage. Suricata recharge ses règles (quelques secondes), puis rejette de nouveau le flood. Le <b>temps de reprise</b> est le délai jusqu'à la première requête de la sonde de nouveau servie."
+    ],
+    "fin": "Hypothèse 1 : la sécurité tombe (plus d'inspection), le service tient en partie. C'est un fonctionnement « ouvert en cas de panne »."
+   },
+   {
+    "etat": "B",
+    "libelle": "Hypothèse 2 : plus rien ne passe",
+    "svg": "<svg viewBox=\"0 0 1000 290\" role=\"img\" aria-label=\"Que mesure-t-on pendant P-01, et à quoi ressemblerait chacune des deux hypothèses du rapport ?\" class=\"schema-guide-svg\"><g><line x1=\"80\" y1=\"200\" x2=\"950\" y2=\"200\" style=\"stroke:var(--muted)\"></line><line x1=\"80\" y1=\"200\" x2=\"80\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"80\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 0 s</text><line x1=\"225\" y1=\"200\" x2=\"225\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"225\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 10 s</text><line x1=\"370\" y1=\"200\" x2=\"370\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"370\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 20 s</text><line x1=\"515\" y1=\"200\" x2=\"515\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"515\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 30 s</text><line x1=\"660\" y1=\"200\" x2=\"660\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"660\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 40 s</text><line x1=\"805\" y1=\"200\" x2=\"805\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"805\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 50 s</text><line x1=\"950\" y1=\"200\" x2=\"950\" y2=\"206\" style=\"stroke:var(--muted)\"></line><text x=\"950\" y=\"222\" class=\"ts\" text-anchor=\"middle\">t0 + 60 s</text><rect x=\"225\" y=\"40\" width=\"435\" height=\"160\" style=\"fill:var(--warn);fill-opacity:.1\"></rect><text x=\"442.5\" y=\"36\" class=\"tl\" text-anchor=\"middle\">Suricata arrêté</text><text x=\"10\" y=\"120\" class=\"tl\" text-anchor=\"start\">sonde</text><text x=\"10\" y=\"136\" class=\"ts\" text-anchor=\"start\">1 req/s</text><text x=\"80\" y=\"254\" class=\"ts\" text-anchor=\"start\">Chaque barre = une requête de la sonde : haute et verte si servie, basse et rouge si échec. Illustration : le vrai résultat est mesuré, pas supposé (section 8.5).</text></g></svg>",
+    "etapes": [
+     "De t0 à t0 + 10 s : le SYN flood est en cours, Suricata le rejette. La sonde (client-ext) est servie normalement.",
+     "t0 + 10 s : l'orchestrateur arrête Suricata sur OPNsense. Avec netmap, c'est le chemin même des paquets qui est en jeu.",
+     "Hypothèse 2 : l'interface ne transmet plus rien. Le flood ne fait plus de dégâts… mais le service légitime est coupé : disponibilité nulle.",
+     "t0 + 40 s : redémarrage. Suricata recharge ses règles (quelques secondes), puis rejette de nouveau le flood. Le <b>temps de reprise</b> est le délai jusqu'à la première requête de la sonde de nouveau servie."
+    ],
+    "fin": "Hypothèse 2 : le service tombe avec l'IPS. C'est un fonctionnement « fermé en cas de panne ». Le rapport mesure lequel des deux se produit sur netmap avec les cartes em de VMware."
+   }
+  ],
+  "legende": []
+ },
+ "trunk-tag": {
+  "nom": "trunk-tag",
+  "question": "Où l'étiquette VLAN est-elle posée, et où est-elle retirée, quand client-01 ouvre le site interne ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "État A",
+    "svg": "<svg viewBox=\"0 0 1000 375\" role=\"img\" aria-label=\"Où l'étiquette VLAN est-elle posée, et où est-elle retirée, quand client-01 ouvre le site interne ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"400\" height=\"220\" rx=\"12\" class=\"z c-lan\"></rect><text x=\"32\" y=\"50\" class=\"tz f-lan\" text-anchor=\"start\">VM Hôte Docker</text><text x=\"410\" y=\"50\" class=\"ts\" text-anchor=\"end\">ens33 = ens33 du rapport (trunk)</text></g><g><rect x=\"620\" y=\"30\" width=\"360\" height=\"220\" rx=\"12\" class=\"z c-trunk\"></rect><text x=\"632\" y=\"50\" class=\"tz f-trunk\" text-anchor=\"start\">VM OPNsense</text></g><polyline points=\"175,80 235,80\" class=\"wr s-lan\"></polyline><polyline points=\"175,190 235,190\" class=\"wr s-dmz\"></polyline><polyline points=\"325,80 352,120\" class=\"wr s-lan\"></polyline><polyline points=\"325,190 352,150\" class=\"wr s-dmz\"></polyline><line x1=\"408\" y1=\"135\" x2=\"640\" y2=\"135\" class=\"wr s-trunk\" stroke-width=\"5\"></line><text x=\"524\" y=\"125\" class=\"ts f-trunk\" text-anchor=\"middle\">p6-trunk · trunk</text><polyline points=\"703,135 722,80\" class=\"wr s-acc\"></polyline><polyline points=\"703,135 722,190\" class=\"wr s-acc\"></polyline><polyline points=\"878,80 930,115\" class=\"wr s-acc\"></polyline><polyline points=\"878,190 930,155\" class=\"wr s-acc\"></polyline><g data-k=\"c01\"><rect x=\"45\" y=\"57\" width=\"130\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"77\" class=\"tn\" text-anchor=\"middle\">client-01</text><text x=\"110\" y=\"93\" class=\"ti\" text-anchor=\"middle\">10.10.0.10</text></g><g data-k=\"ng\"><rect x=\"45\" y=\"167\" width=\"130\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"187\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"110\" y=\"203\" class=\"ti\" text-anchor=\"middle\">10.20.0.10</text></g><g data-k=\"s1\"><rect x=\"235\" y=\"62\" width=\"90\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"280\" y=\"84\" class=\"tn\" text-anchor=\"middle\">ens33.10</text></g><g data-k=\"s2\"><rect x=\"235\" y=\"172\" width=\"90\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"280\" y=\"194\" class=\"tn\" text-anchor=\"middle\">ens33.20</text></g><g data-k=\"par\"><rect x=\"352\" y=\"117\" width=\"56\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"380\" y=\"139\" class=\"tn\" text-anchor=\"middle\">ens33</text></g><g data-k=\"vt\"><rect x=\"637\" y=\"117\" width=\"66\" height=\"36\" rx=\"8\" class=\"nd acc\"></rect><text x=\"670\" y=\"139\" class=\"tn\" text-anchor=\"middle\">em1</text></g><g data-k=\"i1\"><rect x=\"722\" y=\"59\" width=\"156\" height=\"42\" rx=\"8\" class=\"nd acc\"></rect><text x=\"800\" y=\"77\" class=\"tn\" text-anchor=\"middle\">VLAN 10</text><text x=\"800\" y=\"93\" class=\"ti\" text-anchor=\"middle\">LAN · 10.10.0.1/24</text></g><g data-k=\"i2\"><rect x=\"722\" y=\"169\" width=\"156\" height=\"42\" rx=\"8\" class=\"nd acc\"></rect><text x=\"800\" y=\"187\" class=\"tn\" text-anchor=\"middle\">VLAN 20</text><text x=\"800\" y=\"203\" class=\"ti\" text-anchor=\"middle\">DMZ · 10.20.0.1/24</text></g><g data-k=\"pf\"><rect x=\"900\" y=\"115\" width=\"60\" height=\"40\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"930\" y=\"140\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g></g></svg>",
+    "etapes": [
+     "client-01 envoie un SYN vers 10.20.0.10:443. nginx n'est pas dans son réseau : la trame est adressée à la MAC de sa passerelle 10.10.0.1. Le conteneur ne connaît pas les VLAN : <b>la trame part sans étiquette</b>.",
+     "En sortant par la sous-interface <code>ens33.10</code>, le noyau de l'hôte Docker <b>pose l'étiquette VID 10</b> (4 octets insérés après les adresses MAC).",
+     "Sur p6-trunk, le segment LAN VMware transporte la trame <b>avec son étiquette</b> jusqu'à em1. C'est ce que montre <code>tcpdump -nei em1 vlan 10</code> sur OPNsense.",
+     "OPNsense lit le VID 10, <b>retire l'étiquette</b> et remet le paquet à la sous-interface VLAN 10. pf évalue les règles de <b>cette</b> interface d'entrée : FA4 correspond, état créé.",
+     "OPNsense route vers le réseau 10.20.0.0 et fabrique une <b>nouvelle trame</b> : MAC source = OPNsense, MAC destination = nginx, TTL − 1.",
+     "En sortant par em1, la trame reçoit l'étiquette <b>VID 20</b>, traverse p6-trunk et entre dans l'hôte Docker par ens33.",
+     "L'hôte Docker lit le VID 20, <b>retire l'étiquette</b> et remet la trame au réseau macvlan <code>ens33.20</code> : nginx reçoit une trame ordinaire."
+    ],
+    "fin": "L'étiquette n'existe que sur le trunk (p6-trunk) : posée en sortant de ens33.10 et de em1, retirée en entrant dans OPNsense et dans l'hôte Docker. pf décide sur l'interface VLAN d'entrée (FA4)."
+   },
+   {
+    "etat": "B",
+    "libelle": "État B",
+    "svg": "<svg viewBox=\"0 0 1000 375\" role=\"img\" aria-label=\"Où l'étiquette VLAN est-elle posée, et où est-elle retirée, quand client-01 ouvre le site interne ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"400\" height=\"220\" rx=\"12\" class=\"z c-lan\"></rect><text x=\"32\" y=\"50\" class=\"tz f-lan\" text-anchor=\"start\">VM Hôte Docker</text><text x=\"410\" y=\"50\" class=\"ts\" text-anchor=\"end\">ens33 = ens33 du rapport (trunk)</text></g><g><rect x=\"620\" y=\"30\" width=\"360\" height=\"220\" rx=\"12\" class=\"z c-trunk\"></rect><text x=\"632\" y=\"50\" class=\"tz f-trunk\" text-anchor=\"start\">VM OPNsense</text></g><polyline points=\"175,80 235,80\" class=\"wr s-lan\"></polyline><polyline points=\"175,190 235,190\" class=\"wr s-dmz\"></polyline><polyline points=\"325,80 352,120\" class=\"wr s-lan\"></polyline><polyline points=\"325,190 352,150\" class=\"wr s-dmz\"></polyline><line x1=\"408\" y1=\"135\" x2=\"640\" y2=\"135\" class=\"wr s-trunk\" stroke-width=\"5\"></line><text x=\"524\" y=\"125\" class=\"ts f-trunk\" text-anchor=\"middle\">p6-trunk · trunk</text><polyline points=\"703,135 722,80\" class=\"wr s-acc\"></polyline><polyline points=\"703,135 722,190\" class=\"wr s-acc\"></polyline><polyline points=\"878,80 930,115\" class=\"wr s-acc\"></polyline><polyline points=\"878,190 930,155\" class=\"wr s-acc\"></polyline><g data-k=\"c01\"><rect x=\"45\" y=\"57\" width=\"130\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"77\" class=\"tn\" text-anchor=\"middle\">client-01</text><text x=\"110\" y=\"93\" class=\"ti\" text-anchor=\"middle\">10.10.0.10</text></g><g data-k=\"ng\"><rect x=\"45\" y=\"167\" width=\"130\" height=\"46\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"187\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"110\" y=\"203\" class=\"ti\" text-anchor=\"middle\">10.20.0.10</text></g><g data-k=\"s1\"><rect x=\"235\" y=\"62\" width=\"90\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"280\" y=\"84\" class=\"tn\" text-anchor=\"middle\">ens33.11</text></g><g data-k=\"s2\"><rect x=\"235\" y=\"172\" width=\"90\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"280\" y=\"194\" class=\"tn\" text-anchor=\"middle\">ens33.21</text></g><g data-k=\"par\"><rect x=\"352\" y=\"117\" width=\"56\" height=\"36\" rx=\"8\" class=\"nd \"></rect><text x=\"380\" y=\"139\" class=\"tn\" text-anchor=\"middle\">ens33</text></g><g data-k=\"vt\"><rect x=\"637\" y=\"117\" width=\"66\" height=\"36\" rx=\"8\" class=\"nd acc\"></rect><text x=\"670\" y=\"139\" class=\"tn\" text-anchor=\"middle\">em1</text></g><g data-k=\"i1\"><rect x=\"722\" y=\"59\" width=\"156\" height=\"42\" rx=\"8\" class=\"nd acc\"></rect><text x=\"800\" y=\"77\" class=\"tn\" text-anchor=\"middle\">VLAN 11</text><text x=\"800\" y=\"93\" class=\"ti\" text-anchor=\"middle\">LAN-USERS · 10.10.0.1/26</text></g><g data-k=\"i2\"><rect x=\"722\" y=\"169\" width=\"156\" height=\"42\" rx=\"8\" class=\"nd acc\"></rect><text x=\"800\" y=\"187\" class=\"tn\" text-anchor=\"middle\">VLAN 21</text><text x=\"800\" y=\"203\" class=\"ti\" text-anchor=\"middle\">DMZ-WEB · 10.20.0.1/27</text></g><g data-k=\"pf\"><rect x=\"900\" y=\"115\" width=\"60\" height=\"40\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"930\" y=\"140\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g></g></svg>",
+    "etapes": [
+     "client-01 envoie un SYN vers 10.20.0.10:443. nginx n'est pas dans son réseau : la trame est adressée à la MAC de sa passerelle 10.10.0.1. Le conteneur ne connaît pas les VLAN : <b>la trame part sans étiquette</b>.",
+     "En sortant par la sous-interface <code>ens33.11</code>, le noyau de l'hôte Docker <b>pose l'étiquette VID 11</b> (4 octets insérés après les adresses MAC).",
+     "Sur p6-trunk, le segment LAN VMware transporte la trame <b>avec son étiquette</b> jusqu'à em1. C'est ce que montre <code>tcpdump -nei em1 vlan 11</code> sur OPNsense.",
+     "OPNsense lit le VID 11, <b>retire l'étiquette</b> et remet le paquet à la sous-interface VLAN 11. pf évalue les règles de <b>cette</b> interface d'entrée : F05 correspond, état créé.",
+     "OPNsense route vers le réseau 10.20.0.0 et fabrique une <b>nouvelle trame</b> : MAC source = OPNsense, MAC destination = nginx, TTL − 1.",
+     "En sortant par em1, la trame reçoit l'étiquette <b>VID 21</b>, traverse p6-trunk et entre dans l'hôte Docker par ens33.",
+     "L'hôte Docker lit le VID 21, <b>retire l'étiquette</b> et remet la trame au réseau macvlan <code>ens33.21</code> : nginx reçoit une trame ordinaire."
+    ],
+    "fin": "L'étiquette n'existe que sur le trunk (p6-trunk) : posée en sortant de ens33.11 et de em1, retirée en entrant dans OPNsense et dans l'hôte Docker. pf décide sur l'interface VLAN d'entrée (F05)."
+   }
+  ],
+  "legende": [
+   {
+    "couleur": "var(--trunk)",
+    "texte": "trame étiquetée"
+   },
+   {
+    "couleur": "var(--lan)",
+    "texte": "côté LAN"
+   },
+   {
+    "couleur": "var(--dmz)",
+    "texte": "côté DMZ"
+   },
+   {
+    "couleur": "var(--acc)",
+    "texte": "OPNsense"
+   }
+  ]
+ },
+ "nat-steps": {
+  "nom": "nat-steps",
+  "question": "Que deviennent les adresses d'un paquet de client-ext vers 203.0.113.1:443, à l'aller et au retour ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "État A",
+    "svg": "<svg viewBox=\"0 0 1000 250\" role=\"img\" aria-label=\"Que deviennent les adresses d'un paquet de client-ext vers 203.0.113.1:443, à l'aller et au retour ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"40\" width=\"200\" height=\"160\" rx=\"12\" class=\"z c-wan\"></rect><text x=\"32\" y=\"60\" class=\"tz f-wan\" text-anchor=\"start\">WAN · p6-wan</text></g><g><rect x=\"780\" y=\"40\" width=\"200\" height=\"160\" rx=\"12\" class=\"z c-dmz\"></rect><text x=\"792\" y=\"60\" class=\"tz f-dmz\" text-anchor=\"start\">DMZ-WEB / DMZ</text></g><polyline points=\"170,120 830,120\" class=\"wr \"></polyline><g data-k=\"ce\"><rect x=\"45\" y=\"96\" width=\"130\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"117\" class=\"tn\" text-anchor=\"middle\">client-ext</text><text x=\"110\" y=\"133\" class=\"ti\" text-anchor=\"middle\">203.0.113.10</text></g><g data-k=\"ng\"><rect x=\"815\" y=\"96\" width=\"130\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"880\" y=\"117\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"880\" y=\"133\" class=\"ti\" text-anchor=\"middle\">10.20.0.10</text></g><rect x=\"300\" y=\"85\" width=\"400\" height=\"70\" rx=\"10\" class=\"nd acc\"></rect><text x=\"330\" y=\"178\" class=\"ts\" text-anchor=\"middle\">em0 · 203.0.113.1</text><text x=\"670\" y=\"178\" class=\"ts\" text-anchor=\"middle\">em1 · 10.20.0.1</text><g data-k=\"pf\"><rect x=\"470\" y=\"100\" width=\"60\" height=\"40\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"500\" y=\"125\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g><text x=\"500\" y=\"210\" class=\"tn\" text-anchor=\"middle\">OPNsense</text></g></svg>",
+    "etapes": [
+     "client-ext envoie le SYN à <code>203.0.113.10:50218 → 203.0.113.1:443</code> : la seule adresse publique qu'il connaît.",
+     "pf applique d'abord la <b>redirection</b> (Destination NAT) : la destination devient <code>10.20.0.10:443</code>. Puis il lit les règles WAN, qui visent l'adresse <b>interne</b> : FA1 correspond. Il crée un état qui garde les deux versions de l'adresse.",
+     "Le paquet sort sur em1 vers nginx : <code>203.0.113.10:50218 → 10.20.0.10:443</code>. nginx voit la vraie adresse du client (pas de NAT de source).",
+     "nginx répond depuis <code>10.20.0.10:443</code> vers <code>203.0.113.10:50218</code>, par sa passerelle. pf trouve l'état : <b>aucune règle relue</b>.",
+     "pf <b>retraduit la source</b> : <code>10.20.0.10:443 → 203.0.113.1:443</code>. client-ext reçoit une réponse de l'adresse qu'il a appelée ; la poignée de main se termine."
+    ],
+    "fin": "Une redirection, une règle (FA1) qui vise l'adresse interne, un état qui mémorise les deux adresses. Le NAT ne protège rien : ce sont les règles qui décident."
+   },
+   {
+    "etat": "B",
+    "libelle": "État B",
+    "svg": "<svg viewBox=\"0 0 1000 250\" role=\"img\" aria-label=\"Que deviennent les adresses d'un paquet de client-ext vers 203.0.113.1:443, à l'aller et au retour ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"40\" width=\"200\" height=\"160\" rx=\"12\" class=\"z c-wan\"></rect><text x=\"32\" y=\"60\" class=\"tz f-wan\" text-anchor=\"start\">WAN · p6-wan</text></g><g><rect x=\"780\" y=\"40\" width=\"200\" height=\"160\" rx=\"12\" class=\"z c-dmz\"></rect><text x=\"792\" y=\"60\" class=\"tz f-dmz\" text-anchor=\"start\">DMZ-WEB / DMZ</text></g><polyline points=\"170,120 830,120\" class=\"wr \"></polyline><g data-k=\"ce\"><rect x=\"45\" y=\"96\" width=\"130\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"117\" class=\"tn\" text-anchor=\"middle\">client-ext</text><text x=\"110\" y=\"133\" class=\"ti\" text-anchor=\"middle\">203.0.113.10</text></g><g data-k=\"ng\"><rect x=\"815\" y=\"96\" width=\"130\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"880\" y=\"117\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"880\" y=\"133\" class=\"ti\" text-anchor=\"middle\">10.20.0.10</text></g><rect x=\"300\" y=\"85\" width=\"400\" height=\"70\" rx=\"10\" class=\"nd acc\"></rect><text x=\"330\" y=\"178\" class=\"ts\" text-anchor=\"middle\">em0 · 203.0.113.1</text><text x=\"670\" y=\"178\" class=\"ts\" text-anchor=\"middle\">em1 · 10.20.0.1</text><g data-k=\"pf\"><rect x=\"470\" y=\"100\" width=\"60\" height=\"40\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"500\" y=\"125\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g><text x=\"500\" y=\"210\" class=\"tn\" text-anchor=\"middle\">OPNsense</text></g></svg>",
+    "etapes": [
+     "client-ext envoie le SYN à <code>203.0.113.10:50218 → 203.0.113.1:443</code> : la seule adresse publique qu'il connaît.",
+     "pf applique d'abord la <b>redirection</b> (Destination NAT) : la destination devient <code>10.20.0.10:443</code>. Puis il lit les règles WAN, qui visent l'adresse <b>interne</b> : F01 correspond. Il crée un état qui garde les deux versions de l'adresse. (En état B, Suricata a inspecté le paquet sur em0 juste avant.)",
+     "Le paquet sort sur em1 vers nginx : <code>203.0.113.10:50218 → 10.20.0.10:443</code>. nginx voit la vraie adresse du client (pas de NAT de source).",
+     "nginx répond depuis <code>10.20.0.10:443</code> vers <code>203.0.113.10:50218</code>, par sa passerelle. pf trouve l'état : <b>aucune règle relue</b>.",
+     "pf <b>retraduit la source</b> : <code>10.20.0.10:443 → 203.0.113.1:443</code>. client-ext reçoit une réponse de l'adresse qu'il a appelée ; la poignée de main se termine."
+    ],
+    "fin": "Une redirection, une règle (F01) qui vise l'adresse interne, un état qui mémorise les deux adresses. Le NAT ne protège rien : ce sont les règles qui décident."
+   }
+  ],
+  "legende": []
+ },
+ "state-table": {
+  "nom": "state-table",
+  "question": "Pourquoi pf ne relit-il les règles qu'au premier paquet, et pourquoi la connexion client-03 → base ne crée-t-elle aucun état ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "État A",
+    "svg": "<svg viewBox=\"0 0 1000 240\" role=\"img\" aria-label=\"Pourquoi pf ne relit-il les règles qu'au premier paquet, et pourquoi la connexion client-03 → base ne crée-t-elle aucun état ?\" class=\"schema-guide-svg\"><g><g data-k=\"c01\"><rect x=\"50\" y=\"66\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"87\" class=\"tn\" text-anchor=\"middle\">client-01</text><text x=\"120\" y=\"103\" class=\"ti\" text-anchor=\"middle\">10.10.0.10</text></g><g data-k=\"ng\"><rect x=\"810\" y=\"66\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"880\" y=\"87\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"880\" y=\"103\" class=\"ti\" text-anchor=\"middle\">10.20.0.10</text></g><g data-k=\"c03\"><rect x=\"50\" y=\"166\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"187\" class=\"tn\" text-anchor=\"middle\">client-03</text><text x=\"120\" y=\"203\" class=\"ti\" text-anchor=\"middle\">10.10.0.12</text></g><g data-k=\"pg\"><rect x=\"810\" y=\"166\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"880\" y=\"187\" class=\"tn\" text-anchor=\"middle\">PostgreSQL</text><text x=\"880\" y=\"203\" class=\"ti\" text-anchor=\"middle\">10.10.0.70</text></g><g data-k=\"pf\"><rect x=\"440\" y=\"60\" width=\"120\" height=\"160\" rx=\"10\" class=\"nd acc\"></rect><text x=\"500\" y=\"84\" class=\"tn\" text-anchor=\"middle\">OPNsense</text><rect x=\"470\" y=\"120\" width=\"60\" height=\"40\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"500\" y=\"145\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g><polyline points=\"190,90 440,90\" class=\"wr \"></polyline><polyline points=\"560,90 810,90\" class=\"wr \"></polyline><polyline points=\"190,214 810,214\" class=\"wr s-lan\"></polyline><text x=\"500\" y=\"232\" class=\"ts f-lan\" text-anchor=\"middle\">état A : même VLAN, chemin direct</text></g></svg>",
+    "etapes": [
+     "SYN de client-01. Aucun état pour ce 5-uplet : pf lit les règles de l'interface d'entrée (LAN), la première qui correspond est <b>FA4</b>. Il crée un état.",
+     "Le SYN repart vers nginx, qui répond SYN-ACK. Ce paquet arrive par l'interface DMZ, où <b>aucune règle</b> n'autorise un flux vers le LAN : il passe quand même, car il appartient à l'état.",
+     "ACK de client-01 : la poignée de main est terminée. Tous les paquets suivants de cette connexion, dans les deux sens, passent par l'état.",
+     "FIN de part et d'autre : l'état passe en fermeture, puis expire après un court délai. Le prochain SYN créera un nouvel état… si une règle l'autorise encore.",
+     "client-03 → PostgreSQL:5432 en état A : même /24, même VLAN. Le paquet <b>ne traverse jamais pf</b> : ni règle, ni état, ni journal."
+    ],
+    "fin": "Une règle n'est évaluée qu'au premier paquet ; l'état fait le reste. En état A, le mouvement latéral n'entre même pas dans pf."
+   },
+   {
+    "etat": "B",
+    "libelle": "État B",
+    "svg": "<svg viewBox=\"0 0 1000 240\" role=\"img\" aria-label=\"Pourquoi pf ne relit-il les règles qu'au premier paquet, et pourquoi la connexion client-03 → base ne crée-t-elle aucun état ?\" class=\"schema-guide-svg\"><g><g data-k=\"c01\"><rect x=\"50\" y=\"66\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"87\" class=\"tn\" text-anchor=\"middle\">client-01</text><text x=\"120\" y=\"103\" class=\"ti\" text-anchor=\"middle\">10.10.0.10</text></g><g data-k=\"ng\"><rect x=\"810\" y=\"66\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"880\" y=\"87\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"880\" y=\"103\" class=\"ti\" text-anchor=\"middle\">10.20.0.10</text></g><g data-k=\"c03\"><rect x=\"50\" y=\"166\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"187\" class=\"tn\" text-anchor=\"middle\">client-03</text><text x=\"120\" y=\"203\" class=\"ti\" text-anchor=\"middle\">10.10.0.12</text></g><g data-k=\"pg\"><rect x=\"810\" y=\"166\" width=\"140\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"880\" y=\"187\" class=\"tn\" text-anchor=\"middle\">PostgreSQL</text><text x=\"880\" y=\"203\" class=\"ti\" text-anchor=\"middle\">10.10.0.70</text></g><g data-k=\"pf\"><rect x=\"440\" y=\"60\" width=\"120\" height=\"160\" rx=\"10\" class=\"nd acc\"></rect><text x=\"500\" y=\"84\" class=\"tn\" text-anchor=\"middle\">OPNsense</text><rect x=\"470\" y=\"120\" width=\"60\" height=\"40\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"500\" y=\"145\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g><polyline points=\"190,90 440,90\" class=\"wr \"></polyline><polyline points=\"560,90 810,90\" class=\"wr \"></polyline><polyline points=\"190,190 440,190\" class=\"wr \"></polyline><polyline points=\"560,190 810,190\" class=\"wr \"></polyline></g></svg>",
+    "etapes": [
+     "SYN de client-01. Aucun état pour ce 5-uplet : pf lit les règles de l'interface d'entrée (LAN-USERS), la première qui correspond est <b>F05</b>. Il crée un état.",
+     "Le SYN repart vers nginx, qui répond SYN-ACK. Ce paquet arrive par l'interface DMZ, où <b>aucune règle</b> n'autorise un flux vers le LAN : il passe quand même, car il appartient à l'état.",
+     "ACK de client-01 : la poignée de main est terminée. Tous les paquets suivants de cette connexion, dans les deux sens, passent par l'état.",
+     "FIN de part et d'autre : l'état passe en fermeture, puis expire après un court délai. Le prochain SYN créera un nouvel état… si une règle l'autorise encore.",
+     "client-03 → PostgreSQL:5432 en état B : pf lit les règles de LAN-USERS (F05, F06), aucune ne correspond. Refus par défaut F99 : <b>pas d'état</b>, une ligne filterlog."
+    ],
+    "fin": "Une règle n'est évaluée qu'au premier paquet ; l'état fait le reste. Un paquet refusé ne crée aucun état : il laisse seulement une ligne filterlog."
+   }
+  ],
+  "legende": [
+   {
+    "couleur": "var(--ok)",
+    "texte": "pass + état"
+   },
+   {
+    "couleur": "var(--bad)",
+    "texte": "bloqué"
+   },
+   {
+    "couleur": "var(--muted)",
+    "texte": "hors de pf"
+   }
+  ]
+ },
+ "matrix-editor": {
+  "nom": "matrix-editor",
+  "question": "Si j'ajoute, retire ou déplace une règle, quels flux passent et lesquels sont bloqués ?",
+  "interactif": true,
+  "vues": [],
+  "legende": []
+ },
+ "macvlan": {
+  "nom": "macvlan",
+  "question": "Pourquoi client-03 joint-il PostgreSQL sans passer par OPNsense en état A, et pourquoi une capture sur ens33 ne le voit-elle pas ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "État A",
+    "svg": "<svg viewBox=\"0 0 1000 330\" role=\"img\" aria-label=\"Pourquoi client-03 joint-il PostgreSQL sans passer par OPNsense en état A, et pourquoi une capture sur ens33 ne le voit-elle pas ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"700\" height=\"270\" rx=\"12\" class=\"z c-lan\"></rect><text x=\"32\" y=\"50\" class=\"tz f-lan\" text-anchor=\"start\">VM Hôte Docker (Debian 13, Docker 29)</text></g><g data-k=\"host\"><rect x=\"35\" y=\"253\" width=\"150\" height=\"34\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"274\" class=\"tn\" text-anchor=\"middle\">pile IP de l'hôte</text></g><line x1=\"760\" y1=\"170\" x2=\"960\" y2=\"170\" class=\"wr s-trunk\" stroke-width=\"5\"></line><text x=\"860\" y=\"160\" class=\"ts f-trunk\" text-anchor=\"middle\">p6-trunk → OPNsense em1</text><g data-k=\"par\"><rect x=\"625\" y=\"150\" width=\"70\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"660\" y=\"174\" class=\"tn\" text-anchor=\"middle\">ens33</text></g><rect x=\"300\" y=\"80\" width=\"200\" height=\"180\" rx=\"10\" style=\"fill:var(--lan);fill-opacity:.08;stroke:var(--lan);stroke-dasharray:5 4\"></rect><text x=\"310\" y=\"98\" class=\"ts f-lan\" text-anchor=\"start\">macvlan « lan » (mode bridge)</text><polyline points=\"500,170 625,170\" class=\"wr s-lan\"></polyline><g data-k=\"sub\"><rect x=\"515\" y=\"153\" width=\"90\" height=\"34\" rx=\"8\" class=\"nd \"></rect><text x=\"560\" y=\"174\" class=\"tn\" text-anchor=\"middle\">ens33.10</text></g><g data-k=\"c03\"><rect x=\"325\" y=\"110\" width=\"150\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"400\" y=\"127\" class=\"tn\" text-anchor=\"middle\">client-03</text><text x=\"400\" y=\"143\" class=\"ti\" text-anchor=\"middle\">10.10.0.12/24</text></g><g data-k=\"pg\"><rect x=\"325\" y=\"200\" width=\"150\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"400\" y=\"217\" class=\"tn\" text-anchor=\"middle\">PostgreSQL</text><text x=\"400\" y=\"233\" class=\"ti\" text-anchor=\"middle\">10.10.0.70/24</text></g></g></svg>",
+    "etapes": [
+     "client-03 et PostgreSQL sont deux interfaces macvlan sur la même sous-interface <code>ens33.10</code> (ens33 du rapport : ens33 sur p6-docker). En mode bridge, le noyau de l'hôte Docker les relie <b>directement</b> : la trame ne sort pas par ens33.",
+     "Conséquence 1 : OPNsense ne voit rien (aucune règle, aucun journal). Conséquence 2 : <code>tcpdump -i ens33</code> sur l'hôte ne voit rien non plus. Il faut capturer <b>dans l'espace réseau du conteneur</b> (section 7.10, étape 7).",
+     "Limite connue de macvlan : l'hôte Docker lui-même ne peut pas joindre ses conteneurs macvlan par ces interfaces. Ce n'est pas gênant ici : on administre l'hôte par MGMT et on entre dans les conteneurs avec <code>docker exec</code> ou <code>nsenter</code>."
+    ],
+    "fin": "En état A, deux conteneurs du même VLAN se parlent dans le noyau de l'hôte Docker : ni OPNsense ni une capture sur ens33 ne voient leur trafic."
+   },
+   {
+    "etat": "B",
+    "libelle": "État B",
+    "svg": "<svg viewBox=\"0 0 1000 330\" role=\"img\" aria-label=\"Pourquoi client-03 joint-il PostgreSQL sans passer par OPNsense en état A, et pourquoi une capture sur ens33 ne le voit-elle pas ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"700\" height=\"270\" rx=\"12\" class=\"z c-lan\"></rect><text x=\"32\" y=\"50\" class=\"tz f-lan\" text-anchor=\"start\">VM Hôte Docker (Debian 13, Docker 29)</text></g><g data-k=\"host\"><rect x=\"35\" y=\"253\" width=\"150\" height=\"34\" rx=\"8\" class=\"nd \"></rect><text x=\"110\" y=\"274\" class=\"tn\" text-anchor=\"middle\">pile IP de l'hôte</text></g><line x1=\"760\" y1=\"170\" x2=\"960\" y2=\"170\" class=\"wr s-trunk\" stroke-width=\"5\"></line><text x=\"860\" y=\"160\" class=\"ts f-trunk\" text-anchor=\"middle\">p6-trunk → OPNsense em1</text><g data-k=\"par\"><rect x=\"625\" y=\"150\" width=\"70\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"660\" y=\"174\" class=\"tn\" text-anchor=\"middle\">ens33</text></g><rect x=\"300\" y=\"50\" width=\"200\" height=\"110\" rx=\"10\" style=\"fill:var(--lan);fill-opacity:.08;stroke:var(--lan);stroke-dasharray:5 4\"></rect><text x=\"310\" y=\"68\" class=\"ts f-lan\" text-anchor=\"start\">macvlan « lan-users »</text><rect x=\"300\" y=\"175\" width=\"200\" height=\"100\" rx=\"10\" style=\"fill:var(--lan);fill-opacity:.08;stroke:var(--lan);stroke-dasharray:5 4\"></rect><text x=\"310\" y=\"193\" class=\"ts f-lan\" text-anchor=\"start\">macvlan « lan-db »</text><polyline points=\"500,105 560,105 625,165\" class=\"wr s-lan\"></polyline><polyline points=\"500,225 560,225 625,175\" class=\"wr s-lan\"></polyline><g data-k=\"sub\"><rect x=\"520\" y=\"90\" width=\"80\" height=\"30\" rx=\"8\" class=\"nd \"></rect><text x=\"560\" y=\"109\" class=\"tn\" text-anchor=\"middle\">ens33.11</text></g><g data-k=\"sub2\"><rect x=\"520\" y=\"210\" width=\"80\" height=\"30\" rx=\"8\" class=\"nd \"></rect><text x=\"560\" y=\"229\" class=\"tn\" text-anchor=\"middle\">ens33.12</text></g><g data-k=\"c03\"><rect x=\"325\" y=\"85\" width=\"150\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"400\" y=\"102\" class=\"tn\" text-anchor=\"middle\">client-03</text><text x=\"400\" y=\"118\" class=\"ti\" text-anchor=\"middle\">10.10.0.12/26</text></g><g data-k=\"pg\"><rect x=\"325\" y=\"205\" width=\"150\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"400\" y=\"222\" class=\"tn\" text-anchor=\"middle\">PostgreSQL</text><text x=\"400\" y=\"238\" class=\"ti\" text-anchor=\"middle\">10.10.0.70/27</text></g></g></svg>",
+    "etapes": [
+     "En état B, client-03 est sur <code>ens33.11</code> (LAN-USERS) et PostgreSQL sur <code>ens33.12</code> (LAN-DB). Ce sont deux réseaux macvlan différents : aucun lien direct entre eux.",
+     "client-03 calcule que 10.10.0.70 est hors de son /26 et envoie à sa passerelle 10.10.0.1. La trame sort par <code>ens33.11</code>, reçoit l'étiquette 11 et part sur le trunk vers OPNsense.",
+     "OPNsense applique F99 : le paquet n'atteindra jamais <code>ens33.12</code>. S'il était autorisé, il reviendrait étiqueté 12 et entrerait par <code>ens33.12</code>. Une capture sur ens33 verrait les deux passages."
+    ],
+    "fin": "En état B, chaque segment a sa sous-interface : tout trafic entre segments sort par ens33, étiqueté, et passe par OPNsense."
+   }
+  ],
+  "legende": [
+   {
+    "couleur": "var(--lan)",
+    "texte": "réseau macvlan"
+   },
+   {
+    "couleur": "var(--trunk)",
+    "texte": "trunk"
+   },
+   {
+    "couleur": "var(--bad)",
+    "texte": "flux interdit ou invisible"
+   }
+  ]
+ },
+ "macvlan-addr": {
+  "nom": "macvlan-addr",
+  "question": "Que se passe-t-il exactement quand on lance client-01 sur le réseau macvlan lan-users ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": null,
+    "svg": "<svg viewBox=\"0 0 1000 300\" role=\"img\" aria-label=\"Que se passe-t-il exactement quand on lance client-01 sur le réseau macvlan lan-users ?\" class=\"schema-guide-svg\"><g><g><rect x=\"20\" y=\"30\" width=\"620\" height=\"250\" rx=\"12\" class=\"z c-lan\"></rect><text x=\"32\" y=\"50\" class=\"tz f-lan\" text-anchor=\"start\">VM Hôte Docker</text></g><g data-k=\"par\"><rect x=\"555\" y=\"140\" width=\"70\" height=\"40\" rx=\"8\" class=\"nd \"></rect><text x=\"590\" y=\"164\" class=\"tn\" text-anchor=\"middle\">ens33</text></g><line x1=\"625\" y1=\"160\" x2=\"980\" y2=\"160\" class=\"wr s-trunk\" stroke-width=\"5\"></line><g data-k=\"opn\"><rect x=\"805\" y=\"135\" width=\"150\" height=\"50\" rx=\"8\" class=\"nd acc\"></rect><text x=\"880\" y=\"157\" class=\"tn\" text-anchor=\"middle\">OPNsense</text><text x=\"880\" y=\"173\" class=\"ti\" text-anchor=\"middle\">10.10.0.1 (VLAN 11)</text></g><rect x=\"60\" y=\"70\" width=\"300\" height=\"180\" rx=\"10\" style=\"fill:none;stroke:var(--muted);stroke-dasharray:4 3\"></rect><text x=\"70\" y=\"88\" class=\"ts\" text-anchor=\"start\">espace réseau (netns) du conteneur</text></g></svg>",
+    "etapes": [
+     "<code>docker network create -d macvlan -o parent=ens33.11 …</code> : Docker crée la sous-interface VLAN <code>ens33.11</code> sur ens33 (ens33 du rapport), puisque le nom du parent contient un point. Elle étiquettera tout ce qui sort.",
+     "<code>docker run --network lan-users --ip 10.10.0.10 …</code> : Docker crée une interface macvlan avec <b>sa propre adresse MAC</b> (choisie par Docker ; son format dépend de la version), la place dans l'espace réseau du conteneur et la renomme <code>eth0</code>.",
+     "Docker lui attribue l'adresse fixe <code>10.10.0.10/26</code> et la route par défaut vers la passerelle déclarée au réseau : <code>10.10.0.1</code>.",
+     "Premier paquet vers l'extérieur du segment : le conteneur demande en ARP la MAC de 10.10.0.1. La requête sort étiquetée 11 ; OPNsense répond. Le conteneur est désormais une vraie machine du segment LAN-USERS."
+    ],
+    "fin": "client-01 a sa MAC, son adresse 10.10.0.10/26 et sa passerelle 10.10.0.1. Pour OPNsense, c'est une machine ordinaire du VLAN 11 : la matrice peut s'appliquer à elle."
+   }
+  ],
+  "legende": []
+ },
+ "chaine-app": {
+  "nom": "chaine-app",
+  "question": "Combien de fois une requête de client-ext traverse-t-elle pf, et quelles règles l'autorisent en état A et en état B ?",
+  "interactif": false,
+  "vues": [
+   {
+    "etat": "A",
+    "libelle": "État A",
+    "svg": "<svg viewBox=\"0 0 1000 652\" role=\"img\" aria-label=\"Combien de fois une requête de client-ext traverse-t-elle pf, et quelles règles l'autorisent en état A et en état B ?\" class=\"schema-guide-svg\"><g><g data-k=\"wan\"><g><rect x=\"20\" y=\"48\" width=\"238\" height=\"420\" rx=\"12\" class=\"z c-wan\"></rect><text x=\"32\" y=\"68\" class=\"tz f-wan\" text-anchor=\"start\">WAN simulé</text><text x=\"248\" y=\"68\" class=\"ts\" text-anchor=\"end\">203.0.113.0/24</text></g></g><polyline points=\"170,190 238,190 238,350 170,350\" class=\"wr s-wan\"></polyline><polyline points=\"238,275 270,275\" class=\"wr s-wan\"></polyline><text x=\"244\" y=\"372\" class=\"ts\" text-anchor=\"middle\">p6-wan</text><g data-k=\"ce\"><g><rect x=\"70\" y=\"162\" width=\"100\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"187\" class=\"tn\" text-anchor=\"middle\">client-ext</text><text x=\"120\" y=\"203\" class=\"ti\" text-anchor=\"middle\">203.0.113.10</text></g></g><g data-k=\"kali\"><g><rect x=\"70\" y=\"322\" width=\"100\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"347\" class=\"tn\" text-anchor=\"middle\">Kali</text><text x=\"120\" y=\"363\" class=\"ti\" text-anchor=\"middle\">203.0.113.66</text></g></g><g data-k=\"mgmt\"><g><rect x=\"20\" y=\"508\" width=\"965\" height=\"134\" rx=\"12\" class=\"z c-mgmt\"></rect><text x=\"32\" y=\"528\" class=\"tz f-mgmt\" text-anchor=\"start\">MGMT hors bande · VMnet9 · 10.99.0.0/24</text><text x=\"975\" y=\"528\" class=\"ts\" text-anchor=\"end\">SSH depuis 10.99.0.10 · syslog et NTP vers 10.99.0.10</text></g></g><polyline points=\"120,568 860,568\" class=\"wr s-mgmt\"></polyline><polyline points=\"120,378 120,568\" class=\"wr s-mgmt\"></polyline><polyline points=\"380,370 380,568\" class=\"wr s-mgmt\"></polyline><polyline points=\"620,568 620,580\" class=\"wr s-mgmt\"></polyline><polyline points=\"860,568 860,580\" class=\"wr s-mgmt\"></polyline><text x=\"386\" y=\"560\" class=\"ts\" text-anchor=\"start\">10.99.0.1</text><text x=\"126\" y=\"560\" class=\"ts\" text-anchor=\"start\">10.99.0.66 (proposé)</text><g data-k=\"dock\"><g><rect x=\"500\" y=\"580\" width=\"240\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"620\" y=\"601\" class=\"tn\" text-anchor=\"middle\">Hôte Docker · conteneurs</text><text x=\"620\" y=\"617\" class=\"ti\" text-anchor=\"middle\">10.99.0.20 (proposé)</text></g></g><g data-k=\"coll\"><g><rect x=\"775\" y=\"580\" width=\"170\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"860\" y=\"601\" class=\"tn\" text-anchor=\"middle\">Collecteur 10.99.0.10</text><text x=\"860\" y=\"617\" class=\"ti\" text-anchor=\"middle\">C2 · C6 · C9 · C11 · NTP</text></g></g><g data-k=\"dmz\"><rect x=\"545\" y=\"48\" width=\"440\" height=\"200\" rx=\"12\" class=\"z c-dmz\"></rect><text x=\"559\" y=\"68\" class=\"tz f-dmz\" text-anchor=\"start\">DMZ · 10.20.0.0/24 · VLAN 20</text></g><g data-k=\"lan\"><rect x=\"545\" y=\"284\" width=\"440\" height=\"200\" rx=\"12\" class=\"z c-lan\"></rect><text x=\"559\" y=\"304\" class=\"tz f-lan\" text-anchor=\"start\">LAN · 10.10.0.0/24 · VLAN 10</text></g><polyline points=\"530,208 925,208\" class=\"wr s-dmz\"></polyline><polyline points=\"600,163 600,208\" class=\"wr s-dmz\"></polyline><polyline points=\"698,163 698,208\" class=\"wr s-dmz\"></polyline><polyline points=\"815,163 815,208\" class=\"wr s-dmz\"></polyline><polyline points=\"925,163 925,208\" class=\"wr s-dmz\"></polyline><text x=\"932\" y=\"211.5\" class=\"ts f-dmz\" text-anchor=\"start\">VLAN 20</text><polyline points=\"530,442 925,442\" class=\"wr s-lan\"></polyline><polyline points=\"600,397 600,442\" class=\"wr s-lan\"></polyline><polyline points=\"698,397 698,442\" class=\"wr s-lan\"></polyline><polyline points=\"815,397 815,442\" class=\"wr s-lan\"></polyline><polyline points=\"925,397 925,442\" class=\"wr s-lan\"></polyline><text x=\"932\" y=\"445.5\" class=\"ts f-lan\" text-anchor=\"start\">VLAN 10</text><g data-k=\"trunk\"><polyline points=\"490,275 530,275 530,208 530,442\" class=\"wr s-trunk\" stroke-width=\"4.5\"></polyline><polyline points=\"490,275 530,275\" class=\"wr s-trunk\" stroke-width=\"4.5\"></polyline><text x=\"511\" y=\"293\" class=\"ts\" text-anchor=\"middle\">802.1Q</text><text x=\"511\" y=\"305\" class=\"ts\" text-anchor=\"middle\">p6-trunk</text></g><g data-k=\"opn\"><rect x=\"270\" y=\"180\" width=\"220\" height=\"190\" rx=\"12\" class=\"nd acc\"></rect><text x=\"380\" y=\"202\" class=\"tb\" text-anchor=\"middle\">OPNsense</text><text x=\"380\" y=\"218\" class=\"ts\" text-anchor=\"middle\">passerelle de chaque segment</text><text x=\"281\" y=\"246\" class=\"ts\" text-anchor=\"start\">em0</text><text x=\"480\" y=\"246\" class=\"ts\" text-anchor=\"end\">em1</text><text x=\"380\" y=\"362\" class=\"ts\" text-anchor=\"middle\">em2</text></g><g data-k=\"surW\"><rect x=\"280\" y=\"252\" width=\"58\" height=\"46\" rx=\"7\" class=\"nd ids off\"></rect><text x=\"309\" y=\"272\" class=\"tn\" text-anchor=\"middle\">Suricata</text><text x=\"309\" y=\"287\" class=\"ts\" text-anchor=\"middle\">absent (A)</text></g><g data-k=\"surT\"><rect x=\"422\" y=\"252\" width=\"58\" height=\"46\" rx=\"7\" class=\"nd ids off\"></rect><text x=\"451\" y=\"272\" class=\"tn\" text-anchor=\"middle\">Suricata</text><text x=\"451\" y=\"287\" class=\"ts\" text-anchor=\"middle\">absent (A)</text></g><g data-k=\"pf\"><rect x=\"350\" y=\"252\" width=\"60\" height=\"46\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"380\" y=\"281\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g><g data-k=\"nat\"><rect x=\"325\" y=\"310\" width=\"110\" height=\"24\" rx=\"5\" class=\"nd acc\" stroke-dasharray=\"3 2\"></rect><text x=\"380\" y=\"326\" class=\"ts\" text-anchor=\"middle\">NAT 203.0.113.1</text></g><g data-k=\"nginx\"><g><rect x=\"554\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"600\" y=\"132\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"600\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.10/24</text></g></g><g data-k=\"pivot\"><g><rect x=\"652\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"698\" y=\"132\" class=\"tn\" text-anchor=\"middle\">dmz-pivot</text><text x=\"698\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.20/24</text></g></g><g data-k=\"bind9\"><g><rect x=\"769\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"815\" y=\"132\" class=\"tn\" text-anchor=\"middle\">bind9</text><text x=\"815\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.40/24</text></g></g><g data-k=\"api\"><g><rect x=\"879\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"925\" y=\"132\" class=\"tn\" text-anchor=\"middle\">API Flask</text><text x=\"925\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.70/24</text></g></g><g data-k=\"c01\"><g><rect x=\"554\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"600\" y=\"366\" class=\"tn\" text-anchor=\"middle\">client-01</text><text x=\"600\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.10/24</text></g></g><g data-k=\"c03\"><g><rect x=\"652\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"698\" y=\"366\" class=\"tn\" text-anchor=\"middle\">client-03</text><text x=\"698\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.12/24</text></g></g><g data-k=\"pg\"><g><rect x=\"769\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"815\" y=\"366\" class=\"tn\" text-anchor=\"middle\">PostgreSQL</text><text x=\"815\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.70/24</text></g></g><g data-k=\"admin\"><g><rect x=\"879\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"925\" y=\"366\" class=\"tn\" text-anchor=\"middle\">poste admin</text><text x=\"925\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.100/24</text></g></g></g></svg>",
+    "etapes": [
+     "client-ext demande <code>https://203.0.113.1/api/produits</code>. pf applique la redirection puis <b>FA1</b>.",
+     "Le paquet sort vers nginx (10.20.0.10). nginx déchiffre le TLS et lit le chemin <code>/api/produits</code>.",
+     "nginx relaie vers l'API. Même /24, même VLAN 20 : la trame va directement de conteneur à conteneur, <b>sans passer par pf</b>. Aucune règle, aucun journal.",
+     "L'API ouvre une connexion vers PostgreSQL (10.10.0.70:5432) : changement de zone, donc passage par pf : <b>FA3</b>, qui autorise toute la DMZ.",
+     "La requête SQL arrive à PostgreSQL. Les réponses reviennent par les mêmes états, sans relire de règle."
+    ],
+    "fin": "État A : deux passages par pf (FA1, FA3). Le saut nginx → API reste interne à la DMZ et invisible."
+   },
+   {
+    "etat": "B",
+    "libelle": "État B",
+    "svg": "<svg viewBox=\"0 0 1000 652\" role=\"img\" aria-label=\"Combien de fois une requête de client-ext traverse-t-elle pf, et quelles règles l'autorisent en état A et en état B ?\" class=\"schema-guide-svg\"><g><g data-k=\"wan\"><g><rect x=\"20\" y=\"48\" width=\"238\" height=\"420\" rx=\"12\" class=\"z c-wan\"></rect><text x=\"32\" y=\"68\" class=\"tz f-wan\" text-anchor=\"start\">WAN simulé</text><text x=\"248\" y=\"68\" class=\"ts\" text-anchor=\"end\">203.0.113.0/24</text></g></g><polyline points=\"170,190 238,190 238,350 170,350\" class=\"wr s-wan\"></polyline><polyline points=\"238,275 270,275\" class=\"wr s-wan\"></polyline><text x=\"244\" y=\"372\" class=\"ts\" text-anchor=\"middle\">p6-wan</text><g data-k=\"ce\"><g><rect x=\"70\" y=\"162\" width=\"100\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"187\" class=\"tn\" text-anchor=\"middle\">client-ext</text><text x=\"120\" y=\"203\" class=\"ti\" text-anchor=\"middle\">203.0.113.10</text></g></g><g data-k=\"kali\"><g><rect x=\"70\" y=\"322\" width=\"100\" height=\"56\" rx=\"8\" class=\"nd \"></rect><text x=\"120\" y=\"347\" class=\"tn\" text-anchor=\"middle\">Kali</text><text x=\"120\" y=\"363\" class=\"ti\" text-anchor=\"middle\">203.0.113.66</text></g></g><g data-k=\"mgmt\"><g><rect x=\"20\" y=\"508\" width=\"965\" height=\"134\" rx=\"12\" class=\"z c-mgmt\"></rect><text x=\"32\" y=\"528\" class=\"tz f-mgmt\" text-anchor=\"start\">MGMT hors bande · VMnet9 · 10.99.0.0/24</text><text x=\"975\" y=\"528\" class=\"ts\" text-anchor=\"end\">SSH depuis 10.99.0.10 · syslog et NTP vers 10.99.0.10</text></g></g><polyline points=\"120,568 860,568\" class=\"wr s-mgmt\"></polyline><polyline points=\"120,378 120,568\" class=\"wr s-mgmt\"></polyline><polyline points=\"380,370 380,568\" class=\"wr s-mgmt\"></polyline><polyline points=\"620,568 620,580\" class=\"wr s-mgmt\"></polyline><polyline points=\"860,568 860,580\" class=\"wr s-mgmt\"></polyline><text x=\"386\" y=\"560\" class=\"ts\" text-anchor=\"start\">10.99.0.1</text><text x=\"126\" y=\"560\" class=\"ts\" text-anchor=\"start\">10.99.0.66 (proposé)</text><g data-k=\"dock\"><g><rect x=\"500\" y=\"580\" width=\"240\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"620\" y=\"601\" class=\"tn\" text-anchor=\"middle\">Hôte Docker · conteneurs</text><text x=\"620\" y=\"617\" class=\"ti\" text-anchor=\"middle\">10.99.0.20 (proposé)</text></g></g><g data-k=\"coll\"><g><rect x=\"775\" y=\"580\" width=\"170\" height=\"48\" rx=\"8\" class=\"nd \"></rect><text x=\"860\" y=\"601\" class=\"tn\" text-anchor=\"middle\">Collecteur 10.99.0.10</text><text x=\"860\" y=\"617\" class=\"ti\" text-anchor=\"middle\">C2 · C6 · C9 · C11 · NTP</text></g></g><g data-k=\"dmz\"><rect x=\"545\" y=\"48\" width=\"440\" height=\"200\" rx=\"12\" class=\"z c-dmz\" stroke-dasharray=\"7 5\"></rect><text x=\"559\" y=\"68\" class=\"tz f-dmz\" text-anchor=\"start\">DMZ découpée</text></g><g data-k=\"lan\"><rect x=\"545\" y=\"284\" width=\"440\" height=\"200\" rx=\"12\" class=\"z c-lan\" stroke-dasharray=\"7 5\"></rect><text x=\"559\" y=\"304\" class=\"tz f-lan\" text-anchor=\"start\">LAN découpé</text></g><rect x=\"549\" y=\"82\" width=\"202\" height=\"88\" rx=\"8\" class=\"z c-dmz\" fill-opacity=\"0.1\"></rect><text x=\"555\" y=\"95\" class=\"ts f-dmz\" text-anchor=\"start\">DMZ-WEB · 10.20.0.0/27</text><rect x=\"763\" y=\"82\" width=\"104\" height=\"88\" rx=\"8\" class=\"z c-dmz\" fill-opacity=\"0.1\"></rect><text x=\"769\" y=\"95\" class=\"ts f-dmz\" text-anchor=\"start\">DMZ-DNS · .32/27</text><rect x=\"873\" y=\"82\" width=\"106\" height=\"88\" rx=\"8\" class=\"z c-dmz\" fill-opacity=\"0.1\"></rect><text x=\"879\" y=\"95\" class=\"ts f-dmz\" text-anchor=\"start\">DMZ-APP · .64/27</text><rect x=\"549\" y=\"316\" width=\"202\" height=\"88\" rx=\"8\" class=\"z c-lan\" fill-opacity=\"0.1\"></rect><text x=\"555\" y=\"329\" class=\"ts f-lan\" text-anchor=\"start\">LAN-USERS · 10.10.0.0/26</text><rect x=\"763\" y=\"316\" width=\"104\" height=\"88\" rx=\"8\" class=\"z c-lan\" fill-opacity=\"0.1\"></rect><text x=\"769\" y=\"329\" class=\"ts f-lan\" text-anchor=\"start\">LAN-DB · .64/27</text><rect x=\"873\" y=\"316\" width=\"106\" height=\"88\" rx=\"8\" class=\"z c-lan\" fill-opacity=\"0.1\"></rect><text x=\"879\" y=\"329\" class=\"ts f-lan\" text-anchor=\"start\">LAN-ADMIN · .96/27</text><polyline points=\"530,192 698,192\" class=\"wr s-dmz\"></polyline><polyline points=\"600,163 600,192\" class=\"wr s-dmz\"></polyline><polyline points=\"698,163 698,192\" class=\"wr s-dmz\"></polyline><text x=\"705\" y=\"195.5\" class=\"ts f-dmz\" text-anchor=\"start\">VLAN 21</text><polyline points=\"530,208 815,208\" class=\"wr s-dmz\"></polyline><polyline points=\"815,163 815,208\" class=\"wr s-dmz\"></polyline><text x=\"822\" y=\"211.5\" class=\"ts f-dmz\" text-anchor=\"start\">VLAN 22</text><polyline points=\"530,224 925,224\" class=\"wr s-dmz\"></polyline><polyline points=\"925,163 925,224\" class=\"wr s-dmz\"></polyline><text x=\"932\" y=\"227.5\" class=\"ts f-dmz\" text-anchor=\"start\">VLAN 23</text><polyline points=\"530,426 698,426\" class=\"wr s-lan\"></polyline><polyline points=\"600,397 600,426\" class=\"wr s-lan\"></polyline><polyline points=\"698,397 698,426\" class=\"wr s-lan\"></polyline><text x=\"705\" y=\"429.5\" class=\"ts f-lan\" text-anchor=\"start\">VLAN 11</text><polyline points=\"530,442 815,442\" class=\"wr s-lan\"></polyline><polyline points=\"815,397 815,442\" class=\"wr s-lan\"></polyline><text x=\"822\" y=\"445.5\" class=\"ts f-lan\" text-anchor=\"start\">VLAN 12</text><polyline points=\"530,458 925,458\" class=\"wr s-lan\"></polyline><polyline points=\"925,397 925,458\" class=\"wr s-lan\"></polyline><text x=\"932\" y=\"461.5\" class=\"ts f-lan\" text-anchor=\"start\">VLAN 13</text><g data-k=\"trunk\"><polyline points=\"490,275 530,275 530,192 530,458\" class=\"wr s-trunk\" stroke-width=\"4.5\"></polyline><polyline points=\"490,275 530,275\" class=\"wr s-trunk\" stroke-width=\"4.5\"></polyline><text x=\"511\" y=\"293\" class=\"ts\" text-anchor=\"middle\">802.1Q</text><text x=\"511\" y=\"305\" class=\"ts\" text-anchor=\"middle\">p6-trunk</text></g><g data-k=\"opn\"><rect x=\"270\" y=\"180\" width=\"220\" height=\"190\" rx=\"12\" class=\"nd acc\"></rect><text x=\"380\" y=\"202\" class=\"tb\" text-anchor=\"middle\">OPNsense</text><text x=\"380\" y=\"218\" class=\"ts\" text-anchor=\"middle\">passerelle de chaque segment</text><text x=\"281\" y=\"246\" class=\"ts\" text-anchor=\"start\">em0</text><text x=\"480\" y=\"246\" class=\"ts\" text-anchor=\"end\">em1</text><text x=\"380\" y=\"362\" class=\"ts\" text-anchor=\"middle\">em2</text></g><g data-k=\"surW\"><rect x=\"280\" y=\"252\" width=\"58\" height=\"46\" rx=\"7\" class=\"nd ids\"></rect><text x=\"309\" y=\"272\" class=\"tn\" text-anchor=\"middle\">Suricata</text><text x=\"309\" y=\"287\" class=\"ts\" text-anchor=\"middle\">C3</text></g><g data-k=\"surT\"><rect x=\"422\" y=\"252\" width=\"58\" height=\"46\" rx=\"7\" class=\"nd ids\"></rect><text x=\"451\" y=\"272\" class=\"tn\" text-anchor=\"middle\">Suricata</text><text x=\"451\" y=\"287\" class=\"ts\" text-anchor=\"middle\">C3</text></g><g data-k=\"pf\"><rect x=\"350\" y=\"252\" width=\"60\" height=\"46\" rx=\"7\" class=\"c-acc\" fill-opacity=\"1\"></rect><text x=\"380\" y=\"281\" class=\"tb f-on\" text-anchor=\"middle\">pf</text></g><g data-k=\"nat\"><rect x=\"325\" y=\"310\" width=\"110\" height=\"24\" rx=\"5\" class=\"nd acc\" stroke-dasharray=\"3 2\"></rect><text x=\"380\" y=\"326\" class=\"ts\" text-anchor=\"middle\">NAT 203.0.113.1</text></g><g data-k=\"nginx\"><g><rect x=\"554\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"600\" y=\"132\" class=\"tn\" text-anchor=\"middle\">nginx</text><text x=\"600\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.10/27</text></g></g><g data-k=\"pivot\"><g><rect x=\"652\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"698\" y=\"132\" class=\"tn\" text-anchor=\"middle\">dmz-pivot</text><text x=\"698\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.20/27</text></g></g><g data-k=\"bind9\"><g><rect x=\"769\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"815\" y=\"132\" class=\"tn\" text-anchor=\"middle\">bind9</text><text x=\"815\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.40/27</text></g></g><g data-k=\"api\"><g><rect x=\"879\" y=\"107\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-dmz\"></rect><text x=\"925\" y=\"132\" class=\"tn\" text-anchor=\"middle\">API Flask</text><text x=\"925\" y=\"148\" class=\"ti\" text-anchor=\"middle\">10.20.0.70/27</text></g></g><g data-k=\"c01\"><g><rect x=\"554\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"600\" y=\"366\" class=\"tn\" text-anchor=\"middle\">client-01</text><text x=\"600\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.10/26</text></g></g><g data-k=\"c03\"><g><rect x=\"652\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"698\" y=\"366\" class=\"tn\" text-anchor=\"middle\">client-03</text><text x=\"698\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.12/26</text></g></g><g data-k=\"pg\"><g><rect x=\"769\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"815\" y=\"366\" class=\"tn\" text-anchor=\"middle\">PostgreSQL</text><text x=\"815\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.70/27</text></g></g><g data-k=\"admin\"><g><rect x=\"879\" y=\"341\" width=\"92\" height=\"56\" rx=\"8\" class=\"nd s-lan\"></rect><text x=\"925\" y=\"366\" class=\"tn\" text-anchor=\"middle\">poste admin</text><text x=\"925\" y=\"382\" class=\"ti\" text-anchor=\"middle\">10.10.0.100/27</text></g></g></g></svg>",
+    "etapes": [
+     "client-ext demande <code>https://203.0.113.1/api/produits</code>. Suricata inspecte sur em0 (contenu chiffré). pf applique la redirection puis <b>F01</b>.",
+     "Le paquet sort vers nginx (10.20.0.10). nginx déchiffre le TLS et lit le chemin <code>/api/produits</code>.",
+     "nginx relaie en HTTP clair vers l'API (10.20.0.70:5000). L'API est dans DMZ-APP : passage par la passerelle, Suricata lit la requête en clair, pf applique <b>F03</b>.",
+     "Le paquet ressort sur le VLAN 23 jusqu'à l'API.",
+     "L'API ouvre une connexion vers PostgreSQL (10.10.0.70:5432) : changement de zone, donc passage par pf : <b>F04</b>, seule source autorisée.",
+     "La requête SQL arrive à PostgreSQL. Les réponses reviennent par les mêmes états, sans relire de règle."
+    ],
+    "fin": "État B : trois frontières, trois règles distinctes (F01, F03, F04). Aucune confiance n'est héritée d'un saut à l'autre (section 8.1)."
+   }
+  ],
+  "legende": [
+   {
+    "couleur": "var(--wan)",
+    "texte": "WAN"
+   },
+   {
+    "couleur": "var(--dmz)",
+    "texte": "DMZ"
+   },
+   {
+    "couleur": "var(--lan)",
+    "texte": "LAN"
+   },
+   {
+    "couleur": "var(--trunk)",
+    "texte": "trunk"
+   }
+  ]
+ }
+}

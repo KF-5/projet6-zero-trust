@@ -2041,6 +2041,12 @@
                 "resume": "toutes les connexions en cours sont oubliées",
                 "ordre": 1,
                 "automatique": true
+              },
+              {
+                "type": "changementEtat",
+                "etat": "B",
+                "ordre": 2,
+                "automatique": true
               }
             ]
           },

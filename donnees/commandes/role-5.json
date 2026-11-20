@@ -218,6 +218,13 @@
                 "texte": "Commande tapée sur cette machine.",
                 "ordre": 3,
                 "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "kali",
+                "texte": "Affiche la version des outils installés (à recopier dans docs/versions.md).",
+                "ordre": 4,
+                "automatique": true
               }
             ]
           },

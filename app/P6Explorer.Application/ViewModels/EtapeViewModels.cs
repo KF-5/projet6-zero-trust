@@ -28,6 +28,7 @@ public class EtapeVM
     public bool QuizDisponible { get; set; }
     public bool Maitrisee { get; set; }
     public List<TermeVM> Termes { get; set; } = [];
+    public SchemaGuideVM? SchemaGuide { get; set; }
 }
 
 public class RoleEnteteVM
@@ -73,6 +74,7 @@ public class EtapeDetailVM
     public string? PrerequisHtml { get; set; }
     public string? LivrableHtml { get; set; }
     public int NbCommandes { get; set; }
+    public string? Schema { get; set; }
     public List<PanneVM> Pannes { get; set; } = [];
     public List<string> Criteres { get; set; } = [];
     public List<PreuveVM> Preuves { get; set; } = [];
@@ -246,4 +248,29 @@ public class ChampRevisionVM
     public string Champ { get; set; } = "";
     public string? Avant { get; set; }
     public string? Apres { get; set; }
+}
+
+/// <summary>Schéma propre à une étape, repris du guide (donnees/schemas/schemas.json, rendu par outils/schemas-vers-svg.mjs).</summary>
+public class SchemaGuideVM
+{
+    public string Nom { get; set; } = "";
+    public string Question { get; set; } = "";
+    public bool Interactif { get; set; }
+    public List<VueSchemaGuideVM> Vues { get; set; } = [];
+    public List<LegendeSchemaVM> Legende { get; set; } = [];
+}
+
+public class VueSchemaGuideVM
+{
+    public string Etat { get; set; } = "A";
+    public string? Libelle { get; set; }
+    public string Svg { get; set; } = "";
+    public List<string> Etapes { get; set; } = [];
+    public string? Fin { get; set; }
+}
+
+public class LegendeSchemaVM
+{
+    public string Couleur { get; set; } = "";
+    public string Texte { get; set; } = "";
 }

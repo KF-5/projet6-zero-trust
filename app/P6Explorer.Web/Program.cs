@@ -17,6 +17,7 @@ builder.Services.AddControllersWithViews()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IUtilisateurCourant, UtilisateurCourantWeb>();   // auteur des révisions
+builder.Services.AddSingleton<P6Explorer.Web.Services.SchemasGuide>();          // schémas propres aux étapes (SVG du guide)
 builder.Services.AddApplication();                                   // services applicatifs + AutoMapper
 builder.Services.AddInfrastructure(builder.Configuration);           // EF Core, repositories, amorçage
 

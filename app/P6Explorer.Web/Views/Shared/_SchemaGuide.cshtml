@@ -1,0 +1,32 @@
+@model SchemaGuideVM
+@* Schéma propre à l'étape, repris du guide (SVG produit par outils/schemas-vers-svg.mjs à partir de sources/guide :
+   contenu du projet, pas une saisie d'utilisateur). La carte principale, au-dessus, montre la plateforme réelle. *@
+<details class="bloc schema-guide" open>
+    <summary><h3>Schéma de l'étape : @Model.Question</h3></summary>
+    @if (Model.Interactif || Model.Vues.Count == 0)
+    {
+        <p class="note">Dans le guide, ce schéma est un simulateur interactif : sers-toi du mode <a asp-controller="Simulation" asp-action="Index">« Et si ? »</a> pour essayer des paquets.</p>
+    }
+    else
+    {
+        <div class="vues-schema">
+            @foreach (var v in Model.Vues)
+            {
+                <figure class="vue-schema">
+                    @if (v.Libelle is not null) { <figcaption class="surtitre">@v.Libelle</figcaption> }
+                    <div class="schema-guide-dessin">@Html.Raw(v.Svg)</div>
+                    @if (v.Etapes.Count > 0)
+                    {
+                        <ol class="etapes-schema">@foreach (var e in v.Etapes) { <li>@Html.Raw(e)</li> }</ol>
+                    }
+                    @if (!string.IsNullOrEmpty(v.Fin)) { <p class="note">@Html.Raw(v.Fin)</p> }
+                </figure>
+            }
+        </div>
+        @if (Model.Legende.Count > 0)
+        {
+            <p class="legende-guide">@foreach (var l in Model.Legende) { <span><i style="background:@l.Couleur"></i>@l.Texte</span> }</p>
+        }
+        <p class="note">Schéma du guide (conception) : noms et adresses peuvent différer de la plateforme réelle, que montre la carte ci-dessus (ECARTS.md, E31 à E42).</p>
+    }
+</details>

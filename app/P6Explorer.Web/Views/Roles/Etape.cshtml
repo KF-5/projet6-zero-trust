@@ -77,6 +77,7 @@
                 <div class="bloc"><h3>But</h3><p>@Html.Raw(e.ButHtml)</p></div>
                 <div class="bloc"><h3>Pourquoi</h3><p>@Html.Raw(e.PourquoiHtml)</p></div>
                 @if (e.PrerequisHtml is { Length: > 0 }) { <div class="bloc"><h3>Prérequis</h3><p>@Html.Raw(e.PrerequisHtml)</p></div> }
+                @if (Model.SchemaGuide is not null) { <partial name="_SchemaGuide" model="Model.SchemaGuide" /> }
 
                 <details class="bloc" open>
                     <summary><h3>Les commandes (@e.Commandes.Count)</h3></summary>

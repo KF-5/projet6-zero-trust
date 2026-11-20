@@ -36,6 +36,7 @@ public static partial class Analyseur
             AnalyserLigne(premiereLigne, texte, ou, a, 0);
         }
         AjouterResultatTest(sortie, a);
+        if (!a.Reconnue) Particuliers(texte, ou, a);
         if (a.Effets.Count == 0)
         {
             // Reconnue sans effet propre (cd, affectation de variable…) : on montre la machine où l'on tape.
@@ -47,6 +48,19 @@ public static partial class Analyseur
             a.Effets[i].Automatique = true;
         }
         return a;
+    }
+
+    /// <summary>Derniers motifs : variable d'horodatage, affichage des versions, commande dans un conteneur.</summary>
+    private static void Particuliers(string texte, NoeudId ou, Analyse a)
+    {
+        var t = texte.Split('\n')[0].Trim();
+        string? phrase = null;
+        if (Regex.IsMatch(t, @"^\w+=\$\(date\b")) phrase = $"Note l'heure (UTC) dans la variable {t.Split('=')[0]} : elle borne la fenêtre de mesure.";
+        else if (t.Contains("--version") || t.Contains("-Version")) phrase = "Affiche la version des outils installés (à recopier dans docs/versions.md).";
+        else if (t.StartsWith("docker compose exec")) phrase = "Commande lancée à l'intérieur d'un conteneur du projet Compose.";
+        if (phrase is null) return;
+        a.Effets.Add(new Surbrillance { Noeud = ou, Texte = phrase });
+        a.Reconnue = true;
     }
 
     private static void AnalyserLigne(string ligne, string texteComplet, NoeudId de, Analyse a, int profondeur)

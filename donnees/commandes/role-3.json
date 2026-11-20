@@ -479,7 +479,7 @@
               {
                 "type": "surbrillance",
                 "noeud": "pc-membre",
-                "texte": "Mini-laboratoire (WSL) : Commande tapée sur cette machine. · Commande tapée sur cette machine. · Commande tapée sur cette machine.",
+                "texte": "Mini-laboratoire (WSL) : Commande tapée sur cette machine. · Commande tapée sur cette machine. · Commande tapée sur cette machine. · Commande lancée à l'intérieur d'un conteneur du projet Compose.",
                 "ordre": 1,
                 "automatique": true
               }
@@ -2202,6 +2202,13 @@
                 "texte": "Commande tapée sur cette machine.",
                 "ordre": 1,
                 "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Note l'heure (UTC) dans la variable DEBUT : elle borne la fenêtre de mesure.",
+                "ordre": 2,
+                "automatique": true
               }
             ]
           },
@@ -2516,6 +2523,13 @@
                 "noeud": "collecteur",
                 "texte": "Commande tapée sur cette machine.",
                 "ordre": 1,
+                "automatique": true
+              },
+              {
+                "type": "surbrillance",
+                "noeud": "collecteur",
+                "texte": "Note l'heure (UTC) dans la variable FIN : elle borne la fenêtre de mesure.",
+                "ordre": 2,
                 "automatique": true
               }
             ]
