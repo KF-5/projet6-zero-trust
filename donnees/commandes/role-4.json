@@ -2744,5 +2744,714 @@
       "question": "Pourquoi un serveur iperf3 dans l'espace réseau de nginx ?",
       "reponse": "FA6 et F09 ouvrent 10.20.0.10:5201. Partager l'espace réseau de nginx donne cette adresse au serveur iperf3 sans créer d'hôte supplémentaire ; la mesure de débit traverse exactement le même chemin que le trafic web."
     }
+  ],
+  "quiz": [
+    {
+      "etape": "r4-e1",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Installer Docker et les outils sur l'hôte Docker » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            },
+            {
+              "texte": "nginx sur 10.20.0.10 sert HTTPS (certificat auto-signé), redirige HTTP vers HTTPS et relaie /api/ vers l'API en HTTP clair.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « apt-get update échoue ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": true,
+              "explication": "Solution du guide : Rebrancher le temps de l'installation (rôle 1, étape 4)."
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            },
+            {
+              "texte": "Nom de carte faux",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Plus de SSH depuis le collecteur après l'installation ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "nft list ruleset",
+              "correct": true,
+              "explication": "Solution du guide : Recharger /etc/nftables.d/mgmt.nft ; ne jamais utiliser flush ruleset sur cet hôte."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            },
+            {
+              "texte": "Nom de carte faux",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e2",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Créer les réseaux macvlan de l'état A » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            },
+            {
+              "texte": "nginx sur 10.20.0.10 sert HTTPS (certificat auto-signé), redirige HTTP vers HTTPS et relaie /api/ vers l'API en HTTP clair.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « invalid subinterface vlan name » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Nom de carte faux",
+              "correct": true,
+              "explication": "Solution du guide : Utiliser le vrai nom (ip -br link), par exemple ens33.10."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Pas de réponse de 10.10.0.1 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Sur OPNsense : tcpdump -nei em1 vlan 10 voit-il l'ARP ?",
+              "correct": true,
+              "explication": "Solution du guide : Rien vu : carte du trunk sur le mauvais segment VMware (rôle 1). Vu sans réponse : VLAN 10 non activé (rôle 2)."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi macvlan et pas le réseau Docker par défaut ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Le réseau par défaut cache les conteneurs derrière l'adresse de l'hôte (NAT) : OPNsense ne verrait qu'une source et ne pourrait pas appliquer F03 ou F04. Avec macvlan, chaque conteneur a sa MAC et son adresse dans son VLAN : c'est une…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Pour que S-03 ait un effet mesurable : en état A, l'injection renvoie la colonne « secret » ; en état B, Suricata doit la bloquer sur le saut nginx → API. Le point d'entrée n'existe que dans le laboratoire isolé ; /api/produits montre la…",
+              "correct": false
+            },
+            {
+              "texte": "Deux conteneurs d'un même réseau macvlan se parlent dans le noyau de l'hôte, sans passer par eth1 : une capture sur l'hôte ou sur OPNsense ne voit pas S-05 en état A. Seule la capture dans l'espace réseau de la cible prouve l'effet réel…",
+              "correct": false
+            },
+            {
+              "texte": "Seulement le réseau Docker : masque, passerelle et VLAN. L'adresse, l'image et la configuration restent identiques ; c'est ce qui rend la comparaison A/B honnête (ENF3).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Qu'est-ce qui change pour un conteneur entre A et B ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Seulement le réseau Docker : masque, passerelle et VLAN. L'adresse, l'image et la configuration restent identiques ; c'est ce qui rend la comparaison A/B honnête (ENF3).",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Le réseau par défaut cache les conteneurs derrière l'adresse de l'hôte (NAT) : OPNsense ne verrait qu'une source et ne pourrait pas appliquer F03 ou F04. Avec macvlan, chaque conteneur a sa MAC et son adresse dans son VLAN : c'est une…",
+              "correct": false
+            },
+            {
+              "texte": "Pour que S-03 ait un effet mesurable : en état A, l'injection renvoie la colonne « secret » ; en état B, Suricata doit la bloquer sur le saut nginx → API. Le point d'entrée n'existe que dans le laboratoire isolé ; /api/produits montre la…",
+              "correct": false
+            },
+            {
+              "texte": "Deux conteneurs d'un même réseau macvlan se parlent dans le noyau de l'hôte, sans passer par eth1 : une capture sur l'hôte ou sur OPNsense ne voit pas S-05 en état A. Seule la capture dans l'espace réseau de la cible prouve l'effet réel…",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi un serveur iperf3 dans l'espace réseau de nginx ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "FA6 et F09 ouvrent 10.20.0.10:5201. Partager l'espace réseau de nginx donne cette adresse au serveur iperf3 sans créer d'hôte supplémentaire ; la mesure de débit traverse exactement le même chemin que le trafic web.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Le réseau par défaut cache les conteneurs derrière l'adresse de l'hôte (NAT) : OPNsense ne verrait qu'une source et ne pourrait pas appliquer F03 ou F04. Avec macvlan, chaque conteneur a sa MAC et son adresse dans son VLAN : c'est une…",
+              "correct": false
+            },
+            {
+              "texte": "Pour que S-03 ait un effet mesurable : en état A, l'injection renvoie la colonne « secret » ; en état B, Suricata doit la bloquer sur le saut nginx → API. Le point d'entrée n'existe que dans le laboratoire isolé ; /api/produits montre la…",
+              "correct": false
+            },
+            {
+              "texte": "Deux conteneurs d'un même réseau macvlan se parlent dans le noyau de l'hôte, sans passer par eth1 : une capture sur l'hôte ou sur OPNsense ne voit pas S-05 en état A. Seule la capture dans l'espace réseau de la cible prouve l'effet réel…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e3",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Déployer PostgreSQL et l'API Flask » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "nginx sur 10.20.0.10 sert HTTPS (certificat auto-signé), redirige HTTP vers HTTPS et relaie /api/ vers l'API en HTTP clair.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « L'API répond 500 « connection timeout » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "docker exec api python -c \"import socket;socket.create_connection(('10.10.0.70',5432),3)\"",
+              "correct": true,
+              "explication": "Solution du guide : En état A, vérifier FA3 (rôle 2) ; en état B, F04."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « password authentication failed for user app » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Mot de passe différent entre .env et init.sh",
+              "correct": true,
+              "explication": "Solution du guide : Recréer la base : docker compose down -v (efface le volume) puis up."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi l'API est-elle volontairement vulnérable ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Pour que S-03 ait un effet mesurable : en état A, l'injection renvoie la colonne « secret » ; en état B, Suricata doit la bloquer sur le saut nginx → API. Le point d'entrée n'existe que dans le laboratoire isolé ; /api/produits montre la…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Le réseau par défaut cache les conteneurs derrière l'adresse de l'hôte (NAT) : OPNsense ne verrait qu'une source et ne pourrait pas appliquer F03 ou F04. Avec macvlan, chaque conteneur a sa MAC et son adresse dans son VLAN : c'est une…",
+              "correct": false
+            },
+            {
+              "texte": "Deux conteneurs d'un même réseau macvlan se parlent dans le noyau de l'hôte, sans passer par eth1 : une capture sur l'hôte ou sur OPNsense ne voit pas S-05 en état A. Seule la capture dans l'espace réseau de la cible prouve l'effet réel…",
+              "correct": false
+            },
+            {
+              "texte": "Seulement le réseau Docker : masque, passerelle et VLAN. L'adresse, l'image et la configuration restent identiques ; c'est ce qui rend la comparaison A/B honnête (ENF3).",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e4",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Configurer nginx : TLS et reverse proxy » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "nginx sur 10.20.0.10 sert HTTPS (certificat auto-signé), redirige HTTP vers HTTPS et relaie /api/ vers l'API en HTTP clair.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « 502 Bad Gateway ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "nginx ne joint pas 10.20.0.70:5000",
+              "correct": true,
+              "explication": "Solution du guide : État A : vérifier que l'API tourne. État B : F03 (rôle 2)."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le journal d'accès est vide ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "ls -l /srv/logs/nginx/ ; la directive access_log pointe-t-elle vers projet6.log ?",
+              "correct": true,
+              "explication": "Solution du guide : Dans l'image officielle, access.log est un lien vers la sortie standard : écrire dans projet6.log (fichier ci-dessus) et monter /srv/logs/nginx."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e5",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Configurer bind9 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "bind9 sur 10.20.0.40 fait autorité sur labo.test : réponse interne (10.20.0.10) pour le LAN et la DMZ, publique (203.0.113.1) pour le WAN.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « connection timed out; no servers could be reached » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "bind9 tourne-t-il ? docker logs bind9",
+              "correct": true,
+              "explication": "Solution du guide : Erreur de syntaxe dans named.conf ou la zone : named-checkconf."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « client-ext reçoit 10.20.0.10 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Mauvaise vue choisie",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier match-clients : 203.0.113.0/24 ne doit pas être dans la vue interne."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e6",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Lancer les postes : clients, dmz-pivot, admin, client-ext, iperf3 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Tous les conteneurs de hosts.csv en marche à leur adresse, avec les outils dont ont besoin la sonde et les scénarios.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « Address already in use » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Un conteneur de test a gardé l'adresse",
+              "correct": true,
+              "explication": "Solution du guide : docker ps -a, supprimer le conteneur de test."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « client-ext ne joint pas 203.0.113.1 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Réseau wan sur la mauvaise carte",
+              "correct": true,
+              "explication": "Solution du guide : Le parent doit être la carte reliée à p6-wan (ens34)."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e7",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire l'outil de capture C10 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un script que l'orchestrateur appelle par SSH pour démarrer et arrêter une capture dans l'espace réseau d'un conteneur cible.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Fichier vide ou absent ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "cat /srv/captures/.<run_id>-<point>.err",
+              "correct": true,
+              "explication": "Solution du guide : Message de tcpdump (droits, interface). Arrêt par KILL : toujours kill -INT, tcpdump vide son tampon."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « nsenter: cannot open … » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Lancé sans root",
+              "correct": true,
+              "explication": "Solution du guide : L'orchestrateur se connecte en root (clé du collecteur)."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi la capture se fait-elle dans le conteneur ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Deux conteneurs d'un même réseau macvlan se parlent dans le noyau de l'hôte, sans passer par eth1 : une capture sur l'hôte ou sur OPNsense ne voit pas S-05 en état A. Seule la capture dans l'espace réseau de la cible prouve l'effet réel…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Le réseau par défaut cache les conteneurs derrière l'adresse de l'hôte (NAT) : OPNsense ne verrait qu'une source et ne pourrait pas appliquer F03 ou F04. Avec macvlan, chaque conteneur a sa MAC et son adresse dans son VLAN : c'est une…",
+              "correct": false
+            },
+            {
+              "texte": "Pour que S-03 ait un effet mesurable : en état A, l'injection renvoie la colonne « secret » ; en état B, Suricata doit la bloquer sur le saut nginx → API. Le point d'entrée n'existe que dans le laboratoire isolé ; /api/produits montre la…",
+              "correct": false
+            },
+            {
+              "texte": "Seulement le réseau Docker : masque, passerelle et VLAN. L'adresse, l'image et la configuration restent identiques ; c'est ce qui rend la comparaison A/B honnête (ENF3).",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r4-e8",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Basculer les services en état B » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Mêmes conteneurs, mêmes adresses, sur les six réseaux /26 et /27 de l'état B.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Docker (26.1.5, paquets Debian) et les outils de test (nc, dig, tcpdump) installés sur p6-docker, sans casser le pare-feu MGMT.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux Docker : lan (VLAN 10), dmz (VLAN 20) et wan (eth2), avec les passerelles d'OPNsense.",
+              "correct": false
+            },
+            {
+              "texte": "La base « catalogue » sur 10.10.0.70 et l'API sur 10.20.0.70:5000, avec un point d'entrée sûr et un point d'entrée volontairement vulnérable.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « network dmz-web not found » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "reseaux-B.sh non exécuté",
+              "correct": true,
+              "explication": "Solution du guide : Le lancer avant up."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « PostgreSQL injoignable depuis l'API ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Passerelle de LAN-DB",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier --gateway 10.10.0.65 ; sinon voir module 2, exercice 2."
+            },
+            {
+              "texte": "Carte NAT débranchée",
+              "correct": false
+            },
+            {
+              "texte": "nft list ruleset",
+              "correct": false
+            },
+            {
+              "texte": "Utilisateur hors du groupe docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

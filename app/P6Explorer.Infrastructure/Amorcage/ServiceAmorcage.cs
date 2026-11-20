@@ -4,7 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using P6Explorer.Application.Services;
+using System.Text.RegularExpressions;
 using P6Explorer.Domain.Amorcage;
+using P6Explorer.Domain.Commandes;
+using P6Explorer.Domain.Enumerations;
+using P6Explorer.Domain.Suivi;
 using P6Explorer.Domain.Exceptions;
 using P6Explorer.Domain.Topologie;
 using P6Explorer.Infrastructure.Identite;
@@ -23,6 +27,8 @@ public class OptionsAmorcage
     public string? MotDePasseAdmin { get; set; }
     /// <summary>Faux pour les tests : la base est créée par EnsureCreated au lieu des migrations.</summary>
     public bool AppliquerMigrations { get; set; } = true;
+    /// <summary>Seuil de réussite des quiz (part de bonnes réponses) : 0,8 par défaut, configurable.</summary>
+    public double SeuilQuiz { get; set; } = 0.8;
 }
 
 /// <summary>
@@ -98,9 +104,12 @@ public class ServiceAmorcage(
         var fichiers = Directory.GetFiles(Path.Combine(dossier, "commandes"), "role-*.json").Order().ToList();
         if (fichiers.Count == 0)
             throw new DonneesAmorcageInvalidesException(dossier, "aucun fichier commandes/role-N.json (lancer P6Explorer.Importeur).");
+        var lus = new List<FichierRole>();
         foreach (var chemin in fichiers)
         {
-            var role = Lire<FichierRole>(chemin).Role;
+            var fichier = Lire<FichierRole>(chemin);
+            lus.Add(fichier);
+            var role = fichier.Role;
             // Les sous-commandes (scripts dépliés) appartiennent aussi à l'étape de leur commande parente.
             foreach (var e in role.Etapes)
                 foreach (var c in e.Commandes)
@@ -109,6 +118,50 @@ public class ServiceAmorcage(
         }
         var n = await contexte.SaveChangesAsync(annulation);
         journal.LogInformation("Contenu du guide amorcé : {Fichiers} rôles, {Lignes} lignes écrites.", fichiers.Count, n);
+        await AmorcerQuizAsync(lus, annulation);
+        await AmorcerGlossaireAsync(dossier, annulation);
+    }
+
+    /// <summary>Un quiz par étape (relation 1-1), questions « à valider » tirées du guide par l'importeur.</summary>
+    private async Task AmorcerQuizAsync(IEnumerable<FichierRole> fichiers, CancellationToken annulation)
+    {
+        var etapes = await contexte.Etapes.ToDictionaryAsync(e => e.Code, annulation);
+        var seuil = Math.Clamp(options.Value.SeuilQuiz, 0.1, 1);
+        foreach (var q in fichiers.SelectMany(f => f.Quiz).Where(q => etapes.ContainsKey(q.Etape)))
+        {
+            var quiz = new Quiz { EtapeId = etapes[q.Etape].Id, Seuil = seuil };
+            var ordre = 0;
+            foreach (var question in q.Questions.Where(x => x.Choix.Count >= 2))
+            {
+                var qu = new Question { Ordre = ++ordre, Texte = question.Texte, Source = question.Source, Statut = StatutValidation.AValider };
+                var o = 0;
+                foreach (var c in question.Choix)
+                    qu.Choix.Add(new Choix { Ordre = ++o, Texte = c.Texte, Correct = c.Correct, Explication = c.Explication });
+                quiz.Questions.Add(qu);
+            }
+            contexte.Quiz.Add(quiz);
+        }
+        await contexte.SaveChangesAsync(annulation);
+    }
+
+    /// <summary>Glossaire (donnees/glossaire.json), relié n-n aux étapes dont le texte emploie le terme.</summary>
+    private async Task AmorcerGlossaireAsync(string dossier, CancellationToken annulation)
+    {
+        var chemin = Path.Combine(dossier, "glossaire.json");
+        if (!File.Exists(chemin) || await contexte.Glossaire.AnyAsync(annulation)) return;
+        var termes = Lire<List<TermeAmorce>>(chemin);
+        var etapes = await contexte.Etapes.Include(e => e.Commandes).ToListAsync(annulation);
+        var textes = etapes.ToDictionary(e => e, e => string.Join(" ", new[] { e.Titre, e.But, e.Pourquoi, e.MiseAJour, e.Livrable }
+            .Concat(e.Commandes.Select(c => c.Explication))));
+        foreach (var t in termes)
+        {
+            var motif = new Regex($@"(?<![\p{{L}}\d_-]){Regex.Escape(t.Terme)}(?![\p{{L}}\d_-])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            var terme = new TermeGlossaire { Terme = t.Terme, Definition = t.Definition, Comparaison = t.Comparaison };
+            terme.Etapes.AddRange(etapes.Where(e => motif.IsMatch(textes[e])));
+            contexte.Glossaire.Add(terme);
+        }
+        await contexte.SaveChangesAsync(annulation);
+        journal.LogInformation("Glossaire amorcé : {Nombre} termes.", termes.Count);
     }
 
     private async Task AmorcerComptesAsync()

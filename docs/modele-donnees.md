@@ -173,6 +173,8 @@ classDiagram
 |---|---|---|
 | Rôles, étapes, commandes, effets, pannes, critères | `donnees/commandes/role-1.json` … `role-6.json`, produits par `P6Explorer.Importeur` depuis le guide | amorçage, une seule fois (base vide) |
 | Topologie (nœuds, réseaux, liens, règles, NAT) | `donnees/topologie/etat-A.json` (toutes les machines) et `etat-B.json` (cartes, réseaux, règles et NAT de l'état B seulement : fusionnés dans les machines de A) | amorçage, une seule fois |
+| Quiz (1 par étape), questions et choix | `donnees/commandes/role-N.json` (champ `quiz`, produit par l'importeur) | amorçage, une seule fois |
+| Glossaire, et ses liens n-n avec les étapes | `donnees/glossaire.json` ; liens calculés en cherchant chaque terme dans le texte des étapes | amorçage, une seule fois |
 | Rôles Identity `Admin`, `Membre` ; compte admin | `RoleManager`, `UserManager` ; mot de passe dans les user-secrets | à chaque démarrage s'ils manquent |
 | Révisions, quiz, tentatives, progression, fils, simulations, preuves | l'équipe, par l'application | en continu |
 

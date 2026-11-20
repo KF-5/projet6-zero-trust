@@ -4521,5 +4521,788 @@
       "question": "Que se passe-t-il si la RAM manque ?",
       "reponse": "L'hôte échange sur disque et la latence mesurée devient fausse. Les 4 VM utilisent 7,5 Go sur 16 (écart E32, au lieu des 11 Go prévus), ce qui laisse environ 8 Go à Windows ; aucune autre VM ne tourne pendant les campagnes."
     }
+  ],
+  "quiz": [
+    {
+      "etape": "r1-e1",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Installer VMware Workstation Pro et protéger le PC hôte » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 systèmes installés, chaque VM à son adresse MGMT fixe, l'heure commune, les journaux centralisés, et l'état A en service.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Une VM refuse de démarrer : « VT-x is not available » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": true,
+              "explication": "Solution du guide : Désactiver Hyper-V / « Isolation du noyau » ou laisser VMware utiliser l'hyperviseur Windows (plus lent)."
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            },
+            {
+              "texte": "Carte reliée au mauvais segment",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le disque C: se remplit ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": true,
+              "explication": "Solution du guide : Préférences de VMware : D:\\Labo-P6\\vm, puis déplacer les VM existantes VM éteintes."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            },
+            {
+              "texte": "Carte reliée au mauvais segment",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment prouvez-vous que le laboratoire est isolé ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (startConnected =…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le…",
+              "correct": false
+            },
+            {
+              "texte": "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q…",
+              "correct": false
+            },
+            {
+              "texte": "Chaque campagne commence par la restauration du snapshot et un test_flux à 100 % (section 10.3). Le snapshot et le tag Git citent le même commit ; VERSION.txt est archivé avec les résultats.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi VMware plutôt que Proxmox, prévu dans la conception ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (startConnected =…",
+              "correct": false
+            },
+            {
+              "texte": "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le…",
+              "correct": false
+            },
+            {
+              "texte": "Chaque campagne commence par la restauration du snapshot et un test_flux à 100 % (section 10.3). Le snapshot et le tag Git citent le même commit ; VERSION.txt est archivé avec les résultats.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e2",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Créer les réseaux virtuels p6-wan, p6-trunk et VMnet9 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 systèmes installés, chaque VM à son adresse MGMT fixe, l'heure commune, les journaux centralisés, et l'état A en service.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Une VM obtient une adresse 192.168.x.x sur MGMT ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": true,
+              "explication": "Solution du guide : Éditeur de réseau virtuel › VMnet9 › décocher « Utiliser le service DHCP local »."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "Carte reliée au mauvais segment",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les VLAN ne passent pas sur le trunk ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Carte reliée au mauvais segment",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier dans les paramètres de la VM que la carte du trunk est sur le segment p6-trunk."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e3",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Créer les 4 machines virtuelles » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 systèmes installés, chaque VM à son adresse MGMT fixe, l'heure commune, les journaux centralisés, et l'état A en service.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « OPNsense affecte le WAN à la mauvaise carte ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Ordre des cartes ≠ ordre attendu",
+              "correct": true,
+              "explication": "Solution du guide : Comparer les MAC (ifconfig em0) avec le .vmx, puis réaffecter (console, option 1)."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « La VM Debian démarre en synthèse vocale ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Le menu de l'installateur a attendu 30 s",
+              "correct": true,
+              "explication": "Solution du guide : Redémarrer la VM et appuyer sur ↓ dès le menu."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e4",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Installer les systèmes, les adresses MGMT et l'état A » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les 4 systèmes installés, chaque VM à son adresse MGMT fixe, l'heure commune, les journaux centralisés, et l'état A en service.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un bloc de commandes collé dans PowerShell « perd » des lignes ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "sudo demande le mot de passe et avale la suite",
+              "correct": true,
+              "explication": "Solution du guide : sudo -v d'abord, puis une seule ligne avec &&."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Sur Kali, chrony ne tourne pas (« 506 Cannot talk to daemon ») ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Kali désactive les services au démarrage",
+              "correct": true,
+              "explication": "Solution du guide : sudo systemctl enable --now chrony (corrigé dans le script)."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e5",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Verrouiller MGMT, prouver le confinement et ouvrir l'accès à l'équipe » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Kali ne peut rien atteindre hors de ce qui est publié, MGMT ne sert à personne pour contourner le pare-feu, et les 5 autres membres travaillent sur le laboratoire depuis chez eux, sans mot de passe partagé.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Après avoir désactivé l'anti-lockout, Windows n'ouvre plus la console d'OPNsense ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Règle « Admin du pare-feu » avec un port source ≠ any : elle ne correspondait jamais",
+              "correct": true,
+              "explication": "Solution du guide : Console OPNsense › 8 Shell › pfctl -d, corriger (port source any), Apply, pfctl -e. Toujours tester avec une connexion neuve."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le tunnel s'ouvre mais la page affiche ERR_CONNECTION_CLOSED ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Windows lui-même ne joint pas la cible",
+              "correct": true,
+              "explication": "Solution du guide : Tester chaque morceau : Test-NetConnection 10.99.0.1 -Port 443 sur l'hôte."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi un pare-feu local sur chaque VM alors que vous avez OPNsense ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (startConnected =…",
+              "correct": false
+            },
+            {
+              "texte": "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q…",
+              "correct": false
+            },
+            {
+              "texte": "Chaque campagne commence par la restauration du snapshot et un test_flux à 100 % (section 10.3). Le snapshot et le tag Git citent le même commit ; VERSION.txt est archivé avec les résultats.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Que se passe-t-il si la RAM manque ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "L'hôte échange sur disque et la latence mesurée devient fausse. Les 4 VM utilisent 7,5 Go sur 16 (écart E32, au lieu des 11 Go prévus), ce qui laisse environ 8 Go à Windows ; aucune autre VM ne tourne pendant les campagnes.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (startConnected =…",
+              "correct": false
+            },
+            {
+              "texte": "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le…",
+              "correct": false
+            },
+            {
+              "texte": "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e6",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Créer le dépôt Git et ses conventions » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un dépôt unique, structuré, où chaque rôle commite ses fichiers et où chaque état est marqué par un tag.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un PCAP de 500 Mo bloque le push ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "git status",
+              "correct": true,
+              "explication": "Solution du guide : Le retirer (git rm --cached), vérifier le .gitignore, archiver les PCAP en zip daté."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Deux rôles modifient flows.csv en même temps ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Conflit de fusion",
+              "correct": true,
+              "explication": "Solution du guide : flows.csv appartient au rôle 2 : les autres proposent par message, le rôle 2 commite."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment garantissez-vous que l'état mesuré est bien celui décrit ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Chaque campagne commence par la restauration du snapshot et un test_flux à 100 % (section 10.3). Le snapshot et le tag Git citent le même commit ; VERSION.txt est archivé avec les résultats.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Trois preuves : les réseaux du laboratoire sont des segments LAN VMware et un réseau « hôte uniquement », aucune carte n'est en mode Pont ; toutes les cartes NAT sont débranchées et ne se reconnectent pas au démarrage (startConnected =…",
+              "correct": false
+            },
+            {
+              "texte": "Parce que les VM d'un même réseau se parlent sans passer par OPNsense : c'est exactement le problème du LAN plat de l'état A. Le rapport promet que MGMT ne peut pas servir à joindre une autre machine ; seul un filtrage sur chaque VM le…",
+              "correct": false
+            },
+            {
+              "texte": "L'installateur de Proxmox efface tout le disque du PC, ce qui n'était pas acceptable sur un PC personnel. VMware Workstation Pro est gratuit, tourne sous Windows et offre ce que le projet demandait : réseaux isolés, trunk 802.1Q…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e7",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Figer un état : snapshots et tags » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les états A et B reconstructibles à l'identique : snapshot des 4 VM et tag Git portant sur le même contenu.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « L'instantané dure plusieurs minutes et la VM semble figée ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "VMware écrit la RAM de la VM sur le disque",
+              "correct": true,
+              "explication": "Solution du guide : Attendre, ne pas interrompre (pas de Ctrl+C) : interrompre peut abîmer la VM. Vérifier l'activité du disque D: dans le Gestionnaire des tâches."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Après rollback, OPNsense a une heure fausse ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Snapshot avec RAM restauré des jours plus tard",
+              "correct": true,
+              "explication": "Solution du guide : Laisser NTP resynchroniser ; contrôler avec le rôle 6 avant toute mesure."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e8",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Intégrer le travail des rôles aux jalons » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Chaque jalon de la section 12 est vérifié par un test de bout en bout, pas seulement annoncé.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le rôle 5 attend les services ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Tâche t42 en retard sur le Gantt",
+              "correct": true,
+              "explication": "Solution du guide : Aider le rôle 4 (le rôle 3, qui n'a que la sonde à écrire du 16 au 19, a de la marge) ; décaler l'essai, pas la campagne."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un fichier ne respecte pas son contrat ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Colonnes différentes de la page Contrats",
+              "correct": true,
+              "explication": "Solution du guide : Refuser la fusion ; le producteur corrige."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r1-e9",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Assembler le rapport final et préparer la démonstration » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un rapport final relu qui confirme ou infirme chaque hypothèse avec les mesures, et une démonstration de 10 minutes qui ne peut pas échouer.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Un PC Windows qui fait tourner les 4 VM du laboratoire sans rien effacer, sans rien payer, et sans que le laboratoire puisse toucher Windows ni le réseau de la maison.",
+              "correct": false
+            },
+            {
+              "texte": "Trois réseaux virtuels internes : un WAN simulé, un trunk 802.1Q pour les VLAN, et un réseau de gestion relié à Windows seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Les 4 VM, avec leurs cartes dans le bon ordre et branchées sur le bon réseau, vérifiées une par une par leur adresse MAC.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Une VM ne démarre pas pendant la démo ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "—",
+              "correct": true,
+              "explication": "Solution du guide : Passer immédiatement à la vidéo de secours, ne pas dépanner en direct."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les chiffres du rapport ne correspondent pas aux graphiques ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Graphiques régénérés après correction",
+              "correct": true,
+              "explication": "Solution du guide : Tout produire depuis resultats/synthese/ (rôle 6), jamais à la main."
+            },
+            {
+              "texte": "Hyper-V ou la sécurité basée sur la virtualisation de Windows occupe VT-x",
+              "correct": false
+            },
+            {
+              "texte": "Dossier des VM resté sur C:",
+              "correct": false
+            },
+            {
+              "texte": "DHCP de VMnet9 resté actif",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

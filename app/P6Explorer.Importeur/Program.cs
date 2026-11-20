@@ -38,10 +38,15 @@ Directory.CreateDirectory(sortie);
 
 var bilan = new StringBuilder();
 int totalEtapes = 0, totalCommandes = 0, totalEffets = 0, totalSous = 0;
+// 1. Construction des six rôles, 2. quiz (les choix faux viennent de tous les rôles), 3. écriture.
+var fichiers = new List<P6Explorer.Domain.Amorcage.FichierRole>();
 for (var n = 1; n <= 6; n++)
+    fichiers.Add(constructeur.Construire(guides[n - 1]));
+GenerateurQuiz.Generer(fichiers);
+
+foreach (var fichier in fichiers)
 {
-    using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(dossierGuide, $"role-{n}.json")));
-    var fichier = constructeur.Construire(doc.RootElement);
+    var n = fichier.Role.Numero;
     var json = JsonSerializer.Serialize(fichier, options);
     if (Secrets.ContientSecret(json))
         throw new InvalidOperationException($"Un secret subsiste dans role-{n}.json : importation arrêtée.");
@@ -51,7 +56,8 @@ for (var n = 1; n <= 6; n++)
     var sous = commandes.Sum(c => c.SousCommandes.Count);
     var effets = commandes.Sum(c => c.Effets.Count + c.SousCommandes.Sum(x => x.Effets.Count));
     var parShell = commandes.GroupBy(c => c.Shell).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()}");
-    Console.WriteLine($"rôle {n} : {fichier.Role.Etapes.Count} étapes, {commandes.Count} commandes, {effets} effets ({string.Join(", ", parShell)})");
+    var questions = fichier.Quiz.Sum(q => q.Questions.Count);
+    Console.WriteLine($"rôle {n} : {fichier.Role.Etapes.Count} étapes, {commandes.Count} commandes (+{sous} sous-commandes), {effets} effets, {questions} questions de quiz ({string.Join(", ", parShell)})");
     bilan.AppendLine($"| {n} | {fichier.Role.Etapes.Count} | {commandes.Count} | {commandes.Count(c => c.Shell is not (P6Explorer.Domain.Enumerations.Shell.Document))} | {sous} | {effets} |");
     totalSous += sous;
     totalEtapes += fichier.Role.Etapes.Count;

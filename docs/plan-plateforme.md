@@ -323,10 +323,10 @@ Chaque jalon se termine par un commit `[rôle 1] …` sur `role-1-plateforme-gra
 | 1 | Étude | `docs/style-reference.md`, `docs/plan-plateforme.md`, `docs/questions.md` | fait |
 | 2 | Solution et base | 6 projets qui compilent sans avertissement ; `docs/modele-donnees.md` ; `DbContext` + configurations Fluent ; première migration ; script Node + importeur → `donnees/commandes/role-1..6.json` (47 étapes, toutes les commandes, effets proposés) ; amorçage au démarrage ; Layout, thème, accueil avec le SVG de l'état A ; `app/README.md` (débutant) | 4–6 h |
 | 3 | Moteur réseau | `MoteurRoutage`, `MoteurNat`, `MoteurParefeu`, topologies A et B ; `dotnet test` : 12/12, 19/19, `tests.csv` A et B, cas client-ext → postgres | fait |
-| 4 | Lecteur + rôle 1 + édition | API `api/etapes/{id}/commandes`, `lecteur.js` (paquets, terminal, surbrillance, contrôles, URL par commande, session) ; les 112 commandes du rôle 1 avec leurs effets ; CRUD étapes / commandes / effets, politique `ModifierSonRole` (avec un Identity minimal), intercepteur et historique avec retour arrière, preuves (`IFormFile`), `TempData` | 6–8 h |
-| 5 | Décodeur | `DecodeurPaquet` + `_DecodeurOctets` (couches, hexa synchronisé) ; tests xUnit des octets (checksums) | 3–4 h |
-| 6 | Rôles 2 à 6 | effets de toutes les commandes, un rôle par sous-commit ; état B et bascule A ↔ B (rôle 2 étape 8, rôle 4 étape 8) ; schémas propres au rôle 3 (netmap, alertes) ; `docs/a-completer.md` vide ou justifié | 8–12 h |
-| 7 | Identity complet, progression, quiz, Q&R, Et si ?, glossaire, finitions | Pages Identity traduites, comptes, claims, progression ; quiz + page Préparation de la soutenance ; fils de questions ; simulations + démo ; glossaire ; accessibilité (Lighthouse ≥ 90), `prefers-reduced-motion` ; `docs/notions-du-cours.md`, `docs/choix-techniques.md` | 6–8 h |
+| 4 | Lecteur + rôle 1 + édition | API `api/etapes/{id}/commandes`, `lecteur.js` (paquets, terminal, surbrillance, contrôles, URL par commande, session) ; les 112 commandes du rôle 1 avec leurs effets ; CRUD étapes / commandes / effets, politique `ModifierSonRole` (avec un Identity minimal), intercepteur et historique avec retour arrière, preuves (`IFormFile`), `TempData` | fait |
+| 5 | Décodeur | `DecodeurPaquet` + `_DecodeurOctets` (couches, hexa synchronisé) ; tests xUnit des octets (checksums) | fait |
+| 6 | Rôles 2 à 6 | effets de toutes les commandes, un rôle par sous-commit ; état B et bascule A ↔ B (rôle 2 étape 8, rôle 4 étape 8) ; schémas propres au rôle 3 (netmap, alertes) ; `docs/a-completer.md` vide ou justifié | fait |
+| 7 | Identity complet, progression, quiz, Q&R, Et si ?, glossaire, finitions | Pages Identity traduites, comptes, claims, progression ; quiz + page Préparation de la soutenance ; fils de questions ; simulations + démo ; glossaire ; accessibilité (Lighthouse ≥ 90), `prefers-reduced-motion` ; `docs/notions-du-cours.md`, `docs/choix-techniques.md` | fait |
 
 Une partie d'Identity (comptes, rôle `Admin` / `Membre`, claim `NumeroRole`) arrive dès le jalon 4, car l'autorisation `ModifierSonRole` en dépend ; le jalon 7 complète le reste.
 
@@ -371,6 +371,36 @@ Choix faits en cours de route :
 - Deux constats nouveaux, sans changer les données : **Q15** (F01 rouvre E36 en état B) et **Q16** (Kali joint NTP, syslog et le ping des VM par MGMT).
 
 Le dépliage de `tests.sh` et `tests-cloisonnement.sh` en sous-commandes (une par test, avec son paquet) se fera avec les commandes du rôle 1, au jalon 4 : le moteur donne déjà le verdict de chacune.
+
+### 7.3 Jalons 4 à 7 — réalisés le 20 novembre
+
+| Jalon | Livrable | État |
+|---|---|---|
+| 4 | Vue rôle `/Roles/{n}/Etapes/{e}?commande=N`, Web API `api/etapes/{id}/commandes`, `lecteur.js` (paquets le long des câbles, NAT, verdict, règle, filterlog, contrôles, vitesse, clavier, calques, `prefers-reduced-motion`), session (état, vitesse) | fait |
+| 4 | Rôle 1 complet : 76 commandes + 91 sous-commandes (scripts dépliés : `tests.sh` 12, `tests-cloisonnement.sh` 19, `setup-kali.sh`, `restreindre-ssh.sh`, `test_flux.sh`, `c2.py`, `orchestrateur.py`, `parse.py`) | fait |
+| 4 | Édition : CRUD étapes / commandes / effets (JSON validé), preuves (`IFormFile`), politique `ModifierSonRole` + claim `NumeroRole`, historique par l'intercepteur, retour arrière (modification, création, suppression), `TempData`, filtre `ValiderModele`, middleware de journalisation | fait |
+| 5 | `DecodeurPaquet` (Ethernet, 802.1Q, IPv4, TCP/UDP/ICMP, DNS, HTTP, TLS ClientHello, NTP, syslog ; sommes de contrôle calculées) ; partielle `_DecodeurOctets` (hexa synchronisé avec les champs) | fait |
+| 6 | Rôles 2 à 6 : tous les effets ; 14 scripts dépliés (335 sous-commandes) ; `docs/a-completer.md` : 0 commande à effet générique, 0 script restant | fait |
+| 6 | État B : câbles et segments dessinés, bascule A ↔ B (en-tête, et effet `ChangementEtat` au rôle 2 étape 8 et au rôle 4 étape 8) | fait |
+| 6 | Schémas propres aux étapes : les 13 schémas dessinés du guide (netmap, NAT, table d'états, macvlan, MGMT…) rendus en SVG par `outils/schemas-vers-svg.mjs` ; les 9 simulateurs interactifs renvoient au mode « Et si ? » | fait |
+| 7 | Identity : connexion, déconnexion, accès refusé, mot de passe (pages en français, verrouillage après 5 échecs), comptes créés par l'admin avec leur numéro de rôle | fait |
+| 7 | Progression (« J'ai compris », avancement sur l'accueil), quiz (171 questions, 1 quiz par étape, statut « à valider », seuil 80 % configurable), Admin › Préparation de la soutenance (LINQ group by, join, Max, Count) | fait |
+| 7 | Questions et réponses par commande (compteur sur la vue rôle), « Et si ? » avec historique paginé et sélection ordonnée pour la démo, glossaire (55 termes, n-n avec les étapes, définition au survol et au clavier) | fait |
+| 7 | `docs/notions-du-cours.md`, `docs/choix-techniques.md` | faits |
+
+Tests : **264 tests xUnit passent**, 0 avertissement ; `dotnet ef migrations has-pending-model-changes` : aucun changement en attente.
+
+**Pas encore vérifié sur le poste (à faire avec l'application lancée) :**
+
+- création de la base sur **LocalDB** par les migrations (LocalDB absent de ce poste ; scripts SQL relus) ;
+- **Lighthouse ≥ 90** en accessibilité (rien n'a été mesuré ; prévu pour : lien d'évitement, `lang`, étiquettes de formulaire, textes alternatifs du schéma, navigation au clavier, contrastes du thème) ;
+- le rendu du lecteur dans un navigateur (le JavaScript n'est vérifié que par `node --check` ; les données qu'il anime sont testées par l'API).
+
+**Choix faits en cours de route :**
+
+- **Pages Identity écrites à la main** sur le modèle du scaffolding (4 écrans utiles, en MVC, en français) : voir `docs/choix-techniques.md`, section 5.
+- **Chargement explicite** utilisé pour les messages d'une question ; l'historique n'a pas de navigation vers l'étape (il survit à sa suppression) et se lit par une requête paginée.
+- **Quiz** : choix faux tirés des réponses justes d'autres étapes ou d'autres pannes, tout au statut « à valider ».
 
 ## 8. Décisions
 

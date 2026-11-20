@@ -16,9 +16,13 @@ Chaque choix qui sort du cours « Frameworks de développement » (GL3, INSAT), 
 
 **Effets en héritage TPH** (une table `Effets`, discriminateur `Type`). Il y a 14 types d'effets, presque tous petits : une table par type (TPT) multiplierait les jointures à la lecture d'une commande, alors que le lecteur lit toujours tous les effets d'une étape d'un coup. Les colonnes de même nom et de même type sont partagées entre types frères (`Noeud`, `De`, `Vers`…), pour limiter la largeur de la table.
 
-**Lazy loading non activé.** Avec le chargement paresseux, chaque accès à une navigation (`etape.Commandes`, puis `commande.Effets`) lancerait une requête : pour une étape de 15 commandes, 1 + 15 + … requêtes (problème N+1). On charge donc explicitement : `Include` / `ThenInclude` pour une étape avec ses commandes et effets, `Entry().Collection().LoadAsync()` pour l'historique des révisions.
+**Lazy loading non activé.** Avec le chargement paresseux, chaque accès à une navigation (`etape.Commandes`, puis `commande.Effets`) lancerait une requête : pour une étape de 15 commandes, 1 + 15 + … requêtes (problème N+1). On charge donc explicitement : `Include` / `ThenInclude` pour une étape avec ses commandes et effets ; `Entry().Collection().Query().LoadAsync()` pour les messages d'une question (lus seulement une fois le fil trouvé, dans l'ordre). L'historique des révisions n'a volontairement pas de navigation vers l'étape (il doit survivre à sa suppression) : il est lu par une requête paginée.
 
 **Types valeur du domaine** (`NoeudId`, `LienId`) convertis en texte par des `ValueConverter` : le domaine ne manipule jamais une machine sous forme de simple chaîne. Les listes (chemin d'un paquet, points d'un câble) sont stockées en JSON dans une colonne : elles ne sont jamais interrogées en SQL.
+
+**Historique par l'intercepteur, pas par les services.** Toute modification d'une entité marquée `IRevisable` (étape, commande, effet, panne, critère) est écrite dans `Revisions` par `IntercepteurHorodatage`, quel que soit le code qui l'a faite : impossible d'oublier l'historique dans un service. Un enregistrement = un lot, annulable d'un coup (`AnnulationRevisions`). Pendant l'amorçage, le journal est coupé (`JournaliserRevisions = false`).
+
+**Ports en écoute en JSON (`OwnsMany(…).ToJson()`).** Le moteur lit les services d'une machine en bloc, jamais un par un en SQL : une colonne JSON évite une table de plus.
 
 **Amorçage depuis des fichiers JSON, une seule fois.** Les JSON (`donnees/`) sont versionnés, relisibles et régénérables par l'importeur ; une fois la base remplie, ils ne sont plus relus (la base est la source de vérité, prompt section 7).
 
@@ -38,12 +42,28 @@ Chaque choix qui sort du cours « Frameworks de développement » (GL3, INSAT), 
 
 **Polices IBM Plex Mono et IBM Plex Sans** (licence OFL, texte dans `wwwroot/fonts/LICENCE-OFL.txt`), **hébergées dans l'application** : la plateforme doit fonctionner hors ligne pendant la soutenance.
 
-**JavaScript.** Exception prévue par le prompt : un seul module, `wwwroot/js/lecteur.js` (jalon 4), pour l'animation. En plus, le Layout contient une dizaine de lignes de script pour la bascule de thème (mémorisée dans un cookie, lu par le serveur pour éviter un éclair de la mauvaise couleur). Les paquets décoratifs de l'accueil sont animés en SVG pur (`<animateMotion>`), sans script.
+**JavaScript.** Exception prévue par le prompt : un seul module, `wwwroot/js/lecteur.js`, sans framework, avec la Web Animations API. Il ne fait qu'animer : chemins, NAT, verdicts et octets des trames arrivent tout calculés de l'API (moteur et décodeur en C#). Quand le système demande moins d'animations (`prefers-reduced-motion`), les paquets sautent directement à leur point d'arrivée. En plus, le Layout contient une dizaine de lignes de script pour la bascule de thème (mémorisée dans un cookie, lu par le serveur pour éviter un éclair de la mauvaise couleur). Les paquets décoratifs de l'accueil sont animés en SVG pur (`<animateMotion>`), sans script.
 
-**Node.js** : seulement pour l'outil `outils/guide-vers-json.mjs`, qui convertit les fichiers JavaScript du guide en JSON (le guide est du code JavaScript, que .NET ne sait pas exécuter). L'application ne dépend pas de Node.
+**Node.js** : seulement pour deux outils de préparation des données, jamais à l'exécution. `outils/guide-vers-json.mjs` convertit les fichiers JavaScript du guide en JSON ; `outils/schemas-vers-svg.mjs` appelle les fonctions de dessin du guide avec un DOM minimal et enregistre les schémas des étapes en SVG statiques (`donnees/schemas/schemas.json`). Le guide est du code JavaScript, que .NET ne sait pas exécuter. L'application ne dépend pas de Node.
 
 ## 4. Tests
 
 **SQLite en mémoire plutôt qu'EF Core InMemory** pour les tests de l'infrastructure et du site : SQLite est une vraie base relationnelle (clés étrangères, index uniques, cascades), là où InMemory accepterait des données invalides. La base de test est créée par `EnsureCreated` (les migrations, écrites pour SQL Server, ne s'appliquent pas à SQLite).
 
 **Ce que les tests ne couvrent pas encore** : la création de la base SQL Server par les migrations. Elle a été vérifiée en générant le script SQL complet (`dotnet ef migrations script`, 34 tables), mais pas exécutée tant que LocalDB n'est pas installé sur le poste de développement.
+
+**Ce que les tests ne couvrent pas** : le JavaScript du lecteur (vérifié seulement par `node --check` ; les données qu'il anime, elles, sont testées par l'API) et le score Lighthouse (à mesurer sur le poste avec l'application lancée).
+
+## 5. Identity
+
+**Pages de connexion écrites à la main plutôt que générées par scaffolding.** Le scaffolding d'Identity (`dotnet aspnet-codegenerator identity`) ajoute une vingtaine de Razor Pages en anglais, au style Bootstrap, dont la plupart ne servent pas ici (inscription libre, confirmation d'e-mail, double authentification, données personnelles). Il fallait de toute façon les traduire et les restyler. P6 Explorer garde les quatre écrans utiles, écrits sur le modèle des pages générées, en MVC comme le reste du site : Connexion, Déconnexion, Accès refusé, Changer de mot de passe (`CompteController`). Les comptes sont créés par l'admin (`UserManager`), pas par inscription libre : seuls les six membres ont un compte.
+
+**Autorisation par ressource.** La politique `ModifierSonRole` reçoit le numéro de rôle de l'étape (`IAuthorizationService.AuthorizeAsync(User, role, …)`), et compare la claim `NumeroRole` ajoutée à la connexion. Le rôle Identity `Admin` passe toujours.
+
+## 6. Contenu généré
+
+**Sous-commandes des scripts.** L'importeur déplie chaque script long (prompt, règle 4) depuis le script **réellement utilisé** quand il est dans `plateforme/labo/`, sinon depuis le fichier complet du guide. `test_flux.sh` est déplié depuis `donnees/politique/tests-A.csv` et `tests-B.csv`, produits par le vrai `c2.py`.
+
+**Quiz générés, puis relus.** Les questions sont tirées du guide (but, pourquoi, pannes, questions du jury) ; les choix faux sont les réponses justes d'autres étapes ou d'autres pannes, ce qui les rend plausibles. Toutes arrivent au statut « à valider » : le responsable du rôle les relit (page Quiz › relire).
+
+**Textes du guide en HTML sûr.** `TexteRiche` encode d'abord tout le texte, puis ne rend que `**gras**`, `` `code` `` et les termes du glossaire (`<dfn>`, définition au survol et au clavier) : aucune balise venue des données n'atteint la page. Seule exception : les schémas SVG des étapes, produits par `outils/schemas-vers-svg.mjs` à partir des sources du guide (contenu du projet, jamais une saisie ; légendes réduites aux balises `b`, `i`, `code`).

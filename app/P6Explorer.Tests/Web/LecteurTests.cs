@@ -85,6 +85,8 @@ public class LecteurTests(FabriqueP6 fabrique) : IClassFixture<FabriqueP6>
     [InlineData("/Simulation/Demonstration")]
     [InlineData("/Glossaire")]
     [InlineData("/Discussions")]
+    [InlineData("/Quiz/1/5")]
+    [InlineData("/Quiz/3/0")]
     [InlineData("/Compte/Connexion")]
     public async Task Les_pages_publiques_repondent(string url)
         => Assert.Equal(HttpStatusCode.OK, (await fabrique.CreateClient().GetAsync(url)).StatusCode);

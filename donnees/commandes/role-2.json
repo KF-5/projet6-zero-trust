@@ -3473,5 +3473,788 @@
       "question": "Pourquoi désactiver « Block bogon networks » sur le WAN ?",
       "reponse": "203.0.113.0/24 est une plage réservée à la documentation, présente dans les listes bogons. Cochée, l'option jetterait tout le trafic du WAN simulé avant nos règles. C'est une adaptation au laboratoire, documentée (écart E04)."
     }
+  ],
+  "quiz": [
+    {
+      "etape": "r2-e1",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Installer OPNsense 26.7 et affecter les interfaces » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            },
+            {
+              "texte": "Les ports publiés sur 203.0.113.1 redirigés vers nginx et bind9 ; la redirection iperf3 prête mais désactivée.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « L'interface web ne répond plus depuis Windows ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": true,
+              "explication": "Solution du guide : Console › 8 Shell › pfctl -d, corriger la règle, Apply, pfctl -e (rôle 1, étape 5)."
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            },
+            {
+              "texte": "Clé absente ou SSH n'écoute pas sur MGMT",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les cartes ne sont pas dans l'ordre attendu ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": true,
+              "explication": "Solution du guide : Réaffecter à la console (option 1)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            },
+            {
+              "texte": "Clé absente ou SSH n'écoute pas sur MGMT",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Que se passe-t-il pour une connexion ouverte quand vous changez une règle ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Elle continue grâce à son état. C'est pourquoi on vide la table d'états après le passage en état B, et pourquoi l'orchestrateur exécute pfctl -k entre deux exécutions.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Parce que pf applique la redirection (Destination NAT) avant d'évaluer les règles de filtrage : la règle voit déjà l'adresse interne. Une règle vers 203.0.113.1 ne correspondrait jamais au trafic redirigé.",
+              "correct": false
+            },
+            {
+              "texte": "test_flux rejoue tests.csv, généré par C2 à partir de flows.csv, depuis l'espace réseau de chaque conteneur source. Nous exigeons 0 écart avant chaque campagne, et nous vidons les états après chaque changement de règles.",
+              "correct": false
+            },
+            {
+              "texte": "Les règles d'OPNsense filtrent en entrée de l'interface. F04 (API → base) s'écrit donc sur DMZ-APP. C'est aussi pourquoi C2 groupe les flux par segment source.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e2",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Configurer WAN, MGMT, offloading, SSH et l'heure » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            },
+            {
+              "texte": "Les ports publiés sur 203.0.113.1 redirigés vers nginx et bind9 ; la redirection iperf3 prête mais désactivée.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Kali ne joint rien sur 203.0.113.1 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": true,
+              "explication": "Solution du guide : Décocher les deux options sur WAN (écart E04)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Clé absente ou SSH n'écoute pas sur MGMT",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « SSH refusé depuis le collecteur ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Clé absente ou SSH n'écoute pas sur MGMT",
+              "correct": true,
+              "explication": "Solution du guide : Ajouter la clé, choisir MGMT comme interface d'écoute."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi désactiver « Block bogon networks » sur le WAN ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "203.0.113.0/24 est une plage réservée à la documentation, présente dans les listes bogons. Cochée, l'option jetterait tout le trafic du WAN simulé avant nos règles. C'est une adaptation au laboratoire, documentée (écart E04).",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Parce que pf applique la redirection (Destination NAT) avant d'évaluer les règles de filtrage : la règle voit déjà l'adresse interne. Une règle vers 203.0.113.1 ne correspondrait jamais au trafic redirigé.",
+              "correct": false
+            },
+            {
+              "texte": "test_flux rejoue tests.csv, généré par C2 à partir de flows.csv, depuis l'espace réseau de chaque conteneur source. Nous exigeons 0 écart avant chaque campagne, et nous vidons les états après chaque changement de règles.",
+              "correct": false
+            },
+            {
+              "texte": "Les règles d'OPNsense filtrent en entrée de l'interface. F04 (API → base) s'écrit donc sur DMZ-APP. C'est aussi pourquoi C2 groupe les flux par segment source.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e3",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « État A : créer les VLAN 10 et 20 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Les ports publiés sur 203.0.113.1 redirigés vers nginx et bind9 ; la redirection iperf3 prête mais désactivée.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Pas de réponse, et tcpdump ne voit rien ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Paramètres de la VM dans VMware : la carte du trunk est-elle sur le segment p6-trunk ?",
+              "correct": true,
+              "explication": "Solution du guide : Mauvais segment : rôle 1, étape 2."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « tcpdump voit la requête mais pas de réponse ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Interface VLAN non activée ou sans adresse",
+              "correct": true,
+              "explication": "Solution du guide : Activer l'interface, vérifier 10.10.0.1/24."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e4",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Configurer le NAT de destination (FA1, FA2, FA6) » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les ports publiés sur 203.0.113.1 redirigés vers nginx et bind9 ; la redirection iperf3 prête mais désactivée.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Kali obtient un délai dépassé sur 443 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Rdr présent mais aucune règle de filtrage",
+              "correct": true,
+              "explication": "Solution du guide : Normal avant l'étape 5 : la règle FA1 doit autoriser 10.20.0.10:443."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « La règle WAN autorise 203.0.113.1 et rien ne passe ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "La redirection est appliquée avant le filtrage",
+              "correct": true,
+              "explication": "Solution du guide : Écrire la règle vers l'adresse interne (module 4)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi la règle WAN vise-t-elle 10.20.0.10 et non 203.0.113.1 ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Parce que pf applique la redirection (Destination NAT) avant d'évaluer les règles de filtrage : la règle voit déjà l'adresse interne. Une règle vers 203.0.113.1 ne correspondrait jamais au trafic redirigé.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "test_flux rejoue tests.csv, généré par C2 à partir de flows.csv, depuis l'espace réseau de chaque conteneur source. Nous exigeons 0 écart avant chaque campagne, et nous vidons les états après chaque changement de règles.",
+              "correct": false
+            },
+            {
+              "texte": "Les règles d'OPNsense filtrent en entrée de l'interface. F04 (API → base) s'écrit donc sur DMZ-APP. C'est aussi pourquoi C2 groupe les flux par segment source.",
+              "correct": false
+            },
+            {
+              "texte": "Elle continue grâce à son état. C'est pourquoi on vide la table d'états après le passage en état B, et pourquoi l'orchestrateur exécute pfctl -k entre deux exécutions.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e5",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire les règles FA et activer la journalisation » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "La matrice FA appliquée, chaque règle journalisée, le refus par défaut journalisé, et filterlog envoyé au collecteur.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Aucune ligne pour les paquets bloqués ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Journalisation de la règle par défaut désactivée",
+              "correct": true,
+              "explication": "Solution du guide : Activer l'option (FA5 doit être journalisée)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le collecteur ne reçoit rien ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "tcpdump -ni em2 port 514 sur OPNsense",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier la cible syslog, et le pare-feu du collecteur (rôle 1, étape 5)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e6",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire le moteur de politique C2 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un programme qui valide flows.csv, en déduit les règles dans le bon ordre et écrit tests.csv.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « n'est ni un segment ni un hôte » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Faute de frappe dans flows.csv",
+              "correct": true,
+              "explication": "Solution du guide : Le nom doit exister dans segments.csv ou hosts.csv (respecter les majuscules)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le test d'un flux WAN vise 10.20.0.10 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Source WAN mal reconnue",
+              "correct": true,
+              "explication": "Solution du guide : La source doit être le segment « WAN » : C2 met alors l'adresse publique 203.0.113.1 dans le test."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi les règles sont-elles écrites sur l'interface d'entrée ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Les règles d'OPNsense filtrent en entrée de l'interface. F04 (API → base) s'écrit donc sur DMZ-APP. C'est aussi pourquoi C2 groupe les flux par segment source.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Parce que pf applique la redirection (Destination NAT) avant d'évaluer les règles de filtrage : la règle voit déjà l'adresse interne. Une règle vers 203.0.113.1 ne correspondrait jamais au trafic redirigé.",
+              "correct": false
+            },
+            {
+              "texte": "test_flux rejoue tests.csv, généré par C2 à partir de flows.csv, depuis l'espace réseau de chaque conteneur source. Nous exigeons 0 écart avant chaque campagne, et nous vidons les états après chaque changement de règles.",
+              "correct": false
+            },
+            {
+              "texte": "Elle continue grâce à son état. C'est pourquoi on vide la table d'états après le passage en état B, et pourquoi l'orchestrateur exécute pfctl -k entre deux exécutions.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e7",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Prouver l'état A avec test_flux » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "100 % des tests de l'état A conformes, et la preuve que le mouvement latéral S-05 ne laisse aucune trace dans filterlog.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un test « pass » échoue ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "tail /var/log/filter/latest.log pendant le test",
+              "correct": true,
+              "explication": "Solution du guide : Règle manquante ou mal placée ; ou service non démarré (rôle 4)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un test « block » passe ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Règle trop large, ou état existant",
+              "correct": true,
+              "explication": "Solution du guide : Vider les états de la source (pfctl -k <ip>) et relancer."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment savez-vous que le pare-feu applique bien la matrice ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "test_flux rejoue tests.csv, généré par C2 à partir de flows.csv, depuis l'espace réseau de chaque conteneur source. Nous exigeons 0 écart avant chaque campagne, et nous vidons les états après chaque changement de règles.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Parce que pf applique la redirection (Destination NAT) avant d'évaluer les règles de filtrage : la règle voit déjà l'adresse interne. Une règle vers 203.0.113.1 ne correspondrait jamais au trafic redirigé.",
+              "correct": false
+            },
+            {
+              "texte": "Les règles d'OPNsense filtrent en entrée de l'interface. F04 (API → base) s'écrit donc sur DMZ-APP. C'est aussi pourquoi C2 groupe les flux par segment source.",
+              "correct": false
+            },
+            {
+              "texte": "Elle continue grâce à son état. C'est pourquoi on vide la table d'états après le passage en état B, et pourquoi l'orchestrateur exécute pfctl -k entre deux exécutions.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e8",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « État B : six segments et règles F01–F99 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les VLAN 11, 12, 13, 21, 22, 23 avec leurs passerelles, et la matrice F appliquée interface par interface.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « overlapping » à l'enregistrement de 10.10.0.1/26 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "L'interface LAN de l'état A porte encore 10.10.0.1/24",
+              "correct": true,
+              "explication": "Solution du guide : La désactiver d'abord."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les conteneurs ne joignent plus leur passerelle ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Réseaux Docker encore en /24 (rôle 4 pas encore basculé)",
+              "correct": true,
+              "explication": "Solution du guide : Coordonner : le rôle 4 bascule juste après vous (étape 8 du rôle 4)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r2-e9",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Prouver l'état B avec test_flux et livrer » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "100 % des tests de l'état B conformes, S-05 désormais bloqué et journalisé, configuration B commitée.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "OPNsense 26.7 installé dans p6-opnsense, chaque carte affectée à la bonne interface, l'interface web joignable depuis le réseau de gestion seulement.",
+              "correct": false
+            },
+            {
+              "texte": "WAN en 203.0.113.1/24, MGMT en 10.99.0.1/24, offloading désactivé, SSH accessible depuis le collecteur seulement, heure synchronisée.",
+              "correct": false
+            },
+            {
+              "texte": "Deux sous-interfaces VLAN sur em1 : LAN (10.10.0.1/24, VLAN 10) et DMZ (10.20.0.1/24, VLAN 20).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « T0xx « admin → console » échoue ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "F08 doit viser 10.10.0.97, la passerelle de LAN-ADMIN",
+              "correct": true,
+              "explication": "Solution du guide : Corriger la destination de F08."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le DNS de client-01 échoue ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "F06 en TCP au lieu d'UDP",
+              "correct": true,
+              "explication": "Solution du guide : F06 : UDP 53 (écart E16)."
+            },
+            {
+              "texte": "Règle « Admin du pare-feu » (port source ≠ any) ou anti-lockout",
+              "correct": false
+            },
+            {
+              "texte": "Comparer les MAC (ifconfig em0) avec le fichier .vmx",
+              "correct": false
+            },
+            {
+              "texte": "Firewall › Log Files › Live View : lignes « bogon » ou « private »",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

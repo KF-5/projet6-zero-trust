@@ -3232,5 +3232,714 @@
       "question": "Que se passe-t-il si Suricata tombe ?",
       "reponse": "C'est P-01 : nous arrêtons Suricata pendant un SYN flood et mesurons la disponibilité et les alertes avant, pendant et après, puis le temps de reprise. Le rapport ne suppose pas le comportement : [résultat mesuré]."
     }
+  ],
+  "quiz": [
+    {
+      "etape": "r3-e0",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Préparer et tester ses règles sur son PC (avant l'hôte) » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            },
+            {
+              "texte": "Une sonde qui produit sla.csv pendant toutes les mesures, pilotable par l'orchestrateur, et les mesures de débit iperf3.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « suricata -T signale une erreur de règle ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": true,
+              "explication": "Solution du guide : Corriger la ligne (souvent un guillemet ou un point-virgule manquant après un copier-coller), relancer -T."
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump lancé sans sudo",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Aucune alerte, eve.json vide ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": true,
+              "explication": "Solution du guide : Capturer sur br-wan, br-dmz ou br-lan selon la cible. Jamais -i any : les paquets apparaissent en double et faussent les seuils."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump lancé sans sudo",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi Suricata est-il avant pf ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Avec netmap, Suricata intercepte les paquets entre la carte et la pile du noyau : pour le trafic entrant, il les voit avant pf. Il détecte donc aussi les sondes vers des ports fermés, et un paquet qu'il rejette n'atteint jamais pf. Nous…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Des règles génériques se déclenchent sur du trafic légitime : en drop, elles feraient chuter la disponibilité. Nous mesurons d'abord 2 h de trafic légitime en alert, règle par règle, et ne passons en drop que les familles à moins d'1 faux…",
+              "correct": false
+            },
+            {
+              "texte": "La règle 9000002 compte les SYN de chaque source vers les ports non publiés ; un rate_filter change son action en drop pendant 20 s dès 20 SYN en 5 s. S-02 suit le même principe avec 9000004 (100 SYN en 1 s). Les premières sondes passent…",
+              "correct": false
+            },
+            {
+              "texte": "Elle est chiffrée en TLS jusqu'à nginx. Le saut nginx → API est en HTTP clair et passe par em1 : c'est là que la règle 9000010 la voit. C'est une limite assumée (section 11.3).",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e1",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Test de plateforme : netmap sur les cartes VMware (em) » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            },
+            {
+              "texte": "Une sonde qui produit sla.csv pendant toutes les mesures, pilotable par l'orchestrateur, et les mesures de débit iperf3.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Plus aucun trafic après activation de l'IPS ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "dmesg | grep netmap : erreurs sur em0",
+              "correct": true,
+              "explication": "Solution du guide : Essayer dev.netmap.admode=2 ; sinon repli Divert (mode IPS « Divert » dans l'administration IDS) ou IDS seul."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Le trafic passe mais aucune alerte ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Home networks ne contient pas 203.0.113.1 (écart E05)",
+              "correct": true,
+              "explication": "Solution du guide : Étape 2 ; pour ce test, utiliser une règle qui vise l'adresse explicitement."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e2",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Configurer l'IDS : interfaces, réseaux maison, journaux » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Une sonde qui produit sla.csv pendant toutes les mesures, pilotable par l'orchestrateur, et les mesures de débit iperf3.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Aucune alerte sur em1 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "TRUNK non sélectionné, ou mode promiscuous absent",
+              "correct": true,
+              "explication": "Solution du guide : Sélectionner l'interface parente, cocher promiscuous, redémarrer le service."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les alertes n'arrivent pas au collecteur ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Cible syslog sans l'application suricata",
+              "correct": true,
+              "explication": "Solution du guide : Rôle 2, étape 5 : ajouter suricata à la cible distante."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e3",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « C8 : sonde SLA et trafic légitime » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Une sonde qui produit sla.csv pendant toutes les mesures, pilotable par l'orchestrateur, et les mesures de débit iperf3.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « pkill: not found » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "procps absent de l'image des postes",
+              "correct": true,
+              "explication": "Solution du guide : Ajouter procps au Dockerfile des postes (rôle 4) et reconstruire."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Toutes les requêtes HTTPS échouent depuis client-01 en état B ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "F05 (rôle 2) ou passerelle (rôle 4)",
+              "correct": true,
+              "explication": "Solution du guide : test_flux T009 doit être conforme."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e4",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire les règles locales et le blocage temporaire » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Le jeu de règles C4 : ET Open + règles locales sid 9000001 à 9000099, et le rate_filter de S-01, chargés par Suricata.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « failed to parse signature » pour un sid 90000xx ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Faute de syntaxe (point-virgule, guillemet)",
+              "correct": true,
+              "explication": "Solution du guide : Corriger la règle ; tester avec suricata -T avant de recharger."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les règles locales disparaissent après une mise à jour des règles ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Fichier écrasé par la régénération",
+              "correct": true,
+              "explication": "Solution du guide : Utiliser la méthode B (ensemble déclaré) ; garder le fichier dans Git."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment fonctionne le blocage de S-01 ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "La règle 9000002 compte les SYN de chaque source vers les ports non publiés ; un rate_filter change son action en drop pendant 20 s dès 20 SYN en 5 s. S-02 suit le même principe avec 9000004 (100 SYN en 1 s). Les premières sondes passent…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Avec netmap, Suricata intercepte les paquets entre la carte et la pile du noyau : pour le trafic entrant, il les voit avant pf. Il détecte donc aussi les sondes vers des ports fermés, et un paquet qu'il rejette n'atteint jamais pf. Nous…",
+              "correct": false
+            },
+            {
+              "texte": "Des règles génériques se déclenchent sur du trafic légitime : en drop, elles feraient chuter la disponibilité. Nous mesurons d'abord 2 h de trafic légitime en alert, règle par règle, et ne passons en drop que les familles à moins d'1 faux…",
+              "correct": false
+            },
+            {
+              "texte": "Elle est chiffrée en TLS jusqu'à nginx. Le saut nginx → API est en HTTP clair et passe par em1 : c'est là que la règle 9000010 la voit. C'est une limite assumée (section 11.3).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi l'injection n'est-elle pas vue sur le WAN ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Elle est chiffrée en TLS jusqu'à nginx. Le saut nginx → API est en HTTP clair et passe par em1 : c'est là que la règle 9000010 la voit. C'est une limite assumée (section 11.3).",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Avec netmap, Suricata intercepte les paquets entre la carte et la pile du noyau : pour le trafic entrant, il les voit avant pf. Il détecte donc aussi les sondes vers des ports fermés, et un paquet qu'il rejette n'atteint jamais pf. Nous…",
+              "correct": false
+            },
+            {
+              "texte": "Des règles génériques se déclenchent sur du trafic légitime : en drop, elles feraient chuter la disponibilité. Nous mesurons d'abord 2 h de trafic légitime en alert, règle par règle, et ne passons en drop que les familles à moins d'1 faux…",
+              "correct": false
+            },
+            {
+              "texte": "La règle 9000002 compte les SYN de chaque source vers les ports non publiés ; un rate_filter change son action en drop pendant 20 s dès 20 SYN en 5 s. S-02 suit le même principe avec 9000004 (100 SYN en 1 s). Les premières sondes passent…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e5",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Mode IDS : vérifier que chaque scénario est détecté » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Chaque scénario produit l'alerte attendue en mode IDS, sans rien bloquer.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Pas d'alerte S-03 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "La requête n'arrive pas en clair sur em1, ou URI encodée",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier sur em1 avec tcpdump ; http.uri est normalisée, le motif doit viser la forme décodée."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Pas d'alerte S-01 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "HOME_NET ou règle visant 203.0.113.1",
+              "correct": true,
+              "explication": "Solution du guide : Étape 2 ; vérifier que la règle vise l'adresse publique (em0 voit l'adresse avant NAT)."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e6",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Régler pendant 2 h, puis passer en IPS » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les familles validées en drop, les autres en alert, avec au plus 1 faux positif par heure et une disponibilité d'au moins 99 %.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « La sonde échoue après le passage en drop ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Une règle en drop touche le trafic légitime",
+              "correct": true,
+              "explication": "Solution du guide : Remettre la famille en alert (figure 12, « remettre en alert les règles fautives »)."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Aucun « blocked » dans EVE ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Politique non appliquée, ou mode IDS pcap",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier le mode IPS et la politique ; relancer le service."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi ne pas tout passer en drop directement ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Des règles génériques se déclenchent sur du trafic légitime : en drop, elles feraient chuter la disponibilité. Nous mesurons d'abord 2 h de trafic légitime en alert, règle par règle, et ne passons en drop que les familles à moins d'1 faux…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Avec netmap, Suricata intercepte les paquets entre la carte et la pile du noyau : pour le trafic entrant, il les voit avant pf. Il détecte donc aussi les sondes vers des ports fermés, et un paquet qu'il rejette n'atteint jamais pf. Nous…",
+              "correct": false
+            },
+            {
+              "texte": "La règle 9000002 compte les SYN de chaque source vers les ports non publiés ; un rate_filter change son action en drop pendant 20 s dès 20 SYN en 5 s. S-02 suit le même principe avec 9000004 (100 SYN en 1 s). Les premières sondes passent…",
+              "correct": false
+            },
+            {
+              "texte": "Elle est chiffrée en TLS jusqu'à nginx. Le saut nginx → API est en HTTP clair et passe par em1 : c'est là que la règle 9000010 la voit. C'est une limite assumée (section 11.3).",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r3-e7",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Préparer la panne P-01 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les commandes d'arrêt et de redémarrage de Suricata testées, et le protocole de mesure prêt pour l'orchestrateur.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier ids/local.rules de l'étape 4, testé hors ligne : chaque capture de scénario déclenche ses sid attendus, et une capture de trafic légitime n'en déclenche aucun.",
+              "correct": false
+            },
+            {
+              "texte": "Une décision écrite : IPS en ligne avec netmap, ou repli (Divert, ou IDS seul + blocage pf), avec la version d'OPNsense testée.",
+              "correct": false
+            },
+            {
+              "texte": "Suricata configuré sur em0 et sur l'interface parente du trunk, avec des réseaux maison corrects et des alertes EVE exportées.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Suricata ne redémarre pas ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "tail /var/log/suricata/suricata.log",
+              "correct": true,
+              "explication": "Solution du guide : Démarrer depuis l'interface ; ajuster la commande dans scenarios.yaml."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Toute l'interface WAN reste coupée après le redémarrage ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "netmap n'a pas repris l'interface",
+              "correct": true,
+              "explication": "Solution du guide : Noter ce comportement : c'est un résultat ; redémarrer l'interface et documenter la procédure de reprise."
+            },
+            {
+              "texte": "Le message donne le numéro de ligne et le mot-clé fautif",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -nr pcap/s01.pcap | head : la capture est vide, ou prise sur le mauvais pont",
+              "correct": false
+            },
+            {
+              "texte": "Une adresse du compose est prise par la passerelle Docker",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Que se passe-t-il si Suricata tombe ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "C'est P-01 : nous arrêtons Suricata pendant un SYN flood et mesurons la disponibilité et les alertes avant, pendant et après, puis le temps de reprise. Le rapport ne suppose pas le comportement : [résultat mesuré].",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Avec netmap, Suricata intercepte les paquets entre la carte et la pile du noyau : pour le trafic entrant, il les voit avant pf. Il détecte donc aussi les sondes vers des ports fermés, et un paquet qu'il rejette n'atteint jamais pf. Nous…",
+              "correct": false
+            },
+            {
+              "texte": "Des règles génériques se déclenchent sur du trafic légitime : en drop, elles feraient chuter la disponibilité. Nous mesurons d'abord 2 h de trafic légitime en alert, règle par règle, et ne passons en drop que les familles à moins d'1 faux…",
+              "correct": false
+            },
+            {
+              "texte": "La règle 9000002 compte les SYN de chaque source vers les ports non publiés ; un rate_filter change son action en drop pendant 20 s dès 20 SYN en 5 s. S-02 suit le même principe avec 9000004 (100 SYN en 1 s). Les premières sondes passent…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

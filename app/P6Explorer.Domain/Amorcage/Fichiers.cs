@@ -12,8 +12,38 @@ public class FichierRole
     public int Version { get; set; } = 1;
     public string Source { get; set; } = "";
     public Role Role { get; set; } = new();
-    /// <summary>« Questions probables du jury » : amorceront les quiz (jalon 7).</summary>
+    /// <summary>« Questions probables du jury » du rôle (texte du guide).</summary>
     public List<QuestionJury> QuestionsJury { get; set; } = [];
+    /// <summary>Quiz d'auto-évaluation, un par étape (générés par l'importeur, statut « à valider »).</summary>
+    public List<QuizAmorce> Quiz { get; set; } = [];
+}
+
+public class QuizAmorce
+{
+    public string Etape { get; set; } = "";            // code de l'étape (« r2-e5 »)
+    public List<QuestionAmorce> Questions { get; set; } = [];
+}
+
+public class QuestionAmorce
+{
+    public string Texte { get; set; } = "";
+    public string Source { get; set; } = "";           // but, panne, pourquoi, jury
+    public List<ChoixAmorce> Choix { get; set; } = [];
+}
+
+public class ChoixAmorce
+{
+    public string Texte { get; set; } = "";
+    public bool Correct { get; set; }
+    public string? Explication { get; set; }
+}
+
+/// <summary>Un terme de donnees/glossaire.json.</summary>
+public class TermeAmorce
+{
+    public string Terme { get; set; } = "";
+    public string Definition { get; set; } = "";
+    public string? Comparaison { get; set; }
 }
 
 public class QuestionJury

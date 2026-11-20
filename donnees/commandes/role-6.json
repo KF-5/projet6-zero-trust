@@ -1255,5 +1255,640 @@
       "question": "Pourquoi la médiane et le 95e centile pour la latence ?",
       "reponse": "Avec quelques valeurs extrêmes, la moyenne est trompeuse. La médiane décrit l'expérience typique, le p95 les lenteurs occasionnelles ; on compare A, B sans IPS et B avec IPS pour isoler le coût de Suricata."
     }
+  ],
+  "quiz": [
+    {
+      "etape": "r6-e1",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Synchroniser les horloges du laboratoire (NTP) » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": false
+            },
+            {
+              "texte": "Pour chaque exécution, les PCAP rangés, et une vérification automatique de l'effet réel côté cible.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un client n'apparaît pas ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": true,
+              "explication": "Solution du guide : Rôle 1, étape 5."
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -ni ens32 port 514 sur le collecteur",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « Reference ID : 00000000 » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier server 10.99.0.10 et la route MGMT."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            },
+            {
+              "texte": "tcpdump -ni ens32 port 514 sur le collecteur",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r6-e2",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Recevoir les journaux : rsyslog » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": false
+            },
+            {
+              "texte": "Pour chaque exécution, les PCAP rangés, et une vérification automatique de l'effet réel côté cible.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Rien n'arrive ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "tcpdump -ni ens32 port 514 sur le collecteur",
+              "correct": true,
+              "explication": "Solution du guide : Rien sur le fil : cible syslog d'OPNsense (rôle 2). Paquets vus mais pas de fichier : pare-feu du collecteur ou configuration rsyslog."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Horodatage sans année ni millisecondes ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Modèle de fichier par défaut",
+              "correct": true,
+              "explication": "Solution du guide : Utiliser RSYSLOG_FileFormat."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r6-e3",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire le parseur : events.csv » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": false
+            },
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": false
+            },
+            {
+              "texte": "Pour chaque exécution, les PCAP rangés, et une vérification automatique de l'effet réel côté cible.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « 0 événement ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Fichiers absents de brut/, ou période de runs.csv / sla.csv sans rapport avec les journaux",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier la collecte (scp) ou utiliser --sans-collecte avec des fichiers copiés à la main ; vérifier les dates de runs.csv."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Lignes filterlog ignorées ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Format de ligne différent",
+              "correct": true,
+              "explication": "Solution du guide : Comparer une ligne brute à l'expression RX_FL ; ajuster la partie qui précède les champs."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r6-e4",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Exploiter les captures (C10) » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Pour chaque exécution, les PCAP rangés, et une vérification automatique de l'effet réel côté cible.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": false
+            },
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « PCAP vide ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Capture arrêtée par KILL, ou mauvais point",
+              "correct": true,
+              "explication": "Solution du guide : capture.sh stop envoie INT ; vérifier le point de capture dans scenarios.yaml."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Fichiers énormes pendant S-02 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Capture de nginx pendant un flood",
+              "correct": true,
+              "explication": "Solution du guide : S-02 ne capture que kali-wan (scenarios.yaml)."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment jugez-vous qu'une attaque est bloquée ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Sur l'effet réel : ports ouverts dans la sortie de nmap, ligne renvoyée par psql, « secret » dans la réponse, disponibilité de la sonde ; et pour S-04 et S-05, présence ou non d'un SYN-ACK de la base dans le PCAP côté cible.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Pour chaque exécution, on cherche les alertes Suricata dans [t0, t1 + 10 s] qui concernent l'adresse de l'attaquant (ou un relais déclaré, comme nginx pour S-03). Détecté = au moins une alerte. Le taux est la moyenne sur les N exécutions…",
+              "correct": false
+            },
+            {
+              "texte": "Parce que la cible de S-02 et S-03 est nginx, que la sonde légitime interroge en permanence : une alerte causée par la sonde pendant la fenêtre aurait compté comme détection. Le filtre sur l'attaquant évite ce biais (écart E08).",
+              "correct": false
+            },
+            {
+              "texte": "Une alerte hors de toute fenêtre d'attaque, rapportée à la durée de trafic légitime. La mesure de 2 h de trafic légitime seul est la référence : pendant ce temps, toute alerte est un faux positif.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r6-e5",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire la corrélation C11 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Pour chaque exécution : détecté, temps de détection, bloqué ; pour chaque état : faux positifs par heure, disponibilité, latence.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": false
+            },
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Toutes les détections à 0 en état B ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Horloges décalées ou fenêtre fausse",
+              "correct": true,
+              "explication": "Solution du guide : Comparer t0 et les premières alertes à la main ; vérifier NTP (étape 1)."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Détection de S-03 à 0 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Relais non pris en compte",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier RELAIS et les adresses de la ligne EVE (10.20.0.10 → 10.20.0.70)."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment calculez-vous le taux de détection ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Pour chaque exécution, on cherche les alertes Suricata dans [t0, t1 + 10 s] qui concernent l'adresse de l'attaquant (ou un relais déclaré, comme nginx pour S-03). Détecté = au moins une alerte. Le taux est la moyenne sur les N exécutions…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Parce que la cible de S-02 et S-03 est nginx, que la sonde légitime interroge en permanence : une alerte causée par la sonde pendant la fenêtre aurait compté comme détection. Le filtre sur l'attaquant évite ce biais (écart E08).",
+              "correct": false
+            },
+            {
+              "texte": "Sur l'effet réel : ports ouverts dans la sortie de nmap, ligne renvoyée par psql, « secret » dans la réponse, disponibilité de la sonde ; et pour S-04 et S-05, présence ou non d'un SYN-ACK de la base dans le PCAP côté cible.",
+              "correct": false
+            },
+            {
+              "texte": "Une alerte hors de toute fenêtre d'attaque, rapportée à la durée de trafic légitime. La mesure de 2 h de trafic légitime seul est la référence : pendant ce temps, toute alerte est un faux positif.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi ne pas filtrer sur la cible, comme dans le pseudo-code de la conception ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Parce que la cible de S-02 et S-03 est nginx, que la sonde légitime interroge en permanence : une alerte causée par la sonde pendant la fenêtre aurait compté comme détection. Le filtre sur l'attaquant évite ce biais (écart E08).",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Pour chaque exécution, on cherche les alertes Suricata dans [t0, t1 + 10 s] qui concernent l'adresse de l'attaquant (ou un relais déclaré, comme nginx pour S-03). Détecté = au moins une alerte. Le taux est la moyenne sur les N exécutions…",
+              "correct": false
+            },
+            {
+              "texte": "Sur l'effet réel : ports ouverts dans la sortie de nmap, ligne renvoyée par psql, « secret » dans la réponse, disponibilité de la sonde ; et pour S-04 et S-05, présence ou non d'un SYN-ACK de la base dans le PCAP côté cible.",
+              "correct": false
+            },
+            {
+              "texte": "Une alerte hors de toute fenêtre d'attaque, rapportée à la durée de trafic légitime. La mesure de 2 h de trafic légitime seul est la référence : pendant ce temps, toute alerte est un faux positif.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Qu'est-ce qu'un faux positif dans vos chiffres ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Une alerte hors de toute fenêtre d'attaque, rapportée à la durée de trafic légitime. La mesure de 2 h de trafic légitime seul est la référence : pendant ce temps, toute alerte est un faux positif.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Pour chaque exécution, on cherche les alertes Suricata dans [t0, t1 + 10 s] qui concernent l'adresse de l'attaquant (ou un relais déclaré, comme nginx pour S-03). Détecté = au moins une alerte. Le taux est la moyenne sur les N exécutions…",
+              "correct": false
+            },
+            {
+              "texte": "Parce que la cible de S-02 et S-03 est nginx, que la sonde légitime interroge en permanence : une alerte causée par la sonde pendant la fenêtre aurait compté comme détection. Le filtre sur l'attaquant évite ce biais (écart E08).",
+              "correct": false
+            },
+            {
+              "texte": "Sur l'effet réel : ports ouverts dans la sortie de nmap, ligne renvoyée par psql, « secret » dans la réponse, disponibilité de la sonde ; et pour S-04 et S-05, présence ou non d'un SYN-ACK de la base dans le PCAP côté cible.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi la médiane et le 95e centile pour la latence ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Avec quelques valeurs extrêmes, la moyenne est trompeuse. La médiane décrit l'expérience typique, le p95 les lenteurs occasionnelles ; on compare A, B sans IPS et B avec IPS pour isoler le coût de Suricata.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Pour chaque exécution, on cherche les alertes Suricata dans [t0, t1 + 10 s] qui concernent l'adresse de l'attaquant (ou un relais déclaré, comme nginx pour S-03). Détecté = au moins une alerte. Le taux est la moyenne sur les N exécutions…",
+              "correct": false
+            },
+            {
+              "texte": "Parce que la cible de S-02 et S-03 est nginx, que la sonde légitime interroge en permanence : une alerte causée par la sonde pendant la fenêtre aurait compté comme détection. Le filtre sur l'attaquant évite ce biais (écart E08).",
+              "correct": false
+            },
+            {
+              "texte": "Sur l'effet réel : ports ouverts dans la sortie de nmap, ligne renvoyée par psql, « secret » dans la réponse, disponibilité de la sonde ; et pour S-04 et S-05, présence ou non d'un SYN-ACK de la base dans le PCAP côté cible.",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r6-e6",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Produire les indicateurs et les graphiques A vs B » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Les tableaux et graphiques du rapport final, régénérables d'une commande.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": false
+            },
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Un scénario manque dans un graphique ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Aucune exécution pour cet état",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier runs.csv ; ne jamais compléter à la main."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les pourcentages ne correspondent pas au tableau ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Graphique ancien",
+              "correct": true,
+              "explication": "Solution du guide : Toujours régénérer après correle.py."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r6-e7",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Commenter 4 à 6 captures Wireshark » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Des captures commentées qui montrent, paquet par paquet, la différence entre A et B.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le collecteur sert l'heure à toutes les VM, et l'écart entre horloges est mesuré avant chaque campagne.",
+              "correct": false
+            },
+            {
+              "texte": "Le collecteur reçoit filterlog et les alertes EVE d'OPNsense, et le journal d'accès de nginx, dans des fichiers horodatés précisément.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rapatrie les fichiers bruts et écrit events.csv au schéma commun, trié dans l'ordre chronologique.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Les commentaires disparaissent ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Enregistré au format pcap",
+              "correct": true,
+              "explication": "Solution du guide : Enregistrer en pcapng."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « HTTP illisible ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Capture prise sur le WAN (TLS)",
+              "correct": true,
+              "explication": "Solution du guide : Utiliser la capture côté API (saut nginx → API en clair)."
+            },
+            {
+              "texte": "Pare-feu du collecteur (UDP 123 depuis 10.99.0.0/24)",
+              "correct": false
+            },
+            {
+              "texte": "Le client ne joint pas le serveur",
+              "correct": false
+            },
+            {
+              "texte": "Snapshot avec RAM restauré",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

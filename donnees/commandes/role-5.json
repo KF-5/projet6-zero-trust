@@ -3649,5 +3649,566 @@
       "question": "Pourquoi l'horloge du collecteur pour t0 et t1 ?",
       "reponse": "C'est la référence NTP du laboratoire : OPNsense et l'hôte Docker se synchronisent sur elle. Le temps de détection (première alerte − t0) compare deux horloges synchronisées."
     }
+  ],
+  "quiz": [
+    {
+      "etape": "r5-e1",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Préparer Kali sans interface graphique » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+              "correct": false
+            },
+            {
+              "texte": "Une exécution réelle de chaque scénario en état A, pour valider les commandes, les critères et toute la chaîne de mesure avant la campagne.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « Permission denied (publickey) » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": true,
+              "explication": "Solution du guide : Ajouter la clé du collecteur ; vérifier PermitRootLogin prohibit-password."
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            },
+            {
+              "texte": "Deux-points non protégé dans une commande",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Une route par défaut existe ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "ip route",
+              "correct": true,
+              "explication": "Solution du guide : La supprimer (carte de configuration encore active) : ip route del default, et prévenir le rôle 1."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            },
+            {
+              "texte": "Deux-points non protégé dans une commande",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment garantissez-vous qu'aucune attaque ne sort du laboratoire ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Toutes les cibles sont dans 203.0.113.0/24 ou les réseaux internes ; Kali n'a pas de route par défaut ; avant chaque campagne, le rôle 1 vérifie que les cartes de configuration sont débranchées. Les commandes passent par MGMT, mais les…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Après chaque exécution : suppression des états pf de l'attaquant (pfctl -k), attente de 30 s pendant laquelle les blocages temporaires de Suricata expirent (timeout du rate_filter inférieur à la pause). L'ordre des scénarios est aléatoire…",
+              "correct": false
+            },
+            {
+              "texte": "Par son effet réel, défini dans scenarios.yaml : ports ouverts dans la sortie de nmap, connexion psql réussie, présence de « secret » dans la réponse, disponibilité de la sonde. On le vérifie aussi dans le PCAP côté cible (section 9.4).",
+              "correct": false
+            },
+            {
+              "texte": "Les commandes, N, la graine, le trafic de fond et les adresses sont identiques. En revanche, les règles locales de Suricata ont été écrites en connaissant les scénarios : les taux valent pour ces attaques (section 11.3).",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Pourquoi l'horloge du collecteur pour t0 et t1 ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "C'est la référence NTP du laboratoire : OPNsense et l'hôte Docker se synchronisent sur elle. Le temps de détection (première alerte − t0) compare deux horloges synchronisées.",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Après chaque exécution : suppression des états pf de l'attaquant (pfctl -k), attente de 30 s pendant laquelle les blocages temporaires de Suricata expirent (timeout du rate_filter inférieur à la pause). L'ordre des scénarios est aléatoire…",
+              "correct": false
+            },
+            {
+              "texte": "Par son effet réel, défini dans scenarios.yaml : ports ouverts dans la sortie de nmap, connexion psql réussie, présence de « secret » dans la réponse, disponibilité de la sonde. On le vérifie aussi dans le PCAP côté cible (section 9.4).",
+              "correct": false
+            },
+            {
+              "texte": "Les commandes, N, la graine, le trafic de fond et les adresses sont identiques. En revanche, les règles locales de Suricata ont été écrites en connaissant les scénarios : les taux valent pour ces attaques (section 11.3).",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r5-e2",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire scenarios.yaml » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+              "correct": false
+            },
+            {
+              "texte": "Une exécution réelle de chaque scénario en état A, pour valider les commandes, les critères et toute la chaîne de mesure avant la campagne.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « mapping values are not allowed here » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Deux-points non protégé dans une commande",
+              "correct": true,
+              "explication": "Solution du guide : Mettre la commande en bloc | (comme S-03) ou entre guillemets."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « S-03 : curl renvoie « URL using bad/illegal format » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Commande du rapport sans encodage",
+              "correct": true,
+              "explication": "Solution du guide : Utiliser -G --data-urlencode (écart E10)."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment savez-vous qu'une attaque est bloquée ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Par son effet réel, défini dans scenarios.yaml : ports ouverts dans la sortie de nmap, connexion psql réussie, présence de « secret » dans la réponse, disponibilité de la sonde. On le vérifie aussi dans le PCAP côté cible (section 9.4).",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Après chaque exécution : suppression des états pf de l'attaquant (pfctl -k), attente de 30 s pendant laquelle les blocages temporaires de Suricata expirent (timeout du rate_filter inférieur à la pause). L'ordre des scénarios est aléatoire…",
+              "correct": false
+            },
+            {
+              "texte": "Les commandes, N, la graine, le trafic de fond et les adresses sont identiques. En revanche, les règles locales de Suricata ont été écrites en connaissant les scénarios : les taux valent pour ces attaques (section 11.3).",
+              "correct": false
+            },
+            {
+              "texte": "Toutes les cibles sont dans 203.0.113.0/24 ou les réseaux internes ; Kali n'a pas de route par défaut ; avant chaque campagne, le rôle 1 vérifie que les cartes de configuration sont débranchées. Les commandes passent par MGMT, mais les…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r5-e3",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Écrire l'orchestrateur C6 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+              "correct": false
+            },
+            {
+              "texte": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+              "correct": false
+            },
+            {
+              "texte": "Une exécution réelle de chaque scénario en état A, pour valider les commandes, les critères et toute la chaîne de mesure avant la campagne.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « « Host key verification failed » ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Première connexion SSH",
+              "correct": true,
+              "explication": "Solution du guide : Se connecter une fois à la main à 10.99.0.1, .20 et .66 pour accepter les clés."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « pfctl -k ne fait rien ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Le shell de root sur OPNsense est le menu console",
+              "correct": true,
+              "explication": "Solution du guide : Choisir /bin/sh comme shell de connexion de root (à vérifier sur votre version)."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Comment évitez-vous qu'une exécution influence la suivante ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Après chaque exécution : suppression des états pf de l'attaquant (pfctl -k), attente de 30 s pendant laquelle les blocages temporaires de Suricata expirent (timeout du rate_filter inférieur à la pause). L'ordre des scénarios est aléatoire…",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Par son effet réel, défini dans scenarios.yaml : ports ouverts dans la sortie de nmap, connexion psql réussie, présence de « secret » dans la réponse, disponibilité de la sonde. On le vérifie aussi dans le PCAP côté cible (section 9.4).",
+              "correct": false
+            },
+            {
+              "texte": "Les commandes, N, la graine, le trafic de fond et les adresses sont identiques. En revanche, les règles locales de Suricata ont été écrites en connaissant les scénarios : les taux valent pour ces attaques (section 11.3).",
+              "correct": false
+            },
+            {
+              "texte": "Toutes les cibles sont dans 203.0.113.0/24 ou les réseaux internes ; Kali n'a pas de route par défaut ; avant chaque campagne, le rôle 1 vérifie que les cartes de configuration sont débranchées. Les commandes passent par MGMT, mais les…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r5-e4",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Répétition à blanc » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "Une exécution réelle de chaque scénario en état A, pour valider les commandes, les critères et toute la chaîne de mesure avant la campagne.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+              "correct": false
+            },
+            {
+              "texte": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « S-02 renvoie 124 ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Normal : timeout arrête hping3",
+              "correct": true,
+              "explication": "Solution du guide : Le blocage de S-02 se juge sur sla.csv, pas sur le code."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Aucune alerte pour aucun scénario en A ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Normal : pas d'IDS en état A",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier seulement que filterlog et sla.csv arrivent."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r5-e5",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Conduire la campagne A » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "6 scénarios × 10 exécutions en état A, dans les conditions du protocole, archivés et marqués.",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+              "correct": false
+            },
+            {
+              "texte": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Une exécution échoue au milieu ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Ligne manquante dans runs.csv",
+              "correct": true,
+              "explication": "Solution du guide : Relancer seulement ce scénario avec --scenario ; noter l'incident dans docs/journal-campagnes.md."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « La sonde s'est arrêtée ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "sla.csv incomplet",
+              "correct": true,
+              "explication": "Solution du guide : Les disponibilités de la période sont invalides : relancer les exécutions concernées."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Vos scénarios ne favorisent-ils pas l'état B ?",
+          "source": "jury",
+          "choix": [
+            {
+              "texte": "Les commandes, N, la graine, le trafic de fond et les adresses sont identiques. En revanche, les règles locales de Suricata ont été écrites en connaissant les scénarios : les taux valent pour ces attaques (section 11.3).",
+              "correct": true,
+              "explication": "Réponse préparée pour la soutenance (guide, « questions probables du jury »)."
+            },
+            {
+              "texte": "Après chaque exécution : suppression des états pf de l'attaquant (pfctl -k), attente de 30 s pendant laquelle les blocages temporaires de Suricata expirent (timeout du rate_filter inférieur à la pause). L'ordre des scénarios est aléatoire…",
+              "correct": false
+            },
+            {
+              "texte": "Par son effet réel, défini dans scenarios.yaml : ports ouverts dans la sortie de nmap, connexion psql réussie, présence de « secret » dans la réponse, disponibilité de la sonde. On le vérifie aussi dans le PCAP côté cible (section 9.4).",
+              "correct": false
+            },
+            {
+              "texte": "Toutes les cibles sont dans 203.0.113.0/24 ou les réseaux internes ; Kali n'a pas de route par défaut ; avant chaque campagne, le rôle 1 vérifie que les cartes de configuration sont débranchées. Les commandes passent par MGMT, mais les…",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etape": "r5-e6",
+      "questions": [
+        {
+          "texte": "À quoi sert l'étape « Conduire la campagne B et la panne P-01 » ?",
+          "source": "but",
+          "choix": [
+            {
+              "texte": "La même campagne en état B, puis P-01 répété 5 fois, puis la mesure iperf3 « B sans IPS ».",
+              "correct": true,
+              "explication": "C'est le but de l'étape, tel que le guide l'écrit."
+            },
+            {
+              "texte": "Kali 2026.3 avec nmap, hping3, nikto, curl et tcpdump, pilotable en root par le collecteur, sans aucune route vers l'extérieur.",
+              "correct": false
+            },
+            {
+              "texte": "Le fichier qui décrit les 6 scénarios et P-01 : machine, commande exacte, cible, durée maximale, critère « objectif atteint », points de capture.",
+              "correct": false
+            },
+            {
+              "texte": "Un programme qui rejoue les scénarios dans un ordre aléatoire reproductible, avec capture, t0, t1, sortie, code de retour, réinitialisation et pause.",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « Tous les scénarios WAN échouent dès la 1re exécution ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Suricata bloque Kali durablement",
+              "correct": true,
+              "explication": "Solution du guide : Vérifier le timeout du rate_filter (rôle 3) ; il doit être inférieur à la pause de 30 s."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        },
+        {
+          "texte": "Panne : « P-01 : Suricata ne redémarre pas ». Quelle en est la cause la plus probable ?",
+          "source": "panne",
+          "choix": [
+            {
+              "texte": "Commande d'arrêt / démarrage non valide sur votre version",
+              "correct": true,
+              "explication": "Solution du guide : Tester les deux commandes à la main avec le rôle 3 avant la campagne."
+            },
+            {
+              "texte": "Clé absente de /root/.ssh/authorized_keys",
+              "correct": false
+            },
+            {
+              "texte": "ip route",
+              "correct": false
+            },
+            {
+              "texte": "Connexion avec un utilisateur normal",
+              "correct": false
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

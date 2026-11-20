@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using P6Explorer.Domain.Commandes;
@@ -21,12 +20,16 @@ public static partial class TexteRiche
     public static string EnHtml(string? texte, IReadOnlyCollection<TermeGlossaire>? termes = null)
     {
         if (string.IsNullOrWhiteSpace(texte)) return "";
-        var html = WebUtility.HtmlEncode(texte.Trim());
+        var html = Encoder(texte.Trim());
         html = Code().Replace(html, "<code>$1</code>");
         html = Gras().Replace(html, "<strong>$1</strong>");
         if (termes is { Count: > 0 }) html = Annoter(html, termes);
         return html.Replace("\n", "<br>");
     }
+
+    /// <summary>Encodage HTML minimal (les cinq caractères dangereux) : les accents restent lisibles dans le source.</summary>
+    public static string Encoder(string t)
+        => t.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&#39;");
 
     /// <summary>Texte brut (sans Markdown) pour un attribut ou un résumé.</summary>
     public static string Brut(string? texte)
@@ -37,7 +40,7 @@ public static partial class TexteRiche
         var dejaVus = new HashSet<int>();
         foreach (var t in termes.OrderByDescending(t => t.Terme.Length))
         {
-            var motif = new Regex($@"(?<![\p{{L}}\d_-]){Regex.Escape(WebUtility.HtmlEncode(t.Terme))}(?![\p{{L}}\d_-])", RegexOptions.IgnoreCase);
+            var motif = new Regex($@"(?<![\p{{L}}\d_-]){Regex.Escape(Encoder(t.Terme))}(?![\p{{L}}\d_-])", RegexOptions.IgnoreCase);
             var resultat = new StringBuilder();
             var remplace = false;
             // On ne touche qu'au texte hors balises et hors <code> / <dfn> déjà posés.
@@ -46,7 +49,7 @@ public static partial class TexteRiche
                 if (remplace || morceau.StartsWith('<') || dejaVus.Contains(t.Id)) { resultat.Append(morceau); continue; }
                 var m = motif.Match(morceau);
                 if (!m.Success) { resultat.Append(morceau); continue; }
-                var definition = WebUtility.HtmlEncode(t.Definition + (t.Comparaison is null ? "" : " " + t.Comparaison));
+                var definition = Encoder(t.Definition + (t.Comparaison is null ? "" : " " + t.Comparaison));
                 resultat.Append(morceau[..m.Index])
                     .Append($"<dfn class=\"terme\" tabindex=\"0\" data-definition=\"{definition}\">{m.Value}</dfn>")
                     .Append(morceau[(m.Index + m.Length)..]);
