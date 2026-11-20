@@ -1,0 +1,32 @@
+@model QuestionFormVM
+<div class="page-formulaire">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.EtapeNumero · relecture</p>
+    <h1>Relire une question</h1>
+    <partial name="_ErreursModele" />
+    <form method="post" asp-action="Question" class="formulaire">
+        <input type="hidden" asp-for="Id" /><input type="hidden" asp-for="RoleNumero" /><input type="hidden" asp-for="EtapeNumero" />
+        <div class="champ"><label asp-for="Texte"></label><textarea asp-for="Texte" rows="3"></textarea><span asp-validation-for="Texte" class="erreur-champ"></span></div>
+        <fieldset class="champ">
+            <legend>Choix (coche les bonnes réponses)</legend>
+            @for (var i = 0; i < Model.Choix.Count; i++)
+            {
+                <div class="choix-edition">
+                    <input type="hidden" asp-for="Choix[i].Id" />
+                    <label><input asp-for="Choix[i].Correct" /> <span class="visuellement-cache">bonne réponse</span></label>
+                    <input asp-for="Choix[i].Texte" aria-label="Texte du choix @(i + 1)" />
+                </div>
+            }
+        </fieldset>
+        <div class="champ"><label asp-for="Statut"></label>
+            <select asp-for="Statut">
+                <option value="@StatutValidation.AValider">À valider</option>
+                <option value="@StatutValidation.Validee">Validée</option>
+                <option value="@StatutValidation.Brouillon">Brouillon</option>
+            </select>
+        </div>
+        <div class="boutons">
+            <button type="submit" class="btn">Enregistrer</button>
+            <a class="btn secondaire" href="/Quiz/@Model.RoleNumero/@Model.EtapeNumero">Retour au quiz</a>
+        </div>
+    </form>
+</div>

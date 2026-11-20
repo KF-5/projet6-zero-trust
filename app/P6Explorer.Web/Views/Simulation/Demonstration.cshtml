@@ -1,0 +1,47 @@
+@model List<SimulationLigneVM>
+<div class="page-simulation">
+    <header>
+        <p class="surtitre">Pour le jury</p>
+        <h1>Démonstration</h1>
+        <p class="chapeau">Les simulations choisies, rejouées dans l'ordre. ▶ lance la suivante ; chaque paquet est recalculé par le moteur au moment de la lecture.</p>
+    </header>
+    @if (Model.Count == 0)
+    {
+        <p class="note">Aucune simulation choisie. Va dans <a asp-action="Historique">l'historique</a> et clique « pour la démo ».</p>
+    }
+    else
+    {
+        <div class="disposition-simulation">
+            <ol class="liste-demo" id="liste-demo">
+                @foreach (var s in Model)
+                {
+                    <li data-id="@s.Id">
+                        <span>@(s.Titre ?? $"{s.Source} → {s.Destination}") <span class="note">état @s.Etat · @s.Protocole@(s.Port is null ? "" : $" {s.Port}")</span></span>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <form method="post" asp-action="Deplacer" class="en-ligne">
+                                <input type="hidden" name="id" value="@s.Id" />
+                                <button type="submit" name="sens" value="-1" class="btn-lien" aria-label="Monter">↑</button>
+                                <button type="submit" name="sens" value="1" class="btn-lien" aria-label="Descendre">↓</button>
+                            </form>
+                        }
+                    </li>
+                }
+            </ol>
+            <div class="lecteur mode-demo" id="lecteur" data-mode="demo">
+                <partial name="_Schema" model='(SchemaVM)ViewBag.Schema' />
+                <div class="controles" role="toolbar" aria-label="Contrôles de la démonstration">
+                    <button type="button" class="btn-ctrl" data-action="precedente" aria-label="Précédente">◀</button>
+                    <button type="button" class="btn-ctrl principal" data-action="lecture" aria-label="Lecture">▶</button>
+                    <button type="button" class="btn-ctrl" data-action="suivante" aria-label="Suivante">⏭</button>
+                    <span id="demo-position" class="note" aria-live="polite"></span>
+                </div>
+                <partial name="_PanneauExplication" />
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/lecteur.js" asp-append-version="true" defer></script>
+}

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using P6Explorer.Infrastructure.Identite;
 using P6Explorer.Application.Services;
 using P6Explorer.Domain.Interfaces;
 using P6Explorer.Infrastructure.Amorcage;
@@ -32,6 +34,16 @@ public static class DependencyInjection
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<ITopologieRepository, TopologieRepository>();
+        services.AddScoped<IEtapeRepository, EtapeRepository>();
+        services.AddScoped<IRevisionRepository, RevisionRepository>();
+        services.AddScoped<IQuizRepository, QuizRepository>();
+        services.AddScoped<IProgressionRepository, ProgressionRepository>();
+        services.AddScoped<IDiscussionRepository, DiscussionRepository>();
+        services.AddScoped<ISimulationRepository, SimulationRepository>();
+        services.AddScoped<IGlossaireRepository, GlossaireRepository>();
+        services.AddScoped<IAnnuaire, Annuaire>();
+        // Auteur des modifications : remplacé par la version web (compte connecté) dans Program.cs.
+        services.TryAddSingleton<IUtilisateurCourant, AucunUtilisateur>();
 
         services.Configure<OptionsAmorcage>(configuration.GetSection(OptionsAmorcage.Section));
         services.AddScoped<IServiceAmorcage, ServiceAmorcage>();

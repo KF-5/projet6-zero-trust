@@ -10,7 +10,7 @@ namespace P6Explorer.Tests.MoteurReseau;
 /// </summary>
 public class TestFluxTests
 {
-    private static readonly string Dossier = Depot.Chemin("app", "P6Explorer.Tests", "MoteurReseau", "Politique");
+    private static readonly string Dossier = Depot.Chemin("donnees", "politique");
 
     public sealed record LigneTest(string Id, string Source, string Destination, string Proto, int Port, string Attendu, string Flux)
     {

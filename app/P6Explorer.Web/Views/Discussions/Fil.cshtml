@@ -1,0 +1,32 @@
+@model FilVM
+<div class="page-formulaire">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.EtapeNumero · <code>@Model.CommandeCode</code></p>
+    <h1>@Model.Titre</h1>
+    <p class="note">
+        <span class="pastille @(Model.Statut == "Ouvert" ? "question" : "fait")">@(Model.Statut == "Ouvert" ? "ouverte" : "résolue")</span>
+        Sur la commande <a href="/Roles/@Model.RoleNumero/Etapes/@Model.EtapeNumero?code=@Model.CommandeCode"><code>@Model.CommandeTexte</code></a>
+    </p>
+    <ol class="messages">
+        @foreach (var m in Model.Messages)
+        {
+            <li><p class="note"><strong>@m.Auteur</strong> · @m.Date.ToLocalTime().ToString("d MMM yyyy, HH:mm")</p><p>@Html.Raw(m.TexteHtml)</p></li>
+        }
+    </ol>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <form method="post" asp-action="Repondre" class="formulaire">
+            <input type="hidden" name="FilId" value="@Model.Id" />
+            <div class="champ"><label for="Texte">Ta réponse</label><textarea id="Texte" name="Texte" rows="4" required maxlength="4000"></textarea></div>
+            <button type="submit" class="btn">Répondre</button>
+        </form>
+    }
+    @if (Model.PeutResoudre)
+    {
+        <form method="post" asp-action="Statut" class="en-ligne">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="resolu" value="@(Model.Statut == "Ouvert" ? "true" : "false")" />
+            <button type="submit" class="btn secondaire">@(Model.Statut == "Ouvert" ? "Marquer résolue" : "Rouvrir")</button>
+        </form>
+    }
+    <p><a asp-action="Index">← Toutes les questions</a></p>
+</div>

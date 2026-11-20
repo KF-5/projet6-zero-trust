@@ -22,7 +22,7 @@
             <li class="carte-role" style="--role: var(@r.Couleur)">
                 <div class="carte-entete">
                     <span class="carte-numero" aria-hidden="true">@r.Numero</span>
-                    <h3><span class="visuellement-cache">Rôle @r.Numero : </span>@r.Titre</h3>
+                    <h3><a class="lien-carte" href="/Roles/@r.Numero"><span class="visuellement-cache">Rôle @r.Numero : </span>@r.Titre</a></h3>
                 </div>
                 <p class="carte-mission">@r.Mission</p>
                 <div class="avancement" role="img" aria-label="@r.NbFaites étape(s) faite(s) sur @r.NbEtapes">
@@ -32,6 +32,10 @@
                     <span><strong>@r.NbFaites</strong>/@r.NbEtapes étapes faites</span>
                     <span><strong>@r.NbCommandes</strong> commandes</span>
                 </p>
+                @if (r.NbComprises is not null)
+                {
+                    <p class="carte-perso"><span class="etiquette">Toi</span> @r.NbComprises commande@(r.NbComprises > 1 ? "s" : "") comprise@(r.NbComprises > 1 ? "s" : "") · @r.NbMaitrisees étape@(r.NbMaitrisees > 1 ? "s" : "") maîtrisée@(r.NbMaitrisees > 1 ? "s" : "")</p>
+                }
                 @if (r.ProchaineEtape is not null)
                 {
                     <p class="carte-suite"><span class="etiquette">À faire</span> @r.ProchaineEtape</p>
@@ -39,5 +43,5 @@
             </li>
         }
     </ul>
-    <p class="note-jalon">Les pages de chaque rôle et le lecteur de commandes arrivent au jalon 4.</p>
+    <p class="note-jalon">Choisis un rôle pour rejouer ses étapes commande par commande, ou essaie le mode <a asp-controller="Simulation" asp-action="Index">« Et si ? »</a> : pourquoi <code>client-ext → postgres:5432</code> est-il bloqué en état A ?</p>
 </section>

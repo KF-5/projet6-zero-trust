@@ -1,0 +1,46 @@
+@model QuizVM
+<div class="page-formulaire">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.EtapeNumero · auto-évaluation</p>
+    <h1>@Model.EtapeTitre</h1>
+    <p class="chapeau">@Model.Questions.Count questions. L'étape est « maîtrisée » à partir de @Model.Seuil % de bonnes réponses.
+        Les questions marquées « à valider » ont été générées depuis le guide et attendent la relecture du responsable du rôle.</p>
+    <p><a href="/Roles/@Model.RoleNumero/Etapes/@Model.EtapeNumero">← Retour à l'étape</a></p>
+
+    @if (Model.Tentatives.Count > 0)
+    {
+        <p class="note">Tes dernières tentatives : @string.Join(" · ", Model.Tentatives.Select(t => $"{t.Score} % le {t.Date.ToLocalTime():d MMM}"))</p>
+    }
+
+    <form method="post" asp-action="Corriger" class="formulaire quiz">
+        <input type="hidden" name="quizId" value="@Model.QuizId" />
+        @{ var n = 0; }
+        @foreach (var q in Model.Questions)
+        {
+            n++;
+            <fieldset class="question">
+                <legend>
+                    <span class="question-numero">@n.</span> @q.Texte
+                    @if (q.Statut != "Validee") { <span class="pastille statut">à valider</span> }
+                    @if (q.Source == "jury") { <span class="pastille maitrise">question du jury</span> }
+                    @if (Model.PeutModifier) { <a class="lien-discret" asp-action="Question" asp-route-id="@q.Id">relire</a> }
+                </legend>
+                @if (q.PlusieursReponses) { <p class="note">Plusieurs réponses possibles.</p> }
+                @foreach (var c in q.Choix)
+                {
+                    <label class="choix">
+                        <input type="@(q.PlusieursReponses ? "checkbox" : "radio")" name="q-@q.Id" value="@c.Id" />
+                        <span>@c.Texte</span>
+                    </label>
+                }
+            </fieldset>
+        }
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <button type="submit" class="btn">Corriger et enregistrer mon score</button>
+        }
+        else
+        {
+            <p class="note"><a asp-controller="Compte" asp-action="Connexion" asp-route-retour="@($"/Quiz/{Model.RoleNumero}/{Model.EtapeNumero}")">Connecte-toi</a> pour passer le quiz et garder ton score.</p>
+        }
+    </form>
+</div>

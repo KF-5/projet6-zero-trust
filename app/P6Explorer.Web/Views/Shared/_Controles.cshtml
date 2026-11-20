@@ -1,0 +1,23 @@
+<div class="controles" role="toolbar" aria-label="Contrôles du lecteur" id="controles">
+    <button type="button" class="btn-ctrl" data-action="debut" aria-label="Première commande" title="Première commande">⏮</button>
+    <button type="button" class="btn-ctrl" data-action="precedente" aria-label="Commande précédente (flèche gauche)" title="Précédente (←)">◀</button>
+    <button type="button" class="btn-ctrl principal" data-action="lecture" aria-label="Lecture (barre d'espace)" title="Lecture / pause (espace)">▶</button>
+    <button type="button" class="btn-ctrl" data-action="suivante" aria-label="Commande suivante (flèche droite)" title="Suivante (→)">⏭</button>
+    <label class="curseur">
+        <span class="visuellement-cache">Chronologie des commandes</span>
+        <input type="range" id="chronologie" min="1" max="1" value="1" />
+    </label>
+    <label class="vitesse">Vitesse
+        <select id="vitesse">
+            <option value="0.5">×0,5</option><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option>
+        </select>
+    </label>
+    <fieldset class="calques">
+        <legend class="visuellement-cache">Calques du schéma</legend>
+        <label><input type="checkbox" data-calque="zones" checked /> zones</label>
+        <label><input type="checkbox" data-calque="ip" /> adresses</label>
+        <label><input type="checkbox" data-calque="regles" checked /> règles</label>
+        <label><input type="checkbox" data-calque="journaux" checked /> journaux</label>
+        <label><input type="checkbox" data-calque="alertes" checked /> alertes</label>
+    </fieldset>
+</div>

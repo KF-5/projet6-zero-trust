@@ -1,4 +1,10 @@
-﻿@using P6Explorer.Web
+@using P6Explorer.Web
+@using P6Explorer.Web.Models
+@using P6Explorer.Web.Securite
 @using P6Explorer.Application.ViewModels
+@using P6Explorer.Application.Dto
+@using P6Explorer.Domain.Enumerations
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService Autorisation
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, P6Explorer.Web

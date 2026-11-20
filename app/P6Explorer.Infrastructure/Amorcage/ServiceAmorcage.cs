@@ -47,8 +47,13 @@ public class ServiceAmorcage(
             await contexte.Database.EnsureCreatedAsync(annulation);
 
         var dossier = TrouverDossierDonnees(dossierApplication);
-        await AmorcerTopologieAsync(dossier, annulation);
-        await AmorcerContenuAsync(dossier, annulation);
+        contexte.JournaliserRevisions = false;    // le chargement initial n'est pas une modification de l'équipe
+        try
+        {
+            await AmorcerTopologieAsync(dossier, annulation);
+            await AmorcerContenuAsync(dossier, annulation);
+        }
+        finally { contexte.JournaliserRevisions = true; }
         await AmorcerComptesAsync();
     }
 
@@ -94,7 +99,14 @@ public class ServiceAmorcage(
         if (fichiers.Count == 0)
             throw new DonneesAmorcageInvalidesException(dossier, "aucun fichier commandes/role-N.json (lancer P6Explorer.Importeur).");
         foreach (var chemin in fichiers)
-            contexte.RolesProjet.Add(Lire<FichierRole>(chemin).Role);
+        {
+            var role = Lire<FichierRole>(chemin).Role;
+            // Les sous-commandes (scripts dépliés) appartiennent aussi à l'étape de leur commande parente.
+            foreach (var e in role.Etapes)
+                foreach (var c in e.Commandes)
+                    foreach (var s in c.SousCommandes) s.Etape = e;
+            contexte.RolesProjet.Add(role);
+        }
         var n = await contexte.SaveChangesAsync(annulation);
         journal.LogInformation("Contenu du guide amorcé : {Fichiers} rôles, {Lignes} lignes écrites.", fichiers.Count, n);
     }

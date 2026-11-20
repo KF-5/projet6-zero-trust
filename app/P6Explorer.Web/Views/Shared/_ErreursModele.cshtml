@@ -1,0 +1,8 @@
+@* Liste des erreurs du ModelState (ViewBag.Erreurs, rempli par le filtre ValiderModele), comme dans le TP3. *@
+@if (ViewBag.Erreurs is List<string> { Count: > 0 } erreurs)
+{
+    <div class="erreurs" role="alert">
+        <p><strong>Le formulaire contient @(erreurs.Count == 1 ? "une erreur" : $"{erreurs.Count} erreurs") :</strong></p>
+        <ul>@foreach (var e in erreurs) { <li>@e</li> }</ul>
+    </div>
+}

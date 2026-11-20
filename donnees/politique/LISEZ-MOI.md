@@ -1,6 +1,6 @@
 # Jeux de test de `test_flux` (états A et B)
 
-Fichiers recopiés pour les tests du moteur réseau (jalon 3). Ils ne remplacent pas `politique/` du rôle 2.
+Fichiers recopiés pour les tests du moteur réseau (jalon 3) et pour l'importeur, qui en déplie `test_flux.sh` (une sous-commande par test). Ils ne remplacent pas `politique/` du rôle 2.
 
 - `flows.csv`, `segments.csv`, `hosts.csv` : exemples de la page **Contrats** du guide (`sources/guide/data/contrats.js`).
 - `tests-A.csv`, `tests-B.csv` : produits par le **vrai** `politique/c2.py` du guide (rôle 2, étape 6), sans modification :

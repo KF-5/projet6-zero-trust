@@ -77,6 +77,20 @@
             }
         </g>
 
+        <g class="calque calque-ip" aria-hidden="true">
+            @foreach (var n in Model.Noeuds.Where(n => n.Id != "conteneur-test"))
+            {
+                var lignes = n.Adresses.Concat(Model.MembreConnecte ? n.AdressesReservees : []).ToList();
+                for (var i = 0; i < lignes.Count; i++)
+                {
+                    @:<text class="noeud-adresse" x="@F(n.X)" y="@F(n.Y + n.Hauteur / 2 + 11 + i * 10)" text-anchor="middle">@lignes[i]</text>
+                }
+            }
+        </g>
+
+        @* Paquets, verdicts et bulles du lecteur (lecteur.js) : dessinés ici, au-dessus de tout. *@
+        <g class="calque calque-anim" data-anim="1"></g>
+
         @if (decor)
         {
             // Trafic de fond de l'état A : un client externe sur le site (FA1), un poste du LAN vers la DMZ (FA4),

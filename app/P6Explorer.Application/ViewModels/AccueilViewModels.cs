@@ -21,6 +21,11 @@ public class RoleCarteVM
     public int NbCommandes { get; set; }
     public int Pourcentage => NbEtapes == 0 ? 0 : (int)Math.Round(100.0 * NbFaites / NbEtapes);
     public string? ProchaineEtape { get; set; }
+    public int? PremiereEtape { get; set; }
+    public List<int> IdsEtapes { get; set; } = [];
+    /// <summary>Avancement du membre connecté : commandes cochées « comprise », étapes dont le quiz est réussi.</summary>
+    public int? NbComprises { get; set; }
+    public int? NbMaitrisees { get; set; }
 }
 
 /// <summary>Tout ce qu'il faut pour dessiner le schéma SVG d'un état (vue partielle _Schema).</summary>

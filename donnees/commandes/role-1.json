@@ -710,7 +710,643 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s01",
+                "ordre": 1,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 1/6 Adresses permanentes (eth0 WAN, eth1 MGMT)",
+                "texte": "cat > /etc/network/interfaces.d/p6-lab <<'EOF'\n# WAN simule (p6-wan) - interface d'attaque\nauto eth0\niface eth0 inet static\n    address 203.0.113.66/24\n    # metric 100 : tant que la carte NAT (DHCP, metric 0) est branchee, Internet passe par elle ;\n    # une fois debranchee, la seule route par defaut restante pointe vers OPNsense.\n    gateway 203.0.113.1\n    metric 100\n\n# MGMT (VMnet9) - pilotage uniquement, pas de passerelle\nauto eth1\niface eth1 inet static\n    address 10.99.0.66/24\nEOF",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/network/interfaces.d/p6-lab",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s02",
+                "ordre": 2,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 1/6 Adresses permanentes (eth0 WAN, eth1 MGMT)",
+                "texte": "cat /etc/network/interfaces.d/p6-lab",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "fichier": "/etc/network/interfaces.d/p6-lab",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s03",
+                "ordre": 3,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 1/6 Adresses permanentes (eth0 WAN, eth1 MGMT)",
+                "texte": "if grep -q '^source /etc/network/interfaces.d/\\*' /etc/network/interfaces; then\n  echo \"OK : interfaces.d est bien lu.\"\nelse\n  echo \"source /etc/network/interfaces.d/*\" >> /etc/network/interfaces\n  echo \"Ligne 'source interfaces.d' ajoutee a /etc/network/interfaces.\"\nfi",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s04",
+                "ordre": 4,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 1/6 Adresses permanentes (eth0 WAN, eth1 MGMT)",
+                "texte": "if systemctl is-active --quiet NetworkManager; then\n  echo \"ATTENTION : NetworkManager est actif ; il ne gere pas les cartes declarees dans interfaces.d.\"\nfi",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s05",
+                "ordre": 5,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 2/6 Outils du rapport (nmap, hping3, nikto, curl, psql) + chrony + tcpdump",
+                "texte": "DEBIAN_FRONTEND=noninteractive apt-get update -qq",
+                "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Met à jour la liste des paquets (carte NAT branchée le temps du téléchargement).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s06",
+                "ordre": 6,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 2/6 Outils du rapport (nmap, hping3, nikto, curl, psql) + chrony + tcpdump",
+                "texte": "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \\\n  nmap hping3 nikto curl postgresql-client dnsutils netcat-openbsd tcpdump chrony openssh-server >/dev/null",
+                "explication": "Installe des logiciels depuis les dépôts Debian (la carte NAT doit être branchée le temps du téléchargement).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Installe : \\",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s07",
+                "ordre": 7,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 3/6 Heure : client NTP du collecteur (10.99.0.10)",
+                "texte": "cat > /etc/chrony/conf.d/p6-lab.conf <<'EOF'\n# Projet 6 : l'heure du labo vient du collecteur\nserver 10.99.0.10 iburst prefer\nEOF",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/chrony/conf.d/p6-lab.conf",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s08",
+                "ordre": 8,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 3/6 Heure : client NTP du collecteur (10.99.0.10)",
+                "texte": "systemctl restart chrony",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "chrony",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s09",
+                "ordre": 9,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "ip addr show dev eth1 | grep -q '10.99.0.66/' || ip addr add 10.99.0.66/24 dev eth1",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "attribuerIp",
+                    "noeud": "kali",
+                    "carte": "eth1",
+                    "ip": "10.99.0.66/24",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s10",
+                "ordre": 10,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "ip link set eth1 up",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s11",
+                "ordre": 11,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "mkdir -p /etc/ssh/sshd_config.d",
+                "explication": "Crée un dossier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/ssh/sshd_config.d",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s12",
+                "ordre": 12,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "cat > /etc/ssh/sshd_config.d/p6-lab.conf <<'EOF'\n# Projet 6 : SSH ecoute seulement sur l'adresse MGMT\nListenAddress 10.99.0.66\nPermitRootLogin no\nEOF",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/ssh/sshd_config.d/p6-lab.conf",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s13",
+                "ordre": 13,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "mkdir -p /etc/systemd/system/ssh.service.d",
+                "explication": "Au demarrage, attendre que le reseau soit pret avant de lancer SSH (adresse MGMT presente)\nCrée un dossier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/systemd/system/ssh.service.d",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s14",
+                "ordre": 14,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "cat > /etc/systemd/system/ssh.service.d/p6-reseau.conf <<'EOF'\n[Unit]\nWants=network-online.target\nAfter=network-online.target\nEOF",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/systemd/system/ssh.service.d/p6-reseau.conf",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s15",
+                "ordre": 15,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "systemctl daemon-reload",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "service",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s16",
+                "ordre": 16,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "sshd -t && echo \"Configuration SSH valide.\"",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s17",
+                "ordre": 17,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "systemctl enable ssh >/dev/null 2>&1",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "ssh",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s18",
+                "ordre": 18,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 4/6 SSH : uniquement sur MGMT (jamais sur le WAN d'attaque)",
+                "texte": "systemctl restart ssh",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "ssh",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s19",
+                "ordre": 19,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 5/6 Demarrage en mode texte (pas d'interface graphique)",
+                "texte": "systemctl set-default multi-user.target",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "multi-user.target",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s20",
+                "ordre": 20,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ip link set eth0 up",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s21",
+                "ordre": 21,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ip addr show dev eth0 | grep -q '203.0.113.66/' || ip addr add 203.0.113.66/24 dev eth0",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "attribuerIp",
+                    "noeud": "kali",
+                    "carte": "eth0",
+                    "ip": "203.0.113.66/24",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s22",
+                "ordre": 22,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ip addr show dev eth1 | grep -q '10.99.0.66/'   || ip addr add 10.99.0.66/24 dev eth1",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "attribuerIp",
+                    "noeud": "kali",
+                    "carte": "eth1",
+                    "ip": "10.99.0.66/24",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s23",
+                "ordre": 23,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ip link set eth1 up",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s24",
+                "ordre": 24,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "echo",
+                "explication": "Affiche un texte (ou l'écrit dans un fichier).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s25",
+                "ordre": 25,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ip -br addr",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s26",
+                "ordre": 26,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ip route",
+                "explication": "Affiche ou règle les cartes réseau, les adresses et les routes (Linux).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s27",
+                "ordre": 27,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "ss -tlnp | grep ':22 ' || true",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c08-s28",
+                "ordre": 28,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup-kali.sh · 6/6 Activation des adresses",
+                "texte": "echo",
+                "explication": "Affiche un texte (ou l'écrit dans un fichier).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e4-c08",
             "ordre": 8,
             "ou": "hote",
@@ -742,7 +1378,308 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s01",
+                "ordre": 1,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec api python3 -c 'import socket; socket.create_connection((\"10.10.0.70\", 5432), 3)'",
+                "explication": "Test : api -> postgres:5432 (FA3, l'API lit la base). Attendu : la connexion aboutit. La commande est lancée dans le conteneur api.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "api",
+                    "vers": "postgres",
+                    "proto": "PostgreSql",
+                    "port": 5432,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s02",
+                "ordre": 2,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-ext curl -skf --max-time 5 https://203.0.113.1/api/sante",
+                "explication": "Test : client-ext -> https://203.0.113.1/api/sante (FA1, NAT). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-ext.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Https",
+                    "port": 443,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s03",
+                "ordre": 3,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-ext curl -sf --max-time 5 http://203.0.113.1/",
+                "explication": "Test : client-ext -> http://203.0.113.1/ (FA1, NAT). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-ext.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Http",
+                    "port": 80,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s04",
+                "ordre": 4,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-ext sh -c 'dig +short +time=3 +tries=1 @203.0.113.1 www.p6.lab | grep -q 203.0.113.1'",
+                "explication": "Test : client-ext -> DNS 203.0.113.1 www.p6.lab (FA2, NAT). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-ext.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Dns",
+                    "port": 53,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s05",
+                "ordre": 5,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-01 curl -skf --max-time 5 https://10.20.0.10/api/produits",
+                "explication": "Test : client-01 -> https://10.20.0.10/api/produits (FA4). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-01.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-01",
+                    "vers": "nginx",
+                    "proto": "Https",
+                    "port": 443,
+                    "adresseVisee": "10.20.0.10",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s06",
+                "ordre": 6,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-01 sh -c 'dig +short +time=3 +tries=1 @10.20.0.40 www.p6.lab | grep -q 203.0.113.1'",
+                "explication": "Test : client-01 -> DNS 10.20.0.40 (FA4). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-01.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-01",
+                    "vers": "bind9",
+                    "proto": "Dns",
+                    "port": 53,
+                    "adresseVisee": "10.20.0.40",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s07",
+                "ordre": 7,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec dmz-pivot nc -z -w 3 10.10.0.70 5432",
+                "explication": "Test : dmz-pivot -> postgres:5432 (FA3 trop large). Attendu : la connexion aboutit. La commande est lancée dans le conteneur dmz-pivot.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "dmz-pivot",
+                    "vers": "postgres",
+                    "proto": "Tcp",
+                    "port": 5432,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s08",
+                "ordre": 8,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-03 nc -z -w 3 10.10.0.70 5432",
+                "explication": "Test : client-03 -> postgres:5432 (meme L2, invisible pour pf). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-03.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-03",
+                    "vers": "postgres",
+                    "proto": "Tcp",
+                    "port": 5432,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s09",
+                "ordre": 9,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-03 nc -z -w 3 10.10.0.1 443",
+                "explication": "Test : client-03 -> OPNsense 10.10.0.1:443 (FA4 : admin joignable). Attendu : la connexion aboutit. La commande est lancée dans le conteneur client-03.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-03",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 443,
+                    "adresseVisee": "10.10.0.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s10",
+                "ordre": 10,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-ext nc -z -w 3 10.10.0.70 5432",
+                "explication": "Test : client-ext -> postgres 10.10.0.70:5432 (WAN -> LAN). Attendu : bloqué (tout échec compte). La commande est lancée dans le conteneur client-ext.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "postgres",
+                    "proto": "Tcp",
+                    "port": 5432,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s11",
+                "ordre": 11,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec dmz-pivot nc -z -w 3 10.10.0.10 22",
+                "explication": "Test : dmz-pivot -> client-01 10.10.0.10:22 (DMZ -> LAN). Attendu : bloqué (tout échec compte). La commande est lancée dans le conteneur dmz-pivot.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "dmz-pivot",
+                    "vers": "client-01",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "10.10.0.10",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e4-c09-s12",
+                "ordre": 12,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests.sh",
+                "texte": "sudo docker exec client-ext nc -z -w 3 203.0.113.1 22",
+                "explication": "Test : client-ext -> 203.0.113.1:22 (SSH du pare-feu depuis WAN). Attendu : bloqué (tout échec compte). La commande est lancée dans le conteneur client-ext.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e4-c09",
             "ordre": 9,
             "ou": "hote",
@@ -1028,7 +1965,167 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s01",
+                "ordre": 1,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "command -v nft >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nftables >/dev/null",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "Installe : nftables",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s02",
+                "ordre": 2,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "cat > /etc/p6-ssh-filtre.nft <<'EOF'\n# Projet 6 : SSH (TCP 22) seulement depuis Windows et le collecteur\ntable inet p6_ssh\ndelete table inet p6_ssh\ntable inet p6_ssh {\n    chain entree {\n        type filter hook input priority -10; policy accept;\n        iifname \"lo\" accept\n        tcp dport 22 ip saddr { 10.99.0.2, 10.99.0.10 } accept\n        tcp dport 22 counter log prefix \"p6-ssh-refuse \" drop\n    }\n}\nEOF",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/p6-ssh-filtre.nft",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s03",
+                "ordre": 3,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "cat > /etc/systemd/system/p6-ssh-filtre.service <<'EOF'\n[Unit]\nDescription=Projet 6 - SSH limite a Windows et au collecteur\nAfter=network-pre.target\nBefore=ssh.service\n\n[Service]\nType=oneshot\nExecStart=/usr/sbin/nft -f /etc/p6-ssh-filtre.nft\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\nEOF",
+                "explication": "Affiche le contenu d'un fichier sans le modifier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "kali",
+                    "chemin": "/etc/systemd/system/p6-ssh-filtre.service",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s04",
+                "ordre": 4,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "systemctl daemon-reload",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "service",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s05",
+                "ordre": 5,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "systemctl enable p6-ssh-filtre.service >/dev/null 2>&1",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "p6-ssh-filtre",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s06",
+                "ordre": 6,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "systemctl restart p6-ssh-filtre.service",
+                "explication": "Démarre, arrête ou interroge un service du système (Debian).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "service",
+                    "noeud": "kali",
+                    "nom": "p6-ssh-filtre",
+                    "demarre": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c08-s07",
+                "ordre": 7,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "restreindre-ssh.sh",
+                "texte": "nft list table inet p6_ssh",
+                "explication": "Règle ou affiche le pare-feu nftables de la machine Linux.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "kali",
+                    "texte": "règles nftables",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e5-c08",
             "ordre": 8,
             "ou": "kali",
@@ -1140,7 +2237,480 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s01",
+                "ordre": 1,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "ping -c 2 -W 2 192.168.1.1",
+                "explication": "Test : ping box domestique 192.168.1.1. Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "box",
+                    "proto": "Icmp",
+                    "adresseVisee": "192.168.1.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s02",
+                "ordre": 2,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "ping -c 2 -W 2 8.8.8.8",
+                "explication": "Test : ping Internet 8.8.8.8. Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "internet",
+                    "proto": "Icmp",
+                    "adresseVisee": "8.8.8.8",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s03",
+                "ordre": 3,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "dig +time=2 +tries=1 @8.8.8.8 debian.org",
+                "explication": "Test : DNS Internet (dig @8.8.8.8). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "internet",
+                    "proto": "Dns",
+                    "port": 53,
+                    "adresseVisee": "8.8.8.8",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s04",
+                "ordre": 4,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "curl -s -m 4 http://151.101.2.132/",
+                "explication": "Test : HTTP Internet (deb.debian.org par adresse). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "internet",
+                    "proto": "Http",
+                    "port": 80,
+                    "adresseVisee": "151.101.2.132",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s05",
+                "ordre": 5,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "ping -c 2 -W 2 10.99.0.2",
+                "explication": "Test : ping Windows 10.99.0.2 (via MGMT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "hote",
+                    "proto": "Icmp",
+                    "adresseVisee": "10.99.0.2",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s06",
+                "ordre": 6,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.99.0.2 445",
+                "explication": "Test : Windows 10.99.0.2:445 (partages, via MGMT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "hote",
+                    "proto": "Tcp",
+                    "port": 445,
+                    "adresseVisee": "10.99.0.2",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s07",
+                "ordre": 7,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.99.0.2 3389",
+                "explication": "Test : Windows 10.99.0.2:3389 (bureau a distance). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "hote",
+                    "proto": "Tcp",
+                    "port": 3389,
+                    "adresseVisee": "10.99.0.2",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s08",
+                "ordre": 8,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.99.0.1 443",
+                "explication": "Test : OPNsense 10.99.0.1:443 (console web via MGMT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 443,
+                    "adresseVisee": "10.99.0.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s09",
+                "ordre": 9,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.99.0.1 22",
+                "explication": "Test : OPNsense 10.99.0.1:22 (SSH via MGMT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "10.99.0.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s10",
+                "ordre": 10,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.99.0.20 22",
+                "explication": "Test : p6-docker 10.99.0.20:22 (SSH via MGMT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "docker",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "10.99.0.20",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s11",
+                "ordre": 11,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.99.0.10 22",
+                "explication": "Test : collecteur 10.99.0.10:22 (SSH via MGMT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "collecteur",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "10.99.0.10",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s12",
+                "ordre": 12,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "curl -skf -m 5 https://203.0.113.1/api/sante",
+                "explication": "Test : FA1 https://203.0.113.1/api/sante. Attendu : passe (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Https",
+                    "port": 443,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s13",
+                "ordre": 13,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "curl -sf -m 5 http://203.0.113.1/",
+                "explication": "Test : FA1 http://203.0.113.1/. Attendu : passe (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Http",
+                    "port": 80,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s14",
+                "ordre": 14,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "sh -c 'dig +short +time=3 +tries=1 @203.0.113.1 www.p6.lab | grep -qx 203.0.113.1'",
+                "explication": "Test : FA2 DNS @203.0.113.1 www.p6.lab. Attendu : passe (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Dns",
+                    "port": 53,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s15",
+                "ordre": 15,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 203.0.113.1 22",
+                "explication": "Test : FA5 OPNsense WAN 203.0.113.1:22. Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s16",
+                "ordre": 16,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 203.0.113.1 5432",
+                "explication": "Test : FA5 OPNsense WAN 203.0.113.1:5432. Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 5432,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s17",
+                "ordre": 17,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.20.0.10 80",
+                "explication": "Test : FA5 acces direct DMZ 10.20.0.10:80 (sans NAT). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "nginx",
+                    "proto": "Tcp",
+                    "port": 80,
+                    "adresseVisee": "10.20.0.10",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s18",
+                "ordre": 18,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 10.10.0.70 5432",
+                "explication": "Test : FA5 acces direct base 10.10.0.70:5432. Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "postgres",
+                    "proto": "Tcp",
+                    "port": 5432,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e5-c10-s19",
+                "ordre": 19,
+                "ou": "kali",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "tests-cloisonnement.sh",
+                "texte": "nc -z -w 3 203.0.113.1 5201",
+                "explication": "Test : FA6 iperf3 203.0.113.1:5201 (regle desactivee). Attendu : bloqué (ENF1 : rien ne doit sortir du laboratoire, Kali n'administre personne).",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "kali",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 5201,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e5-c10",
             "ordre": 10,
             "ou": "hote",
@@ -2007,7 +3577,82 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c02-s01",
+                "ordre": 1,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "c2.py · validation",
+                "texte": "    defaut = [f for f in flows if f[\"src\"] == \"any\" and f[\"dst\"] == \"any\"]    # F99 ou FA5\n    autorises = [f for f in flows if f not in defaut]\n    erreurs, avert = [], []\n    for f in autorises:\n        for x in [f[\"src\"]] + f[\"dst\"].split(\";\"):\n            if x not in (\"any\", \"opnsense\") and seg(x) not in segs:\n                erreurs.append(f\"{f['id']} : « {x} » n'est ni un segment ni un hôte de l'état {E}\")\n        if not f[\"justification\"].strip():\n            erreurs.append(f\"{f['id']} : justification absente\")\n        if \"any\" in (f[\"dst\"], f[\"port\"], f[\"proto\"]):\n            avert.append(f\"{f['id']} : « any » contraire au moindre privilège\")\n    for i, f in enumerate(autorises):\n        for g in autorises[i + 1:]:\n            if seg(f[\"src\"]) == seg(g[\"src\"]) and set(f[\"dst\"].split(\";\")) & set(g[\"dst\"].split(\";\")) \\\n               and (f[\"port\"] == \"any\" or g[\"port\"] == \"any\" or set(f[\"port\"].split(\";\")) & set(g[\"port\"].split(\";\"))):\n                avert.append(f\"{f['id']} et {g['id']} se recouvrent\")\n    if len(defaut) != 1:\n        erreurs.append(\"il faut exactement une ligne de refus par défaut (any,any)\")\n    for e in avert: print(\"AVERTISSEMENT\", e)\n    if erreurs:\n        for e in erreurs: print(\"ERREUR\", e)\n        sys.exit(1)",
+                "explication": "Partie « validation » du programme c2.py. Cette partie s'arrête en erreur si une vérification échoue.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "c2.py",
+                    "texte": "c2.py : validation",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c02-s02",
+                "ordre": 2,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "c2.py · génération des règles",
+                "texte": "    def adresse(x, src_seg):\n        if x == \"any\": return \"any\"\n        if x == \"opnsense\": return segs[src_seg][\"passerelle\"]            # console : passerelle du segment source\n        if x in hosts: return hosts[x][\"ip\"]\n        return segs[x][\"reseau\"]\n    def specificite(f):                                                   # du plus spécifique au plus général\n        s = 0 if f[\"src\"] in hosts else 1\n        dd = 0 if all(x in hosts or x == \"opnsense\" for x in f[\"dst\"].split(\";\")) else (2 if f[\"dst\"] == \"any\" else 1)\n        return (s, dd, f[\"port\"] == \"any\")\n    regles = {}\n    for f in sorted(autorises, key=specificite):\n        iface = seg(f[\"src\"])                                             # interface d'entrée = segment source\n        regles.setdefault(iface, []).append({\n            \"flux\": f[\"id\"], \"action\": \"pass\", \"log\": True, \"interface\": iface,\n            \"actif\": f[\"id\"] not in IPERF,                                # FA6 / F09 : créées mais désactivées\n            \"protocole\": f[\"proto\"], \"source\": adresse(f[\"src\"], iface) if f[\"src\"] in hosts else (\"any\" if iface == \"WAN\" else segs[iface][\"reseau\"]),\n            \"destination\": [adresse(x, iface) for x in f[\"dst\"].split(\";\")],\n            \"ports\": f[\"port\"].split(\";\"), \"description\": f\"{f['id']} {f['justification']}\"})\n    for iface in segs:                                                    # refus par défaut, en dernier, journalisé\n        regles.setdefault(iface, []).append({\"flux\": defaut[0][\"id\"], \"action\": \"block\", \"log\": True, \"actif\": True, \"interface\": iface,\n            \"protocole\": \"any\", \"source\": \"any\", \"destination\": [\"any\"], \"ports\": [\"any\"], \"description\": defaut[0][\"justification\"]})\n    with open(f\"{d}/regles-{E}.json\", \"w\", encoding=\"utf-8\") as o:\n        json.dump(regles, o, ensure_ascii=False, indent=2)\n    with open(f\"{d}/regles-{E}.md\", \"w\", encoding=\"utf-8\") as o:              # pour la saisie guidée dans l'interface\n        o.write(\"| Interface | Ordre | Flux | Action | Proto | Source | Destination | Ports | Journal | Active |\\n|---|---|---|---|---|---|---|---|---|---|\\n\")\n        for iface, rs in regles.items():\n            for n, r in enumerate(rs, 1):\n                actif = \"oui\" if r[\"actif\"] else \"NON (seulement pendant les mesures iperf3)\"\n                o.write(f\"| {iface} | {n} | {r['flux']} | {r['action']} | {r['protocole']} | {r['source']} | {', '.join(r['destination'])} | {', '.join(r['ports'])} | oui | {actif} |\\n\")",
+                "explication": "Partie « génération des règles » du programme c2.py. Cette partie lit ou écrit du JSON.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "collecteur",
+                    "chemin": "{d}/regles-{E}.json",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "fichier",
+                    "noeud": "collecteur",
+                    "chemin": "{d}/regles-{E}.md",
+                    "cree": true,
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c02-s03",
+                "ordre": 3,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "c2.py · génération du plan de test",
+                "texte": "    repr_hote = {}\n    for h, v in hosts.items():\n        if v[\"conteneur\"] != \"-\": repr_hote.setdefault(v[\"segment_\" + E], h)   # 1er hôte avec conteneur\n    tests, n = [], 0\n    def ajoute(src, ip, proto, port, attendu, ref):\n        nonlocal n; n += 1\n        tests.append([f\"T{n:03d}\", src, ip, proto, port, attendu, ref])\n    def cible(src_seg, x):\n        if seg(src_seg) == \"WAN\" and x in hosts and seg(x) != \"WAN\": return NAT_PUBLIC\n        return adresse(x, src_seg)\n    for f in autorises:\n        s_seg = seg(f[\"src\"]); src = f[\"src\"] if f[\"src\"] in hosts else repr_hote.get(s_seg)\n        dsts = f[\"dst\"].split(\";\")\n        d0 = dsts[0] if dsts[0] != \"any\" else next(h for h in hosts if seg(h) not in (s_seg, \"WAN\") and hosts[h][\"conteneur\"] != \"-\")\n        proto = \"tcp\" if f[\"proto\"] in (\"tcp\", \"tcp/udp\", \"any\") else \"udp\"\n        port = int(f[\"port\"].split(\";\")[0]) if f[\"port\"] != \"any\" else 443\n        if f[\"id\"] in IPERF:\n            continue                                                        # flux iperf3 désactivés hors mesures\n        ajoute(src, cible(s_seg, d0), proto, port, \"pass\", f[\"id\"])\n        if f[\"port\"] != \"any\":\n            mauvais = 22 if 22 not in [int(p) for p in f[\"port\"].split(\";\")] else 23\n            ajoute(src, cible(s_seg, d0), \"tcp\", mauvais, \"block\", f[\"id\"])      # test « mauvais port »\n    for a_ in segs:\n        for b in segs:\n            if a_ == b or b == \"WAN\" or a_ not in repr_hote or b not in repr_hote: continue\n            if not any(seg(f[\"src\"]) == a_ and any(x == \"any\" or seg(x) == b for x in f[\"dst\"].split(\";\")) for f in autorises):\n                proto, port = PORT_REPR[b]\n                ajoute(repr_hote[a_], hosts[repr_hote[b]][\"ip\"], proto, port, \"block\", defaut[0][\"id\"])\n    with open(f\"{d}/tests.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as o:\n        w = csv.writer(o); w.writerow([\"id_test\", \"src_host\", \"dst_ip\", \"proto\", \"port\", \"attendu\", \"flux_ref\"]); w.writerows(tests)\n    print(f\"État {E} : {sum(len(r) for r in regles.values())} règles sur {len(regles)} interfaces, {len(tests)} tests, {len(avert)} avertissement(s).\")\n\nif __name__ == \"__main__\":\n    main()",
+                "explication": "Partie « génération du plan de test » du programme c2.py. Cette partie lit ou écrit des fichiers CSV.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "collecteur",
+                    "chemin": "{d}/tests.csv",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e8-c02",
             "ordre": 2,
             "ou": "collecteur",
@@ -2048,7 +3693,208 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s01",
+                "ordre": 1,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' client-ext) -n nc -zv -w 2 203.0.113.1 80",
+                "explication": "T001 (FA1) : client-ext → 203.0.113.1 tcp/80, attendu « pass ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 80,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s02",
+                "ordre": 2,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' client-ext) -n nc -zv -w 2 203.0.113.1 22",
+                "explication": "T002 (FA1) : client-ext → 203.0.113.1 tcp/22, attendu « block ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s03",
+                "ordre": 3,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' client-ext) -n nc -zv -w 2 203.0.113.1 53",
+                "explication": "T003 (FA2) : client-ext → 203.0.113.1 tcp/53, attendu « pass ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 53,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s04",
+                "ordre": 4,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' client-ext) -n nc -zv -w 2 203.0.113.1 22",
+                "explication": "T004 (FA2) : client-ext → 203.0.113.1 tcp/22, attendu « block ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "opnsense",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "203.0.113.1",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s05",
+                "ordre": 5,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' nginx) -n nc -zv -w 2 10.10.0.70 5432",
+                "explication": "T005 (FA3) : nginx → 10.10.0.70 tcp/5432, attendu « pass ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "nginx",
+                    "vers": "postgres",
+                    "proto": "Tcp",
+                    "port": 5432,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s06",
+                "ordre": 6,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' nginx) -n nc -zv -w 2 10.10.0.70 22",
+                "explication": "T006 (FA3) : nginx → 10.10.0.70 tcp/22, attendu « block ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "nginx",
+                    "vers": "postgres",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "10.10.0.70",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s07",
+                "ordre": 7,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' client-01) -n nc -zv -w 2 10.20.0.10 443",
+                "explication": "T007 (FA4) : client-01 → 10.20.0.10 tcp/443, attendu « pass ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-01",
+                    "vers": "nginx",
+                    "proto": "Tcp",
+                    "port": 443,
+                    "adresseVisee": "10.20.0.10",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c03-s08",
+                "ordre": 8,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "test_flux.sh · tests.csv (état A)",
+                "texte": "sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' client-ext) -n nc -zv -w 2 10.10.0.10 22",
+                "explication": "T008 (FA5) : client-ext → 10.10.0.10 tcp/22, attendu « block ». test_flux entre dans l'espace réseau du conteneur (nsenter, E23) ; un RST du service compte « pass » : le pare-feu a laissé passer.",
+                "estTest": true,
+                "effets": [
+                  {
+                    "type": "paquet",
+                    "de": "client-ext",
+                    "vers": "client-01",
+                    "proto": "Tcp",
+                    "port": 22,
+                    "adresseVisee": "10.10.0.10",
+                    "verdict": "ACalculer",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e8-c03",
             "ordre": 3,
             "ou": "collecteur",
@@ -2081,7 +3927,162 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s01",
+                "ordre": 1,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · maintenant()",
+                "texte": "def maintenant():                                   # horloge du collecteur (référence NTP), UTC, milliseconde\n    return dt.datetime.now(dt.timezone.utc).isoformat(timespec=\"milliseconds\").replace(\"+00:00\", \"Z\")",
+                "explication": "Partie « maintenant() » du programme orchestrateur.py.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "orchestrateur.py",
+                    "texte": "orchestrateur.py : maintenant()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s02",
+                "ordre": 2,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · ssh()",
+                "texte": "def ssh(cible, commande, simul, delai=None):\n    if simul:\n        print(f\"    [simulation] ssh {SSH[cible]} {commande}\")\n        return 0, \"\"\n    p = subprocess.run([\"ssh\", \"-o\", \"BatchMode=yes\", SSH[cible], commande],\n                       capture_output=True, text=True, timeout=delai)\n    return p.returncode, p.stdout + p.stderr",
+                "explication": "Partie « ssh() » du programme orchestrateur.py. Cette partie lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "orchestrateur.py",
+                    "texte": "orchestrateur.py : ssh()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s03",
+                "ordre": 3,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · executer()",
+                "texte": "def executer(sc, simul):\n    cmd = sc[\"commande\"].strip()\n    if sc[\"machine\"] == \"kali\":\n        return ssh(\"kali\", f\"sh -c {shlex.quote(cmd)}\", simul, sc[\"duree_max_s\"])\n    return ssh(\"docker\", f\"docker exec {sc['machine']} sh -c {shlex.quote(cmd)}\", simul, sc[\"duree_max_s\"])",
+                "explication": "Partie « executer() » du programme orchestrateur.py. Cette partie lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "orchestrateur.py",
+                    "texte": "orchestrateur.py : executer()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s04",
+                "ordre": 4,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · capture()",
+                "texte": "def capture(action, run_id, points, simul):         # C10 (rôle 4) ; le point kali-wan est sur Kali (écart E18)\n    for pt in points:\n        if pt == \"kali-wan\":\n            if action == \"start\":\n                ssh(\"kali\", f\"nohup tcpdump -i eth0 -U -w /tmp/{run_id}_kali-wan.pcap >/dev/null 2>&1 & echo $! > /tmp/{run_id}.pid; sleep 1\", simul)\n            else:\n                ssh(\"kali\", f\"kill -INT $(cat /tmp/{run_id}.pid); sleep 1\", simul)\n        else:\n            ssh(\"docker\", f\"/opt/projet6/capture/capture.sh {action} {run_id} {pt}\", simul)",
+                "explication": "Partie « capture() » du programme orchestrateur.py. Cette partie lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "orchestrateur.py",
+                    "texte": "orchestrateur.py : capture()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s05",
+                "ordre": 5,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · rapatrier()",
+                "texte": "def rapatrier(run_id, points, dossier, simul):\n    for pt in points:\n        src = f\"{SSH['kali']}:/tmp/{run_id}_kali-wan.pcap\" if pt == \"kali-wan\" else f\"{SSH['docker']}:/srv/captures/{run_id}_{pt}.pcap\"\n        if simul:\n            print(f\"    [simulation] scp {src} {dossier}/pcap/\")\n            continue\n        subprocess.run([\"scp\", \"-q\", \"-o\", \"BatchMode=yes\", src, f\"{dossier}/pcap/\"], check=False)",
+                "explication": "Partie « rapatrier() » du programme orchestrateur.py. Cette partie lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "orchestrateur.py",
+                    "texte": "orchestrateur.py : rapatrier()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s06",
+                "ordre": 6,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · actions_programmees()",
+                "texte": "def actions_programmees(sc, simul):                 # P-01 : arrêt puis redémarrage de Suricata\n    fils = []\n    for a in sc.get(\"actions\", []):\n        t = threading.Timer(0 if simul else a[\"a_s\"], ssh, args=(\"opnsense\", a[\"commande\"], simul))\n        t.start()\n        fils.append(t)\n    return fils",
+                "explication": "Partie « actions_programmees() » du programme orchestrateur.py. Cette partie lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "orchestrateur.py",
+                    "texte": "orchestrateur.py : actions_programmees()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c04-s07",
+                "ordre": 7,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "orchestrateur.py · main()",
+                "texte": "def main():\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--etat\", choices=[\"A\", \"B\"], required=True)\n    ap.add_argument(\"--fichier\", default=\"campagne/scenarios.yaml\")\n    ap.add_argument(\"--scenario\", help=\"ne jouer que ce scénario, par exemple S-01 ou P-01\")\n    ap.add_argument(\"--n\", type=int, help=\"remplace n (1 pour une répétition à blanc)\")\n    ap.add_argument(\"--simulation\", action=\"store_true\", help=\"affiche les commandes sans rien exécuter\")\n    ap.add_argument(\"--dossier\", help=\"dossier de résultats, par exemple resultats/A/2026-11-20 (défaut : date du jour)\")\n    a = ap.parse_args()\n    with open(a.fichier, encoding=\"utf-8\") as f:\n        conf = yaml.safe_load(f)\n    n, pause = a.n or conf[\"n\"], conf[\"pause_s\"]\n    scen = [s for s in conf[\"scenarios\"] if (s[\"id\"] == a.scenario) or (a.scenario is None and s[\"id\"] != \"P-01\")]\n    if not scen:\n        sys.exit(\"aucun scénario sélectionné\")\n    if a.etat == \"A\" and any(s[\"id\"] == \"P-01\" for s in scen):\n        sys.exit(\"P-01 ne concerne que l'état B\")\n    random.Random(conf[\"graine\"]).shuffle(scen)     # ordre aléatoire, identique en A et en B\n    if a.simulation:\n        dossier = f\"resultats/{a.etat}/simulation\"                  # la simulation ne pollue pas les vraies données\n    else:\n        dossier = a.dossier or f\"resultats/{a.etat}/{dt.date.today().isoformat()}\"\n        # Un même dossier pour toute la campagne, même si elle passe minuit : le fixer avec --dossier.\n    os.makedirs(f\"{dossier}/sorties\", exist_ok=True)\n    os.makedirs(f\"{dossier}/pcap\", exist_ok=True)\n    chemin = f\"{dossier}/runs.csv\"\n    nouveau = not os.path.exists(chemin)\n    with open(chemin, \"a\", newline=\"\", encoding=\"utf-8\") as f:\n        w = csv.writer(f)\n        if nouveau:\n            w.writerow([\"run_id\", \"scenario\", \"etat\", \"iteration\", \"t0_utc\", \"t1_utc\", \"src_ip\", \"cible_ip\", \"code_retour\"])\n        for sc in scen:\n            for i in range(1, n + 1):\n                run_id = f\"{a.etat}-{sc['id'].replace('-', '')}-{i:02d}\"\n                print(f\"{run_id} · {sc['description']}\")\n                capture(\"start\", run_id, sc.get(\"captures\", []), a.simulation)\n                t0 = maintenant()\n                fils = actions_programmees(sc, a.simulation)\n                try:\n                    code, sortie = executer(sc, a.simulation)\n                except subprocess.TimeoutExpired:\n                    code, sortie = 124, \"délai maximal dépassé (duree_max_s)\"\n                t1 = maintenant()\n                for t in fils:\n                    t.join()\n                capture(\"stop\", run_id, sc.get(\"captures\", []), a.simulation)\n                rapatrier(run_id, sc.get(\"captures\", []), dossier, a.simulation)\n                with open(f\"{dossier}/sorties/{run_id}.txt\", \"w\", encoding=\"utf-8\") as o:\n                    o.write(sortie)\n                w.writerow([run_id, sc[\"id\"], a.etat, i, t0, t1, SRC_IP.get(sc[\"machine\"], \"\"), sc[\"cible\"], code])\n                f.flush()\n                src = SRC_IP.get(sc[\"machine\"])\n                if src:\n                    ssh(\"opnsense\", f\"pfctl -k {src}\", a.simulation)    # supprime les états de l'attaquant\n                time.sleep(0 if a.simulation else pause)              # blocages temporaires expirés, trafic calmé\n    print(f\"Terminé : {chemin}\")\n\nif __name__ == \"__main__\":\n    main()",
+                "explication": "Partie « main() » du programme orchestrateur.py. Cette partie lit ou écrit des fichiers CSV, lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "collecteur",
+                    "chemin": "{dossier}/sorties/{run_id}.txt",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e8-c04",
             "ordre": 4,
             "ou": "collecteur",
@@ -2103,7 +4104,162 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s01",
+                "ordre": 1,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · iso()",
+                "texte": "def iso(d):                                                   # horodatage commun : UTC, milliseconde, suffixe Z\n    return d.astimezone(UTC).isoformat(timespec=\"milliseconds\").replace(\"+00:00\", \"Z\")",
+                "explication": "Partie « iso() » du programme parse.py.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "parse.py",
+                    "texte": "parse.py : iso()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s02",
+                "ordre": 2,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · collecter()",
+                "texte": "def collecter(d):                                             # fichiers d'OPNsense et de l'hôte Docker (écart E13)\n    os.makedirs(f\"{d}/brut\", exist_ok=True)\n    for src, dst in [(\"root@10.99.0.1:/var/log/filter/*.log\", \"filterlog/\"),\n                     (\"root@10.99.0.1:/var/log/suricata/eve.json*\", \"\"),      # eve.json et ses fichiers tournés\n                     (\"root@10.99.0.20:/srv/logs/nginx/projet6.log\", \"nginx.log\")]:\n        os.makedirs(f\"{d}/brut/filterlog\", exist_ok=True)\n        subprocess.run([\"scp\", \"-q\", \"-o\", \"BatchMode=yes\", src, f\"{d}/brut/{dst}\"], check=False)\n\n# filterlog : format RFC 5424 d'OPNsense (« filterlog 412 - [meta …] 82,,, ») ou format de fichier rsyslog (« filterlog[412]: 82,,, »)\nRX_FL = re.compile(r\"(\\d{4}-\\d\\d-\\d\\dT[\\d:.]+(?:Z|[+-]\\d\\d:?\\d\\d)).*?filterlog\\S*\\s+(?:\\d+\\s+-\\s+(?:\\[[^\\]]*\\]|-)\\s+)?(\\d+,.*)$\")",
+                "explication": "Partie « collecter() » du programme parse.py. Cette partie lance des commandes sur d'autres machines par SSH.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "parse.py",
+                    "texte": "parse.py : collecter()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s03",
+                "ordre": 3,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · filterlog()",
+                "texte": "def filterlog(chemin, w):\n    for ligne in open(chemin, encoding=\"utf-8\", errors=\"replace\"):\n        m = RX_FL.search(ligne.strip())\n        if not m: continue\n        f = m.group(2).split(\",\")\n        if len(f) < 20 or f[8] != \"4\": continue              # IPv4 seulement\n        proto = f[16]\n        dport = f[21] if proto in (\"tcp\", \"udp\") and len(f) > 21 else \"\"\n        ts = dt.datetime.fromisoformat(m.group(1).replace(\"Z\", \"+00:00\"))\n        w.writerow([iso(ts), \"pf\", f[18], f[19], dport, proto, f[6], \"\", f\"règle {f[0]} {f[3][:8]} {f[4]}\"])",
+                "explication": "Partie « filterlog() » du programme parse.py.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "parse.py",
+                    "texte": "parse.py : filterlog()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s04",
+                "ordre": 4,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · eve()",
+                "texte": "def eve(chemin, w):\n    for ligne in open(chemin, encoding=\"utf-8\", errors=\"replace\"):\n        try: e = json.loads(ligne)\n        except ValueError: continue\n        if e.get(\"event_type\") != \"alert\": continue\n        a = e[\"alert\"]\n        ts = dt.datetime.strptime(e[\"timestamp\"], \"%Y-%m-%dT%H:%M:%S.%f%z\")\n        w.writerow([iso(ts), \"suricata\", e.get(\"src_ip\", \"\"), e.get(\"dest_ip\", \"\"), e.get(\"dest_port\", \"\"),\n                    e.get(\"proto\", \"\").lower(), \"drop\" if a.get(\"action\") == \"blocked\" else \"alert\",\n                    a.get(\"signature_id\", \"\"), a.get(\"signature\", \"\")])\n\nRX_NG = re.compile(r'^(\\S+) \\S+ \\S+ \\[([^\\]]+)\\] \"(\\S+) (\\S+)[^\"]*\" (\\d{3}) ')",
+                "explication": "Partie « eve() » du programme parse.py. Cette partie lit ou écrit du JSON.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "parse.py",
+                    "texte": "parse.py : eve()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s05",
+                "ordre": 5,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · nginx()",
+                "texte": "def nginx(chemin, w):\n    for ligne in open(chemin, encoding=\"utf-8\", errors=\"replace\"):\n        m = RX_NG.match(ligne)\n        if not m: continue\n        ts = dt.datetime.strptime(m.group(2), \"%d/%b/%Y:%H:%M:%S %z\")\n        w.writerow([iso(ts), \"nginx\", m.group(1), \"10.20.0.10\", \"443\", \"tcp\", m.group(5), \"\", f\"{m.group(3)} {m.group(4)}\"])",
+                "explication": "Partie « nginx() » du programme parse.py.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "parse.py",
+                    "texte": "parse.py : nginx()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s06",
+                "ordre": 6,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · bornes()",
+                "texte": "def bornes(d):                                                # période de la campagne : runs.csv et sla.csv\n    ts = []\n    for nom, cols in ((\"runs.csv\", (\"t0_utc\", \"t1_utc\")), (\"sla.csv\", (\"ts_utc\",))):\n        if os.path.exists(f\"{d}/{nom}\"):\n            for r in csv.DictReader(open(f\"{d}/{nom}\", encoding=\"utf-8\")):\n                ts += [dt.datetime.fromisoformat(r[c].replace(\"Z\", \"+00:00\")) for c in cols if r.get(c)]\n    if not ts: return None\n    marge = dt.timedelta(minutes=1)\n    return iso(min(ts) - marge), iso(max(ts) + marge)",
+                "explication": "Partie « bornes() » du programme parse.py. Cette partie lit ou écrit des fichiers CSV.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "collecteur",
+                    "fichier": "parse.py",
+                    "texte": "parse.py : bornes()",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r1-e8-c05-s07",
+                "ordre": 7,
+                "ou": "collecteur",
+                "shell": "Editeur",
+                "compte": "karim",
+                "bloc": "parse.py · main()",
+                "texte": "def main():\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--etat\", choices=[\"A\", \"B\"])\n    ap.add_argument(\"--date\", default=dt.date.today().isoformat())\n    ap.add_argument(\"--dossier\", help=\"dossier de résultats explicite (remplace --etat et --date)\")\n    ap.add_argument(\"--sans-collecte\", action=\"store_true\")\n    a = ap.parse_args()\n    if not a.dossier and not a.etat: ap.error(\"--etat ou --dossier est obligatoire\")\n    d = a.dossier or f\"resultats/{a.etat}/{a.date}\"\n    if not a.sans_collecte: collecter(d)\n    tmp = f\"{d}/events.tmp\"\n    with open(tmp, \"w\", newline=\"\", encoding=\"utf-8\") as o:\n        w = csv.writer(o)\n        for p in sorted(glob.glob(f\"{d}/brut/filterlog/*\")): filterlog(p, w)\n        for p in sorted(glob.glob(f\"{d}/brut/eve.json*\")):\n            if not p.endswith((\".gz\", \".bz2\", \".xz\")): eve(p, w)           # fichiers compressés : décompresser d'abord\n        for p in sorted(glob.glob(f\"{d}/brut/nginx*.log\")): nginx(p, w)\n    lignes = sorted(csv.reader(open(tmp, encoding=\"utf-8\")), key=lambda r: r[0])   # ordre chronologique\n    b = bornes(d)\n    if b: lignes = [r for r in lignes if b[0] <= r[0] <= b[1]]            # même format ISO : comparaison de textes\n    with open(f\"{d}/events.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as o:\n        w = csv.writer(o)\n        w.writerow([\"ts_utc\", \"source\", \"src_ip\", \"dst_ip\", \"dst_port\", \"proto\", \"action\", \"sid\", \"message\"])\n        w.writerows(lignes)\n    os.remove(tmp)\n    print(f\"{len(lignes)} événements dans {d}/events.csv\")\n\nif __name__ == \"__main__\":\n    main()",
+                "explication": "Partie « main() » du programme parse.py. Cette partie lit ou écrit des fichiers CSV.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "collecteur",
+                    "chemin": "{d}/events.csv",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r1-e8-c05",
             "ordre": 5,
             "ou": "collecteur",

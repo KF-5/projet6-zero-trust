@@ -1,0 +1,27 @@
+@model List<TermeVM>
+<div class="page-liste">
+    <h1>Glossaire</h1>
+    <p class="chapeau">Les mots du projet, en une phrase et une comparaison. Dans les explications, un mot souligné en pointillés affiche sa définition au survol (ou avec la touche Tab).</p>
+    <nav class="lettres" aria-label="Lettres">
+        @foreach (var l in Model.Select(t => char.ToUpperInvariant(t.Terme[0])).Distinct())
+        {
+            <a href="#lettre-@l">@l</a>
+        }
+    </nav>
+    <dl class="glossaire">
+        @foreach (var g in Model.GroupBy(t => char.ToUpperInvariant(t.Terme[0])))
+        {
+            <h2 id="lettre-@g.Key">@g.Key</h2>
+            @foreach (var t in g)
+            {
+                <div class="terme-glossaire" id="terme-@t.Id">
+                    <dt>@t.Terme</dt>
+                    <dd>@t.Definition
+                        @if (t.Comparaison is not null) { <span class="comparaison">@t.Comparaison</span> }
+                        @if (t.Etapes.Count > 0) { <span class="note">Étapes : @string.Join(", ", t.Etapes.Take(12))@(t.Etapes.Count > 12 ? "…" : "")</span> }
+                    </dd>
+                </div>
+            }
+        }
+    </dl>
+</div>

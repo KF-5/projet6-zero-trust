@@ -1,0 +1,26 @@
+@model ResultatQuizVM
+<div class="page-formulaire">
+    <p class="surtitre">Rôle @Model.RoleNumero · étape @Model.EtapeNumero</p>
+    <h1>@Model.Score %</h1>
+    <p class="chapeau @(Model.Reussi ? "ok" : "ko")">
+        @(Model.Reussi ? $"Réussi : l'étape « {Model.EtapeTitre} » est maîtrisée." : $"Pas encore : il faut {Model.Seuil} %. Relis l'étape et réessaie.")
+    </p>
+    <ol class="corrections">
+        @foreach (var c in Model.Corrections)
+        {
+            <li class="@(c.Juste ? "juste" : "faux")">
+                <p><strong>@(c.Juste ? "✓" : "✗")</strong> @c.Question</p>
+                @if (!c.Juste)
+                {
+                    <p>Bonne réponse : @string.Join(" ; ", c.BonnesReponses)</p>
+                    <p class="note">Ta réponse : @(c.TesReponses.Count == 0 ? "aucune" : string.Join(" ; ", c.TesReponses))</p>
+                }
+                @if (c.Explication is not null) { <p class="note">@c.Explication</p> }
+            </li>
+        }
+    </ol>
+    <div class="boutons">
+        <a class="btn" href="/Quiz/@Model.RoleNumero/@Model.EtapeNumero">Recommencer</a>
+        <a class="btn secondaire" href="/Roles/@Model.RoleNumero/Etapes/@Model.EtapeNumero">Revoir l'étape</a>
+    </div>
+</div>

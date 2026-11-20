@@ -1,0 +1,14 @@
+@model PaginationVM
+@if (Model.NombrePages > 1)
+{
+    string Lien(int p)
+    {
+        var valeurs = new Dictionary<string, string?>(Model.Parametres ?? new Dictionary<string, string?>()) { ["page"] = p.ToString() };
+        return Url.Action(Model.Action, valeurs) ?? "#";
+    }
+    <nav class="pagination" aria-label="Pages">
+        @if (Model.Page > 1) { <a href="@Lien(Model.Page - 1)" rel="prev">← Précédente</a> }
+        <span>Page @Model.Page sur @Model.NombrePages</span>
+        @if (Model.Page < Model.NombrePages) { <a href="@Lien(Model.Page + 1)" rel="next">Suivante →</a> }
+    </nav>
+}

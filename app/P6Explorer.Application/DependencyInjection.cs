@@ -12,6 +12,13 @@ public static class DependencyInjection
         services.AddAutoMapper(typeof(ProfilP6).Assembly);
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ITopologieService, TopologieService>();
+        services.AddScoped<IEtapeService, EtapeService>();
+        services.AddScoped<ISimulationService, SimulationService>();
+        services.AddScoped<IEditionService, EditionService>();
+        services.AddScoped<IQuizService, QuizService>();
+        services.AddScoped<IProgressionService, ProgressionService>();
+        services.AddScoped<IDiscussionService, DiscussionService>();
+        services.AddScoped<IGlossaireService, GlossaireService>();
         return services;
     }
 }

@@ -1,0 +1,35 @@
+@model PreparationVM
+<div class="page-liste">
+    <h1>Préparation de la soutenance</h1>
+    <p class="chapeau">Meilleur score de chaque membre pour chaque étape (requêtes LINQ group by, join, Max, Count).
+        @Model.EtapesMaitrisees étape@(Model.EtapesMaitrisees > 1 ? "s" : "") sur @Model.Lignes.Count maîtrisée@(Model.EtapesMaitrisees > 1 ? "s" : "") par au moins une personne.</p>
+
+    @if (Model.PersonneNeMaitrise.Count > 0)
+    {
+        <details class="bloc" open>
+            <summary><h2>Personne ne maîtrise encore (@Model.PersonneNeMaitrise.Count)</h2></summary>
+            <ul class="colonnes">@foreach (var e in Model.PersonneNeMaitrise) { <li>@e</li> }</ul>
+        </details>
+    }
+
+    <div class="defilement">
+        <table class="tableau preparation">
+            <thead>
+                <tr><th scope="col">Étape</th>@foreach (var m in Model.Membres) { <th scope="col">@m</th> }</tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.Lignes)
+                {
+                    <tr style="--role: var(--r@(l.RoleNumero))">
+                        <th scope="row">@l.Etape</th>
+                        @foreach (var s in l.Scores)
+                        {
+                            if (s is null) { <td class="vide">—</td> }
+                            else { <td class="@(s.Reussi ? "reussi" : "echec")" title="@s.Tentatives tentative(s), dernière le @s.Date.ToLocalTime().ToString("d MMM")">@s.Score %</td> }
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

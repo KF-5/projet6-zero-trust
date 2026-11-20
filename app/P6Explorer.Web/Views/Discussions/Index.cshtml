@@ -1,0 +1,23 @@
+@model DiscussionsVM
+<div class="page-liste">
+    <h1>Questions et réponses</h1>
+    <p class="chapeau">Une commande n'est pas claire ? Pose ta question depuis le panneau d'explication (bouton « Poser une question ») : le responsable du rôle répond et la marque résolue.</p>
+    <nav class="filtres" aria-label="Filtrer">
+        @foreach (var f in new[] { ("Ouverts", "ouvertes"), ("Resolus", "résolues"), ("Tous", "toutes") })
+        {
+            <a asp-action="Index" asp-route-filtre="@f.Item1" aria-current="@(Model.Filtre == f.Item1 ? "page" : "false")">@f.Item2</a>
+        }
+    </nav>
+    @if (Model.Fils.Elements.Count == 0) { <p class="note">Aucune question dans cette liste.</p> }
+    <ul class="liste-fils">
+        @foreach (var f in Model.Fils.Elements)
+        {
+            <li>
+                <a asp-action="Fil" asp-route-id="@f.Id"><strong>@f.Titre</strong></a>
+                <span class="pastille @(f.Statut == "Ouvert" ? "question" : "fait")">@(f.Statut == "Ouvert" ? "ouverte" : "résolue")</span>
+                <span class="note">@f.Auteur · @f.Date.ToLocalTime().ToString("d MMM yyyy") · <code>@f.CommandeCode</code> · @f.NbMessages message@(f.NbMessages > 1 ? "s" : "")</span>
+            </li>
+        }
+    </ul>
+    <partial name="_Pagination" model='new PaginationVM(Model.Fils.Page, Model.Fils.NombrePages, "Index", new Dictionary<string, string?> { ["filtre"] = Model.Filtre })' />
+</div>

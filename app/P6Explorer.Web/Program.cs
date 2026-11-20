@@ -6,15 +6,21 @@ using P6Explorer.Application.Services;
 using P6Explorer.Infrastructure;
 using P6Explorer.Infrastructure.Identite;
 using P6Explorer.Infrastructure.Persistance;
+using P6Explorer.Web.Middleware;
+using P6Explorer.Web.Securite;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------- Injection de dépendances (toutes les couches sont branchées ici) ----------
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IUtilisateurCourant, UtilisateurCourantWeb>();   // auteur des révisions
 builder.Services.AddApplication();                                   // services applicatifs + AutoMapper
 builder.Services.AddInfrastructure(builder.Configuration);           // EF Core, repositories, amorçage
 
-// Identity : comptes des membres, rôles Admin / Membre (pages de connexion au jalon 7).
+// Identity : comptes des membres, rôles Admin / Membre, claim NumeroRole.
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
     {
         o.Password.RequiredLength = 10;
@@ -27,7 +33,32 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
         o.User.RequireUniqueEmail = true;
     })
     .AddEntityFrameworkStores<P6DbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddClaimsPrincipalFactory<FabriqueClaimsP6>();
+builder.Services.ConfigureApplicationCookie(o =>
+{
+    o.LoginPath = "/Compte/Connexion";
+    o.LogoutPath = "/Compte/Deconnexion";
+    o.AccessDeniedPath = "/Compte/AccesRefuse";
+    o.Cookie.Name = "p6.compte";
+    o.SlidingExpiration = true;
+});
+builder.Services.AddAuthorization(o =>
+    o.AddPolicy(Politiques.ModifierSonRole, p => p.RequireAuthenticatedUser().AddRequirements(new ExigenceModifierSonRole())));
+builder.Services.AddSingleton<IAuthorizationHandler, GestionnaireModifierSonRole>();
+
+// Jeton anti-falsification aussi lu dans un en-tête : lecteur.js l'envoie avec fetch (progression, vitesse).
+builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
+
+// Session : état A/B choisi et vitesse du lecteur pendant la visite.
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(o =>
+{
+    o.Cookie.Name = "p6.session";
+    o.Cookie.HttpOnly = true;
+    o.Cookie.IsEssential = true;
+    o.IdleTimeout = TimeSpan.FromHours(2);
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new OpenApiInfo
@@ -58,10 +89,12 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Tests")) app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseSession();
 app.UseAuthentication();
+app.UseJournalisationRequetes();   // après l'authentification : le journal connaît l'utilisateur
 app.UseAuthorization();
 
 // Minimal API : état de l'application et de la base (utile avant une démonstration).

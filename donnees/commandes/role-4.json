@@ -1315,7 +1315,314 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s01",
+                "ordre": 1,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 1/5 Verification des cartes reseau",
+                "texte": "for c in ens33 ens34; do\n  ip link show \"$c\" >/dev/null 2>&1 || { echo \"Carte $c absente.\"; exit 1; }\n  ip link set \"$c\" up\n  echo \"$c : $(cat /sys/class/net/$c/operstate)\"\ndone",
+                "explication": "Répète la même commande pour plusieurs valeurs.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s02",
+                "ordre": 2,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 2/5 Mots de passe (.env)",
+                "texte": "if [ ! -f .env ]; then\n  umask 077\n  {\n    echo \"POSTGRES_PASSWORD=$(openssl rand -hex 16)\"\n    echo \"API_DB_PASSWORD=$(openssl rand -hex 16)\"\n  } > .env\n  echo \".env cree (droits 600, mots de passe aleatoires, jamais affiches).\"\nelse\n  echo \".env deja present, conserve.\"\nfi",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s03",
+                "ordre": 3,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 3/5 Certificat TLS auto-signe pour nginx",
+                "texte": "mkdir -p nginx/certs",
+                "explication": "Crée un dossier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "docker",
+                    "chemin": "nginx/certs",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s04",
+                "ordre": 4,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 3/5 Certificat TLS auto-signe pour nginx",
+                "texte": "if [ ! -f nginx/certs/p6.crt ]; then\n  openssl req -x509 -newkey rsa:2048 -nodes -days 365 \\\n    -keyout nginx/certs/p6.key -out nginx/certs/p6.crt \\\n    -subj \"/CN=www.p6.lab\" \\\n    -addext \"subjectAltName=DNS:www.p6.lab,DNS:api.p6.lab,IP:203.0.113.1,IP:10.20.0.10\" 2>/dev/null\n  chmod 644 nginx/certs/p6.key   # lisible par nginx dans le conteneur (labo uniquement)\n  echo \"Certificat cree.\"\nelse\n  echo \"Certificat deja present, conserve.\"\nfi",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s05",
+                "ordre": 5,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 3/5 Certificat TLS auto-signe pour nginx",
+                "texte": "chmod 755 db/03-role-api.sh",
+                "explication": "Change les droits d'un fichier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "docker",
+                    "chemin": "db/03-role-api.sh",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s06",
+                "ordre": 6,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 4/5 Construction des images et demarrage (quelques minutes la 1re fois)",
+                "texte": "docker compose build",
+                "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "docker compose build",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s07",
+                "ordre": 7,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 4/5 Construction des images et demarrage (quelques minutes la 1re fois)",
+                "texte": "docker compose up -d",
+                "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "nginx",
+                    "reseau": "p6_dmz",
+                    "ip": "10.20.0.10",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "iperf3",
+                    "reseau": "p6_dmz",
+                    "ip": "10.20.0.10",
+                    "ordre": 2,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "dmz-pivot",
+                    "reseau": "p6_dmz",
+                    "ip": "10.20.0.20",
+                    "ordre": 3,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "bind9",
+                    "reseau": "p6_dmz",
+                    "ip": "10.20.0.40",
+                    "ordre": 4,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "api",
+                    "reseau": "p6_dmz",
+                    "ip": "10.20.0.70",
+                    "ordre": 5,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "client-01",
+                    "reseau": "p6_lan",
+                    "ip": "10.10.0.10",
+                    "ordre": 6,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "client-03",
+                    "reseau": "p6_lan",
+                    "ip": "10.10.0.12",
+                    "ordre": 7,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "postgres",
+                    "reseau": "p6_lan",
+                    "ip": "10.10.0.70",
+                    "ordre": 8,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "admin",
+                    "reseau": "p6_lan",
+                    "ip": "10.10.0.100",
+                    "ordre": 9,
+                    "automatique": true
+                  },
+                  {
+                    "type": "conteneurReseau",
+                    "conteneur": "client-ext",
+                    "reseau": "p6_wan",
+                    "ip": "203.0.113.10",
+                    "ordre": 10,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s08",
+                "ordre": 8,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 5/5 Etat des conteneurs",
+                "texte": "sleep 5",
+                "explication": "Attend quelques secondes.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s09",
+                "ordre": 9,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 5/5 Etat des conteneurs",
+                "texte": "docker compose ps --format \"table {{.Name}}\\t{{.Status}}\"",
+                "explication": "Docker Compose : construit ou démarre les conteneurs décrits dans le fichier du projet.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "docker compose ps",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e6-c02-s10",
+                "ordre": 10,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "setup.sh · 5/5 Etat des conteneurs",
+                "texte": "echo",
+                "explication": "Affiche un texte (ou l'écrit dans un fichier).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r4-e6-c02",
             "ordre": 2,
             "ou": "docker",
@@ -1500,7 +1807,142 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c02-s01",
+                "ordre": 1,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "ACTION=$1; RUN=$2; POINT=$3",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c02-s02",
+                "ordre": 2,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "DIR=/srv/captures; mkdir -p \"$DIR\"",
+                "explication": "Crée un dossier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "docker",
+                    "chemin": "$DIR",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c02-s03",
+                "ordre": 3,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "PIDF=\"$DIR/.$RUN-$POINT.pid\"",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c02-s04",
+                "ordre": 4,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "case \"$POINT\" in nginx|api|postgres|bind9) CTR=$POINT ;; *) echo \"point inconnu : $POINT\" >&2; exit 2 ;; esac",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 3,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 4,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c02-s05",
+                "ordre": 5,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "if [ \"$ACTION\" = start ]; then\n  PID=$(docker inspect -f '{{.State.Pid}}' \"$CTR\")                  # processus du conteneur\n  # -Z root : tcpdump garde les droits root pour écrire dans /srv/captures (sinon il passe sous l'utilisateur tcpdump)\n  # Les messages de tcpdump sont gardés dans un fichier caché, à lire si le PCAP est vide.\n  nsenter -t \"$PID\" -n tcpdump -i eth0 -U -s 0 -Z root -w \"$DIR/${RUN}_${POINT}.pcap\" >/dev/null 2>\"$DIR/.$RUN-$POINT.err\" &\n  echo $! > \"$PIDF\"                                                  # mémorise tcpdump pour l'arrêter\n  sleep 1                                                            # laisse tcpdump démarrer avant t0\nelif [ \"$ACTION\" = stop ]; then\n  kill -INT \"$(cat \"$PIDF\")\" && rm -f \"$PIDF\"                        # INT : tcpdump ferme proprement le fichier\n  sleep 1; ls -l \"$DIR/${RUN}_${POINT}.pcap\"\nfi",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r4-e7-c02",
             "ordre": 2,
             "ou": "docker",
@@ -1545,7 +1987,142 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c04-s01",
+                "ordre": 1,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "ACTION=$1; RUN=$2; POINT=$3",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c04-s02",
+                "ordre": 2,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "DIR=/srv/captures; mkdir -p \"$DIR\"",
+                "explication": "Crée un dossier.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "fichier",
+                    "noeud": "docker",
+                    "chemin": "$DIR",
+                    "cree": true,
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c04-s03",
+                "ordre": 3,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "PIDF=\"$DIR/.$RUN-$POINT.pid\"",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c04-s04",
+                "ordre": 4,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "case \"$POINT\" in nginx|api|postgres|bind9) CTR=$POINT ;; *) echo \"point inconnu : $POINT\" >&2; exit 2 ;; esac",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 3,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 4,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e7-c04-s05",
+                "ordre": 5,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "capture.sh",
+                "texte": "if [ \"$ACTION\" = start ]; then\n  PID=$(docker inspect -f '{{.State.Pid}}' \"$CTR\")                  # processus du conteneur\n  # -Z root : tcpdump garde les droits root pour écrire dans /srv/captures (sinon il passe sous l'utilisateur tcpdump)\n  # Les messages de tcpdump sont gardés dans un fichier caché, à lire si le PCAP est vide.\n  nsenter -t \"$PID\" -n tcpdump -i eth0 -U -s 0 -Z root -w \"$DIR/${RUN}_${POINT}.pcap\" >/dev/null 2>\"$DIR/.$RUN-$POINT.err\" &\n  echo $! > \"$PIDF\"                                                  # mémorise tcpdump pour l'arrêter\n  sleep 1                                                            # laisse tcpdump démarrer avant t0\nelif [ \"$ACTION\" = stop ]; then\n  kill -INT \"$(cat \"$PIDF\")\" && rm -f \"$PIDF\"                        # INT : tcpdump ferme proprement le fichier\n  sleep 1; ls -l \"$DIR/${RUN}_${POINT}.pcap\"\nfi",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Commande tapée sur cette machine.",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r4-e7-c04",
             "ordre": 4,
             "ou": "docker",
@@ -1719,7 +2296,204 @@
             ]
           },
           {
-            "sousCommandes": [],
+            "sousCommandes": [
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s01",
+                "ordre": 1,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "TRUNK=ens33; WAN=ens34",
+                "explication": "Commande du guide, tapée sur la machine indiquée.",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Préparation (dossier, variable) : rien ne change sur le réseau.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s02",
+                "ordre": 2,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network create -d macvlan -o parent=$TRUNK.11 --subnet 10.10.0.0/26  --gateway 10.10.0.1  lan-users",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « lan-users » créé (parent $TRUNK.11).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s03",
+                "ordre": 3,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network create -d macvlan -o parent=$TRUNK.12 --subnet 10.10.0.64/27 --gateway 10.10.0.65 lan-db",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « lan-db » créé (parent $TRUNK.12).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s04",
+                "ordre": 4,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network create -d macvlan -o parent=$TRUNK.13 --subnet 10.10.0.96/27 --gateway 10.10.0.97 lan-admin",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « lan-admin » créé (parent $TRUNK.13).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s05",
+                "ordre": 5,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network create -d macvlan -o parent=$TRUNK.21 --subnet 10.20.0.0/27  --gateway 10.20.0.1  dmz-web",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « dmz-web » créé (parent $TRUNK.21).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s06",
+                "ordre": 6,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network create -d macvlan -o parent=$TRUNK.22 --subnet 10.20.0.32/27 --gateway 10.20.0.33 dmz-dns",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « dmz-dns » créé (parent $TRUNK.22).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s07",
+                "ordre": 7,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network create -d macvlan -o parent=$TRUNK.23 --subnet 10.20.0.64/27 --gateway 10.20.0.65 dmz-app",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « dmz-app » créé (parent $TRUNK.23).",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s08",
+                "ordre": 8,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network inspect wan >/dev/null 2>&1 || docker network create -d macvlan -o parent=$WAN --subnet 203.0.113.0/24 --gateway 203.0.113.1 wan",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseaux Docker.",
+                    "ordre": 1,
+                    "automatique": true
+                  },
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseau macvlan « wan » créé (parent $WAN).",
+                    "ordre": 2,
+                    "automatique": true
+                  }
+                ]
+              },
+              {
+                "sousCommandes": [],
+                "code": "r4-e8-c05-s09",
+                "ordre": 9,
+                "ou": "docker",
+                "shell": "Bash",
+                "compte": "karim",
+                "bloc": "reseaux-B.sh",
+                "texte": "docker network ls --filter driver=macvlan",
+                "explication": "Gère les réseaux Docker (ici macvlan : chaque conteneur a sa propre adresse dans son VLAN).",
+                "estTest": false,
+                "effets": [
+                  {
+                    "type": "surbrillance",
+                    "noeud": "docker",
+                    "texte": "Réseaux Docker.",
+                    "ordre": 1,
+                    "automatique": true
+                  }
+                ]
+              }
+            ],
             "code": "r4-e8-c05",
             "ordre": 5,
             "ou": "docker",

@@ -28,8 +28,10 @@ public class AmorcageTests
 
         Assert.Equal(6, await db.RolesProjet.CountAsync());
         Assert.Equal(47, await db.Etapes.CountAsync());
-        Assert.Equal(attendu.Sum(e => e.Commandes.Count), await db.Commandes.CountAsync());
-        Assert.Equal(attendu.Sum(e => e.Commandes.Sum(c => c.Effets.Count)), await db.Effets.CountAsync());
+        // Commandes du guide + sous-commandes des scripts dépliés (règle 4), toutes rattachées à leur étape.
+        Assert.Equal(attendu.Sum(e => e.Commandes.Count + e.Commandes.Sum(c => c.SousCommandes.Count)), await db.Commandes.CountAsync());
+        Assert.Equal(attendu.Sum(e => e.Commandes.Sum(c => c.Effets.Count + c.SousCommandes.Sum(x => x.Effets.Count))), await db.Effets.CountAsync());
+        Assert.Equal(0, await db.Commandes.CountAsync(c => c.ParentId != null && c.EtapeId != c.Parent!.EtapeId));
         Assert.Equal(attendu.Sum(e => e.Pannes.Count), await db.Pannes.CountAsync());
 
         // Héritage TPH relu avec son type exact, NAT et chemin compris.

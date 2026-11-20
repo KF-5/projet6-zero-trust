@@ -1,0 +1,37 @@
+@model PageVM<SimulationLigneVM>
+<div class="page-liste">
+    <h1>Historique des simulations</h1>
+    <p class="chapeau">Chaque simulation enregistrée, avec son verdict. Marque celles que tu veux montrer au jury : elles se rejouent dans l'ordre sur la page <a asp-action="Demonstration">Démonstration</a>.</p>
+    @if (Model.Elements.Count == 0) { <p class="note">Aucune simulation enregistrée. <a asp-action="Index">Fais-en une.</a></p> }
+    else
+    {
+        <table class="tableau">
+            <thead><tr><th scope="col">Date</th><th scope="col">Simulation</th><th scope="col">État</th><th scope="col">Verdict</th><th scope="col">Règle</th><th scope="col">Démo</th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Elements)
+                {
+                    <tr>
+                        <td>@s.Date.ToLocalTime().ToString("d MMM, HH:mm")</td>
+                        <td><a href="/Simulation?source=@s.Source&destination=@s.Destination&protocole=@s.Protocole&port=@s.Port&etat=@s.Etat">@(s.Titre ?? $"{s.Source} → {s.Destination}")</a>
+                            <span class="note">@s.Protocole@(s.Port is null ? "" : $" {s.Port}")</span></td>
+                        <td>@s.Etat</td>
+                        <td><span class="verdict v-@s.Verdict.ToLowerInvariant()">@s.VerdictTexte</span></td>
+                        <td>@(s.Regle ?? "—")</td>
+                        <td>
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <form method="post" asp-action="Demo" class="en-ligne">
+                                    <input type="hidden" name="id" value="@s.Id" /><input type="hidden" name="page" value="@Model.Page" />
+                                    <input type="hidden" name="pourDemo" value="@(s.PourDemo ? "false" : "true")" />
+                                    <button type="submit" class="btn-lien" aria-pressed="@(s.PourDemo ? "true" : "false")">@(s.PourDemo ? $"n° {s.OrdreDemo} · retirer" : "pour la démo")</button>
+                                </form>
+                            }
+                            else if (s.PourDemo) { <span>n° @s.OrdreDemo</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <partial name="_Pagination" model='new PaginationVM(Model.Page, Model.NombrePages, "Historique")' />
+</div>

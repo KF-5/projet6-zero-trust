@@ -23,7 +23,9 @@ if (!File.Exists(Path.Combine(dossierGuide, "role-1.json")))
 
 var corrections = Corrections.Charger(Path.Combine(racine, "donnees", "corrections", "etapes-faites.json"));
 var carnet = new Carnet();
-var constructeur = new ConstructeurRole(racine, corrections, carnet);
+var guides = Enumerable.Range(1, 6).Select(n => JsonDocument.Parse(File.ReadAllText(Path.Combine(dossierGuide, $"role-{n}.json"))).RootElement).ToList();
+var depliage = new Depliage(racine, guides);
+var constructeur = new ConstructeurRole(racine, corrections, carnet, depliage);
 var options = new JsonSerializerOptions
 {
     WriteIndented = true,
@@ -35,7 +37,7 @@ var sortie = Path.Combine(racine, "donnees", "commandes");
 Directory.CreateDirectory(sortie);
 
 var bilan = new StringBuilder();
-int totalEtapes = 0, totalCommandes = 0, totalEffets = 0;
+int totalEtapes = 0, totalCommandes = 0, totalEffets = 0, totalSous = 0;
 for (var n = 1; n <= 6; n++)
 {
     using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(dossierGuide, $"role-{n}.json")));
@@ -46,17 +48,20 @@ for (var n = 1; n <= 6; n++)
     File.WriteAllText(Path.Combine(sortie, $"role-{n}.json"), json + "\n", new UTF8Encoding(false));
 
     var commandes = fichier.Role.Etapes.SelectMany(e => e.Commandes).ToList();
-    var effets = commandes.Sum(c => c.Effets.Count);
+    var sous = commandes.Sum(c => c.SousCommandes.Count);
+    var effets = commandes.Sum(c => c.Effets.Count + c.SousCommandes.Sum(x => x.Effets.Count));
     var parShell = commandes.GroupBy(c => c.Shell).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()}");
     Console.WriteLine($"rôle {n} : {fichier.Role.Etapes.Count} étapes, {commandes.Count} commandes, {effets} effets ({string.Join(", ", parShell)})");
-    bilan.AppendLine($"| {n} | {fichier.Role.Etapes.Count} | {commandes.Count} | {commandes.Count(c => c.Shell is not (P6Explorer.Domain.Enumerations.Shell.Document))} | {effets} |");
+    bilan.AppendLine($"| {n} | {fichier.Role.Etapes.Count} | {commandes.Count} | {commandes.Count(c => c.Shell is not (P6Explorer.Domain.Enumerations.Shell.Document))} | {sous} | {effets} |");
+    totalSous += sous;
     totalEtapes += fichier.Role.Etapes.Count;
     totalCommandes += commandes.Count;
     totalEffets += effets;
 }
 Console.WriteLine($"Total : {totalEtapes} étapes, {totalCommandes} commandes, {totalEffets} effets ; {carnet.EffetsGeneriques.Count} commandes à compléter.");
+Console.WriteLine($"Scripts dépliés : {string.Join(", ", depliage.Deplies.Select(d => $"{d.Key} ({d.Value})"))}.");
 
-EcrireACompleter(Path.Combine(racine, "docs", "a-completer.md"), carnet, bilan.ToString(), totalEtapes, totalCommandes, totalEffets);
+EcrireACompleter(Path.Combine(racine, "docs", "a-completer.md"), carnet, depliage, bilan.ToString(), totalEtapes, totalCommandes, totalSous, totalEffets);
 return 0;
 
 static string TrouverRacine(string depart)
@@ -66,7 +71,7 @@ static string TrouverRacine(string depart)
     throw new DirectoryNotFoundException("Racine du dépôt introuvable (dossier sources/guide). Donne-la en argument.");
 }
 
-static void EcrireACompleter(string chemin, Carnet carnet, string bilan, int etapes, int commandes, int effets)
+static void EcrireACompleter(string chemin, Carnet carnet, Depliage depliage, string bilan, int etapes, int commandes, int sousCommandes, int effets)
 {
     var md = new StringBuilder();
     md.AppendLine("# Commandes à compléter");
@@ -75,10 +80,10 @@ static void EcrireACompleter(string chemin, Carnet carnet, string bilan, int eta
     md.AppendLine();
     md.AppendLine("## Bilan de l'importation");
     md.AppendLine();
-    md.AppendLine("| Rôle | Étapes | Commandes | dont exécutables | Effets |");
-    md.AppendLine("|---|---|---|---|---|");
+    md.AppendLine("| Rôle | Étapes | Commandes | dont exécutables | Sous-commandes (scripts dépliés) | Effets |");
+    md.AppendLine("|---|---|---|---|---|---|");
     md.Append(bilan);
-    md.AppendLine($"| **Total** | **{etapes}** | **{commandes}** | | **{effets}** |");
+    md.AppendLine($"| **Total** | **{etapes}** | **{commandes}** | | **{sousCommandes}** | **{effets}** |");
     md.AppendLine();
     md.AppendLine("Chaque commande a au moins un effet visible. « Document » = tableau ou plan du guide, affiché sans être exécuté. Tous les effets proposés sont marqués « automatique » jusqu'à leur relecture.");
     md.AppendLine();
@@ -89,12 +94,16 @@ static void EcrireACompleter(string chemin, Carnet carnet, string bilan, int eta
     foreach (var (code, texte) in carnet.EffetsGeneriques)
         md.AppendLine($"- `{code}` — `{Texte.Raccourcir(texte.Replace("`", "'"), 110)}`");
     md.AppendLine();
-    md.AppendLine($"## 2. Scripts à déplier en sous-commandes ({carnet.ScriptsADeplier.Count})");
+    md.AppendLine($"## 2. Scripts dépliés en sous-commandes ({depliage.Deplies.Count})");
     md.AppendLine();
-    md.AppendLine("Prompt, règle 4 : chaque script long devient une suite de sous-commandes avec leurs effets (jalons 3 à 6).");
+    md.AppendLine("Prompt, règle 4 : chaque script long devient une suite de sous-commandes avec leurs effets. Source : le script réel de `plateforme/labo/` s'il existe, sinon le fichier complet du guide ; `test_flux.sh` est déplié depuis `donnees/politique/tests-A.csv` et `tests-B.csv`.");
     md.AppendLine();
+    foreach (var (script, nombre) in depliage.Deplies.OrderBy(d => d.Key))
+        md.AppendLine($"- `{script}` : {nombre} sous-commandes");
+    md.AppendLine();
+    md.AppendLine($"Scripts restant à déplier ({carnet.ScriptsADeplier.Count}) : {(carnet.ScriptsADeplier.Count == 0 ? "aucun." : "")}");
     foreach (var (script, codes) in carnet.ScriptsADeplier)
-        md.AppendLine($"- `{script}` — {string.Join(", ", codes.Select(c => $"`{c}`"))}");
+        md.AppendLine($"- `{script}` — {string.Join(", ", codes.Select(c => $"`{c}`"))} (contenu introuvable dans le guide et dans plateforme/labo/)");
     md.AppendLine();
     md.AppendLine("## 3. Remarques");
     md.AppendLine();

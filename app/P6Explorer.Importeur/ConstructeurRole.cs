@@ -17,7 +17,7 @@ public sealed class Carnet
 }
 
 /// <summary>Transforme le JSON brut d'un rôle du guide (donnees/guide/role-N.json) en FichierRole.</summary>
-public sealed partial class ConstructeurRole(string racine, Dictionary<string, List<Correction>> corrections, Carnet carnet)
+public sealed partial class ConstructeurRole(string racine, Dictionary<string, List<Correction>> corrections, Carnet carnet, Depliage depliage)
 {
     public FichierRole Construire(JsonElement brut)
     {
@@ -372,6 +372,7 @@ public sealed partial class ConstructeurRole(string racine, Dictionary<string, L
         if (!analyse.Reconnue) carnet.EffetsGeneriques.Add((commande.Code, commande.Texte.Split('\n')[0]));
         foreach (var s in analyse.ScriptsADeplier)
         {
+            if (depliage.Deplier(s, commande, etat.Role, etat.Etape.Numero)) continue;   // sous-commandes ajoutées
             if (!carnet.ScriptsADeplier.TryGetValue(s, out var codes)) carnet.ScriptsADeplier[s] = codes = [];
             codes.Add(commande.Code);
         }

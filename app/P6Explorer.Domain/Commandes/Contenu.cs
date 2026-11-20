@@ -11,6 +11,12 @@ namespace P6Explorer.Domain.Commandes;
 /// </summary>
 public interface IHorodate;
 
+/// <summary>
+/// Marque les entités dont chaque modification est écrite dans l'historique (entité Revision) par l'intercepteur,
+/// pour la page « Historique » d'une étape et le retour à une version précédente.
+/// </summary>
+public interface IRevisable;
+
 /// <summary>Un des six rôles du projet.</summary>
 public class Role
 {
@@ -26,7 +32,7 @@ public class Role
 }
 
 /// <summary>Une étape d'un rôle (47 au total).</summary>
-public class Etape : IHorodate
+public class Etape : IHorodate, IRevisable
 {
     [JsonIgnore] public int Id { get; set; }
     [JsonIgnore] public int RoleNumero { get; set; }
@@ -55,7 +61,7 @@ public class Etape : IHorodate
 }
 
 /// <summary>Une commande tapée (ou une action cliquée) et les effets qu'elle produit sur le schéma.</summary>
-public class Commande : IHorodate
+public class Commande : IHorodate, IRevisable
 {
     [JsonIgnore] public int Id { get; set; }
     [JsonIgnore] public int EtapeId { get; set; }
@@ -78,7 +84,7 @@ public class Commande : IHorodate
     public List<Effet> Effets { get; set; } = [];
 }
 
-public class Panne : IHorodate
+public class Panne : IHorodate, IRevisable
 {
     [JsonIgnore] public int Id { get; set; }
     [JsonIgnore] public int EtapeId { get; set; }
@@ -88,7 +94,7 @@ public class Panne : IHorodate
     public string Solution { get; set; } = "";
 }
 
-public class CritereFin : IHorodate
+public class CritereFin : IHorodate, IRevisable
 {
     [JsonIgnore] public int Id { get; set; }
     [JsonIgnore] public int EtapeId { get; set; }

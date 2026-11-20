@@ -1,0 +1,161 @@
+@model EtapeVM
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var e = Model.Etape;
+    var jeton = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+
+<div class="page-role" style="--role: var(@Model.Role.Couleur)">
+    <header class="role-entete">
+        <p class="surtitre">Rôle @Model.Role.Numero · @Model.Role.CourtNom</p>
+        <h1>@Model.Role.Titre</h1>
+        <p class="chapeau">@Model.Role.Mission</p>
+        @if (Model.QuestionsOuvertes > 0)
+        {
+            <p class="role-questions"><a asp-controller="Discussions" asp-action="Index">@Model.QuestionsOuvertes question@(Model.QuestionsOuvertes > 1 ? "s" : "") ouverte@(Model.QuestionsOuvertes > 1 ? "s" : "") sur ce rôle</a></p>
+        }
+    </header>
+
+    <div class="disposition-role">
+        <partial name="_ListeEtapes" model="Model" />
+
+        <article class="etape" aria-labelledby="titre-etape">
+            <header class="etape-entete">
+                <div>
+                    <p class="surtitre">Étape @e.Numero@(e.Quand is null ? "" : $" · {e.Quand}")</p>
+                    <h2 id="titre-etape">@e.Titre</h2>
+                    <p class="etape-statut">
+                        <span class="pastille @(e.Fait ? "fait" : "afaire")">@(e.Fait ? "fait" : "à faire")</span>
+                        @if (e.EtatTexte is not null) { <span>@e.EtatTexte</span> }
+                        <span>Statut : @(e.Statut switch { StatutValidation.Brouillon => "brouillon", StatutValidation.AValider => "à valider", _ => "validée" })</span>
+                        @if (e.DateModification is DateTime d) { <span>modifiée le @d.ToLocalTime().ToString("d MMMM yyyy à HH:mm")</span> }
+                        <span>@e.NbCommandes commande@(e.NbCommandes > 1 ? "s" : "")</span>
+                    </p>
+                </div>
+                <div class="etape-actions">
+                    @if (Model.QuizDisponible)
+                    {
+                        <a class="btn" href="/Quiz/@Model.Role.Numero/@e.Numero">@(Model.Maitrisee ? "Quiz réussi ✓" : "Quiz de l'étape")</a>
+                    }
+                    @if (Model.Connecte) { <a class="btn secondaire" asp-controller="Etapes" asp-action="Historique" asp-route-id="@e.Id">Historique</a> }
+                    @if (Model.PeutModifier)
+                    {
+                        <a class="btn secondaire" asp-controller="Etapes" asp-action="Modifier" asp-route-id="@e.Id">Modifier l'étape</a>
+                        <a class="btn secondaire" asp-controller="Etapes" asp-action="NouvelleCommande" asp-route-etapeId="@e.Id">+ Commande</a>
+                    }
+                </div>
+            </header>
+
+            @if (e.MiseAJourHtml is { Length: > 0 })
+            {
+                <aside class="mise-a-jour"><strong>Mise à jour :</strong> @Html.Raw(e.MiseAJourHtml)</aside>
+            }
+
+            <div class="lecteur" id="lecteur"
+                 data-api="/api/etapes/@e.Id/commandes?etat=@Model.Etat"
+                 data-etat="@Model.Etat"
+                 data-initiale="@Model.CommandeInitiale"
+                 data-code="@(ViewBag.CodeInitial as string)"
+                 data-vitesse="@Model.Vitesse.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                 data-url="/Roles/@Model.Role.Numero/Etapes/@e.Numero"
+                 data-connecte="@(Model.Connecte ? "1" : "0")"
+                 data-modifier="@(Model.PeutModifier ? "1" : "0")"
+                 data-jeton="@jeton">
+                <div class="lecteur-schema">
+                    <partial name="_Schema" model="Model.Schema" />
+                    <div class="bandeau-etat" id="bandeau-etat" role="status" hidden></div>
+                </div>
+                <partial name="_Controles" />
+                <div class="lecteur-bas">
+                    <partial name="_Terminal" />
+                    <partial name="_PanneauExplication" />
+                </div>
+                <noscript><p class="note">Le lecteur a besoin de JavaScript ; la liste des commandes est donnée plus bas.</p></noscript>
+            </div>
+
+            <section class="etape-texte" aria-label="Contenu de l'étape">
+                <div class="bloc"><h3>But</h3><p>@Html.Raw(e.ButHtml)</p></div>
+                <div class="bloc"><h3>Pourquoi</h3><p>@Html.Raw(e.PourquoiHtml)</p></div>
+                @if (e.PrerequisHtml is { Length: > 0 }) { <div class="bloc"><h3>Prérequis</h3><p>@Html.Raw(e.PrerequisHtml)</p></div> }
+
+                <details class="bloc" open>
+                    <summary><h3>Les commandes (@e.Commandes.Count)</h3></summary>
+                    <ol class="liste-commandes">
+                        @foreach (var c in e.Commandes)
+                        {
+                            <li>
+                                <a href="/Roles/@Model.Role.Numero/Etapes/@e.Numero?code=@c.Code" data-code="@c.Code"><code>@c.Code</code></a>
+                                <span class="shell">@c.Shell · @c.Ou</span>
+                                <span class="apercu">@c.Apercu</span>
+                                @if (Model.PeutModifier) { <a class="lien-discret" asp-controller="Etapes" asp-action="Commande" asp-route-id="@c.Id">modifier</a> }
+                            </li>
+                        }
+                    </ol>
+                </details>
+
+                @if (e.Pannes.Count > 0)
+                {
+                    <details class="bloc">
+                        <summary><h3>Pannes connues (@e.Pannes.Count)</h3></summary>
+                        <table class="tableau">
+                            <thead><tr><th scope="col">Symptôme</th><th scope="col">Cause</th><th scope="col">Solution</th></tr></thead>
+                            <tbody>@foreach (var p in e.Pannes) { <tr><td>@p.Symptome</td><td>@p.Cause</td><td>@p.Solution</td></tr> }</tbody>
+                        </table>
+                    </details>
+                }
+                @if (e.Criteres.Count > 0)
+                {
+                    <div class="bloc"><h3>C'est fini quand</h3><ul class="criteres">@foreach (var c in e.Criteres) { <li>@c</li> }</ul></div>
+                }
+                @if (e.LivrableHtml is { Length: > 0 }) { <div class="bloc"><h3>À livrer</h3><p>@Html.Raw(e.LivrableHtml)</p></div> }
+
+                <div class="bloc">
+                    <h3>Preuves</h3>
+                    @if (e.Preuves.Count == 0) { <p class="note">Aucune capture jointe pour l'instant.</p> }
+                    <ul class="preuves">
+                        @foreach (var p in e.Preuves)
+                        {
+                            <li>
+                                <a href="@p.Url"><img src="@p.Url" alt="@(p.Legende ?? p.NomOriginal)" loading="lazy" width="240" height="135" /></a>
+                                <span>@(p.Legende ?? p.NomOriginal)</span>
+                                @if (Model.PeutModifier)
+                                {
+                                    <form method="post" asp-controller="Etapes" asp-action="SupprimerPreuve">
+                                        <input type="hidden" name="id" value="@p.Id" /><input type="hidden" name="etapeId" value="@e.Id" />
+                                        <input type="hidden" name="role" value="@Model.Role.Numero" /><input type="hidden" name="etape" value="@e.Numero" />
+                                        <button type="submit" class="btn-lien">supprimer</button>
+                                    </form>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    @if (Model.PeutModifier)
+                    {
+                        <form method="post" enctype="multipart/form-data" asp-controller="Etapes" asp-action="Preuve" class="formulaire-ligne">
+                            <input type="hidden" name="EtapeId" value="@e.Id" />
+                            <input type="hidden" name="role" value="@Model.Role.Numero" /><input type="hidden" name="etape" value="@e.Numero" />
+                            <label>Capture (PNG ou JPEG, 5 Mo) <input type="file" name="Fichier" accept="image/png,image/jpeg" required /></label>
+                            <label>Légende <input type="text" name="Legende" maxlength="200" /></label>
+                            <button type="submit" class="btn">Joindre</button>
+                        </form>
+                    }
+                </div>
+
+                @if (Model.Etapes.LastOrDefault()?.Active == true && Model.Role.DemonstrationHtml is { Length: > 0 })
+                {
+                    <div class="bloc demo-role"><h3>Démonstration finale (2 minutes)</h3><p>@Html.Raw(Model.Role.DemonstrationHtml)</p></div>
+                }
+                @if (Model.Termes.Count > 0)
+                {
+                    <div class="bloc"><h3>Mots de cette étape</h3>
+                        <dl class="termes-etape">@foreach (var t in Model.Termes) { <div><dt>@t.Terme</dt><dd>@t.Definition</dd></div> }</dl>
+                    </div>
+                }
+            </section>
+        </article>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/lecteur.js" asp-append-version="true" defer></script>
+}

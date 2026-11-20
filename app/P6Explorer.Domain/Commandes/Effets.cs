@@ -24,7 +24,7 @@ namespace P6Explorer.Domain.Commandes;
 [JsonDerivedType(typeof(Surbrillance), "surbrillance")]
 [JsonDerivedType(typeof(ChangementEtat), "changementEtat")]
 [JsonDerivedType(typeof(ConteneurReseau), "conteneurReseau")]
-public abstract record Effet
+public abstract record Effet : IRevisable
 {
     [JsonIgnore] public int Id { get; set; }
     [JsonIgnore] public int CommandeId { get; set; }

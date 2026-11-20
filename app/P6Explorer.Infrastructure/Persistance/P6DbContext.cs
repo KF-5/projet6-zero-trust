@@ -17,6 +17,9 @@ public class P6DbContext(DbContextOptions<P6DbContext> options) : IdentityDbCont
     public const string DateCreation = nameof(DateCreation);
     public const string DateModification = nameof(DateModification);
 
+    /// <summary>Faux pendant l'amorçage : le chargement initial du guide n'est pas une modification de l'équipe.</summary>
+    public bool JournaliserRevisions { get; set; } = true;
+
     // Contenu du guide
     public DbSet<Role> RolesProjet => Set<Role>();
     public DbSet<Etape> Etapes => Set<Etape>();
