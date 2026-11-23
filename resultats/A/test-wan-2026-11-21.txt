@@ -1,0 +1,14 @@
+mehdi@docker-p6:~$ sudo -n p6-test-wan
+p6-test-wan - client-ext (203.0.113.10) vers le pare-feu cote WAN (203.0.113.1) - 2026-11-21
+22:59:41  CONFORME  FA1 web : HTTP et HTTPS repondent, et c'est nginx
+          commande : curl -s -m 5 -D - -o /dev/null http://203.0.113.1/ | grep -qi '^server: *nginx' && curl -sk -m 5 -D - -o /dev/null https://203.0.113.1/ | grep -qi '^server: *nginx'
+          attendu=passe  obtenu=passe
+22:59:41  CONFORME  FA2 DNS : www.p6.lab vaut exactement 203.0.113.1
+          commande : dig +short +time=3 +tries=1 @203.0.113.1 www.p6.lab | grep -qx 203.0.113.1
+          attendu=passe  obtenu=passe
+22:59:41  CONFORME  FA5 : SSH du pare-feu depuis le WAN doit etre bloque
+          commande : nc -z -w 3 203.0.113.1 22
+          attendu=bloque  obtenu=bloque
+
+Resultat : 3/3 conforme(s), 0 ecart(s).
+Pour voir les lignes correspondantes : OPNsense > Firewall > Log Files > Live View, aux heures ci-dessus.
