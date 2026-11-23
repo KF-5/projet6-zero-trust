@@ -8,3 +8,6 @@ __pycache__/
 .env
 *.key
 utilisateurs.json
+
+# Fichiers generes par c2.py (role 2)
+politique/regles-*.json
