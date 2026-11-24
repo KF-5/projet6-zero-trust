@@ -1,0 +1,9 @@
+id_test,src_host,dst_ip,proto,port,attendu,flux_ref
+T001,client-ext,203.0.113.1,tcp,80,pass,FA1
+T002,client-ext,203.0.113.1,tcp,22,block,FA1
+T003,client-ext,203.0.113.1,tcp,53,pass,FA2
+T004,client-ext,203.0.113.1,tcp,22,block,FA2
+T005,nginx,10.10.0.70,tcp,5432,pass,FA3
+T006,nginx,10.10.0.70,tcp,22,block,FA3
+T007,client-01,10.20.0.10,tcp,443,pass,FA4
+T008,client-ext,10.10.0.10,tcp,22,block,FA5

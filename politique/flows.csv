@@ -1,0 +1,17 @@
+id,src,dst,proto,port,justification,etat
+FA1,WAN,nginx,tcp,80;443,Site public (NAT depuis 203.0.113.1),A
+FA2,WAN,bind9,tcp/udp,53,DNS public (NAT),A
+FA3,DMZ,postgresql,tcp,5432,Toute la DMZ vers la base,A
+FA4,LAN,any,any,any,LAN vers tout (règle par défaut),A
+FA6,client-ext,nginx,tcp,5201,Mesure iperf3 (activée pendant les mesures),A
+FA5,any,any,any,any,Refus par défaut entre zones (block + log),A
+F01,WAN,nginx,tcp,80;443,Site public,B
+F02,WAN,bind9,tcp/udp,53,Zone DNS publique,B
+F03,nginx,api,tcp,5000,Reverse proxy vers l'API,B
+F04,api,postgresql,tcp,5432,Seul accès autorisé à la base,B
+F05,LAN-USERS,nginx,tcp,443,Application interne,B
+F06,LAN-USERS,bind9,udp,53,Résolution de noms,B
+F07,admin,nginx;bind9;api;postgresql,tcp,22,Administration SSH,B
+F08,admin,opnsense,tcp,443,Console du pare-feu,B
+F09,client-ext,nginx,tcp,5201,Mesure iperf3 (activée pendant les mesures),B
+F99,any,any,any,any,Refus par défaut (block + log),B
