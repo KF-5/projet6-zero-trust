@@ -1,0 +1,35 @@
+# Mini-laboratoire du rôle 3 (sur le PC, sous WSL) : mêmes adresses que le vrai laboratoire,
+# pour que les règles de ids/local.rules s'appliquent sans modification.
+# Réseaux « internal: true » : aucun accès à Internet. La passerelle Docker est déplacée
+# en fin de plage (.254 / .94) pour libérer 203.0.113.1, l'adresse visée par S-01, S-02 et S-06.
+services:
+  web:                                   # joue l'adresse publique d'OPNsense (em0)
+    image: nginx:alpine
+    networks: { wan: { ipv4_address: 203.0.113.1 } }
+  api:                                   # API Flask (DMZ), simulée par un serveur HTTP
+    image: python:3.12-alpine
+    command: python -m http.server 5000
+    networks: { dmz: { ipv4_address: 10.20.0.70 } }
+  db:                                    # PostgreSQL (LAN), simulé : seul le port 5432 compte
+    image: python:3.12-alpine
+    command: python -m http.server 5432
+    networks: { lan: { ipv4_address: 10.10.0.70 } }
+  attaquant:
+    build: .
+    networks:
+      wan: { ipv4_address: 203.0.113.66 }   # Kali
+      dmz: { ipv4_address: 10.20.0.80 }     # position DMZ
+      lan: { ipv4_address: 10.10.0.12 }     # client-03
+networks:
+  wan:
+    internal: true
+    driver_opts: { com.docker.network.bridge.name: br-wan }
+    ipam: { config: [ { subnet: 203.0.113.0/24, gateway: 203.0.113.254 } ] }
+  dmz:
+    internal: true
+    driver_opts: { com.docker.network.bridge.name: br-dmz }
+    ipam: { config: [ { subnet: 10.20.0.64/27, gateway: 10.20.0.94 } ] }
+  lan:
+    internal: true
+    driver_opts: { com.docker.network.bridge.name: br-lan }
+    ipam: { config: [ { subnet: 10.10.0.0/24, gateway: 10.10.0.254 } ] }

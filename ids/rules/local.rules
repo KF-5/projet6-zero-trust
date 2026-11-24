@@ -1,0 +1,25 @@
+# ids/local.rules — règles locales du projet (sid 9000001 à 9000099). Syntaxe Suricata 8.
+# Toutes en « alert ». Le passage en drop se fait famille par famille après le réglage (étape 12).
+
+# S-01 · scan SYN vers l'adresse publique (em0), hors ports publiés. Une alerte par fenêtre de 5 s et par source.
+alert tcp any any -> 203.0.113.1 ![53,80,443] (msg:"LOCAL S-01 scan SYN > 20 en 5 s"; flow:stateless; flags:S,12; threshold:type both, track by_src, count 20, seconds 5; classtype:attempted-recon; sid:9000001; rev:2;)
+# S-01 · compteur du rate_filter (blocage temporaire de 20 s, voir threshold.config). « noalert » : il compte
+# chaque SYN sans produire d'alerte (sinon un SYN isolé ferait une alerte toutes les 20 s, rev 2) ; l'alerte vient de 9000001.
+alert tcp any any -> 203.0.113.1 ![53,80,443] (msg:"LOCAL S-01 compteur de blocage"; flow:stateless; flags:S,12; noalert; classtype:attempted-recon; sid:9000002; rev:3;)
+
+# S-02 · SYN flood vers le web : seuil par source (un vrai client fait ~1 SYN/s)
+alert tcp any any -> 203.0.113.1 443 (msg:"LOCAL S-02 SYN flood > 100/s"; flow:stateless; flags:S,12; threshold:type both, track by_src, count 100, seconds 1; classtype:attempted-dos; sid:9000003; rev:2;)
+# S-02 · compteur du rate_filter de blocage, « noalert » : la sonde (1 requête HTTPS/s vers 443) ne doit jamais
+# produire d'alerte (rev 1 : une alerte toutes les 20 s par client légitime, soit ~180 faux positifs par heure).
+alert tcp any any -> 203.0.113.1 443 (msg:"LOCAL S-02 compteur de blocage"; flow:stateless; flags:S,12; noalert; classtype:attempted-dos; sid:9000004; rev:2;)
+
+# S-03 · injection SQL sur le saut nginx -> API, en clair (em1). http.uri est décodée ; « + » accepté comme séparateur.
+alert http any any -> 10.20.0.70 5000 (msg:"LOCAL S-03 injection SQL sur /api/"; flow:established,to_server; http.uri; content:"/api/"; startswith; pcre:"/'(\s|\+)*or(\s|\+)*'?\d+'?(\s|\+)*=(\s|\+)*'?\d+/i"; classtype:web-application-attack; sid:9000010; rev:2;)
+
+# S-05 · un poste utilisateur tente de joindre la base (em1)
+alert tcp 10.10.0.0/26 any -> 10.10.0.70 5432 (msg:"LOCAL S-05 LAN-USERS vers PostgreSQL"; flow:stateless; flags:S,12; classtype:policy-violation; sid:9000020; rev:1;)
+# S-04 · un hôte de la DMZ autre que l'API tente de joindre la base (écart E07)
+alert tcp [10.20.0.0/24,!10.20.0.70] any -> 10.10.0.70 5432 (msg:"LOCAL S-04 DMZ hors API vers PostgreSQL"; flow:stateless; flags:S,12; classtype:policy-violation; sid:9000021; rev:1;)
+
+# S-06 · fragments IP minuscules (nmap -f) — À VALIDER EN LABORATOIRE
+alert ip any any -> 203.0.113.1 any (msg:"LOCAL S-06 petits fragments IP"; fragbits:M; dsize:<24; threshold:type limit, track by_src, count 1, seconds 60; classtype:misc-activity; sid:9000030; rev:1;)
