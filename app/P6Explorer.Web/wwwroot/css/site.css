@@ -16,8 +16,8 @@
   --wan: #f07167; --dmz: #e8b04b; --lan: #66bb6a; --mgmt: #a78bfa; --trunk: #64a5f5; --ids: #f08b52; --ext: #8b97b5;
   --ok: #5cc27c; --bad: #f2696f; --warn: #e2b04a;
   --r1: #8b85f7; --r2: #3db5ac; --r3: #f08b52; --r4: #d9a441; --r5: #f06aa6; --r6: #5db3e8;
-  --p-https: #22d3ee; --p-http: #38bdf8; --p-syslog: #94a3b8; --p-ntp: #c4b5fd;
-  --grille: rgba(147, 163, 200, .14);
+  --p-https: #22d3ee; --p-http: #38bdf8; --p-syslog: #94a3b8; --p-ntp: #c4b5fd; --p-reponse: #f472b6;
+  --grille: rgba(147, 163, 200, .14); --ombre: rgba(0, 0, 0, .38);
   --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
   --f-texte: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --ease-out: cubic-bezier(.16, 1, .3, 1);
@@ -34,8 +34,8 @@
   --wan: #c0392b; --dmz: #b7791f; --lan: #2e7d32; --mgmt: #6d4fc2; --trunk: #1f6fd1; --ids: #c2510f; --ext: #5f6b85;
   --ok: #1b7a3a; --bad: #a61b1b; --warn: #8a6100;
   --r1: #4f46e5; --r2: #0c6a66; --r3: #c2510f; --r4: #8a5a00; --r5: #b0185d; --r6: #0e6a9e;
-  --p-https: #0e7490; --p-http: #0369a1; --p-syslog: #475569; --p-ntp: #6d28d9;
-  --grille: rgba(79, 94, 125, .16);
+  --p-https: #0e7490; --p-http: #0369a1; --p-syslog: #475569; --p-ntp: #6d28d9; --p-reponse: #be185d;
+  --grille: rgba(79, 94, 125, .16); --ombre: rgba(15, 26, 51, .14);
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
@@ -46,8 +46,8 @@
     --wan: #c0392b; --dmz: #b7791f; --lan: #2e7d32; --mgmt: #6d4fc2; --trunk: #1f6fd1; --ids: #c2510f; --ext: #5f6b85;
     --ok: #1b7a3a; --bad: #a61b1b; --warn: #8a6100;
     --r1: #4f46e5; --r2: #0c6a66; --r3: #c2510f; --r4: #8a5a00; --r5: #b0185d; --r6: #0e6a9e;
-    --p-https: #0e7490; --p-http: #0369a1; --p-syslog: #475569; --p-ntp: #6d28d9;
-    --grille: rgba(79, 94, 125, .16);
+    --p-https: #0e7490; --p-http: #0369a1; --p-syslog: #475569; --p-ntp: #6d28d9; --p-reponse: #be185d;
+    --grille: rgba(79, 94, 125, .16); --ombre: rgba(15, 26, 51, .14);
   }
 }
 
@@ -146,16 +146,26 @@ code { font-family: var(--f-mono); font-size: .92em; background: var(--surface-2
 .z-trunk { --zc: var(--trunk); } .z-ids { --zc: var(--ids); } .z-opn { --zc: var(--opn); } .z-exterieur, .z-hote { --zc: var(--ext); }
 
 /* ---------- Schéma SVG ---------- */
-.schema { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--rayon); padding: .6rem; }
+.schema { position: relative; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--rayon); padding: .6rem; }
 .schema-svg { display: block; width: 100%; height: auto; font-family: var(--f-mono); }
 .schema .fond { stroke: none; }
 .grille-point { fill: var(--grille); }
 .schema-legende { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 0; padding: .6rem .4rem .2rem; border-top: 1px solid var(--line); margin-top: .5rem; }
 .legende-note { color: var(--muted); font: 400 .74rem var(--f-texte); }
 
-.zone rect { fill: color-mix(in srgb, var(--zc) 7%, transparent); stroke: color-mix(in srgb, var(--zc) 70%, transparent); stroke-width: 1.2; stroke-dasharray: 0; }
-.zone.z-exterieur rect { stroke-dasharray: 5 4; }
-.zone-nom { fill: var(--zc); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+/* Vue isométrique (_Schema.cshtml) : sol en dalle, zones en plateaux, machines en blocs éclairés par la gauche. */
+.sol-plaque { fill: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); stroke: var(--line); stroke-width: 1; }
+.sol-tranche { stroke: var(--line); stroke-width: .8; stroke-linejoin: round; }
+.sol-tranche.avant { fill: color-mix(in srgb, var(--line) 70%, var(--bg)); }
+.sol-tranche.cote { fill: color-mix(in srgb, var(--line) 40%, var(--bg)); }
+
+.zone .dalle { fill: color-mix(in srgb, var(--zc) 11%, var(--surface)); stroke: color-mix(in srgb, var(--zc) 75%, transparent); stroke-width: 1.3; }
+.zone .tranche { stroke: color-mix(in srgb, var(--zc) 60%, transparent); stroke-width: .8; stroke-linejoin: round; }
+.zone .tranche.avant { fill: color-mix(in srgb, var(--zc) 38%, var(--bg)); }
+.zone .tranche.cote { fill: color-mix(in srgb, var(--zc) 22%, var(--bg)); }
+.zone.z-exterieur .dalle { stroke-dasharray: 5 4; fill: color-mix(in srgb, var(--zc) 6%, var(--surface)); }
+.zone-nom { fill: var(--zc); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
 
 .lien { fill: none; stroke: var(--zc, var(--line-fort)); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
 .l-wan { --zc: var(--wan); } .l-dmz { --zc: var(--dmz); } .l-lan { --zc: var(--lan); } .l-mgmt { --zc: var(--mgmt); }
@@ -163,15 +173,32 @@ code { font-family: var(--f-mono); font-size: .92em; background: var(--surface-2
 .lien.debranche { stroke: var(--bad); stroke-dasharray: 4 4; opacity: .7; }
 .croix { fill: var(--bad); font-size: 12px; font-weight: 700; }
 
-.noeud .cadre { fill: var(--surface-2); stroke: var(--zc, var(--line-fort)); stroke-width: 1.4; transition: stroke-width .3s, fill .3s; }
-.noeud.n-parefeu .cadre { stroke: var(--opn); stroke-width: 2.4; fill: color-mix(in srgb, var(--opn) 14%, var(--surface-2)); }
-.noeud.n-exterieur .cadre { stroke-dasharray: 4 3; }
-.noeud-nom { fill: var(--fg); font-size: 12.5px; font-weight: 700; }
+.noeud { --bc: var(--zc, var(--line-fort)); cursor: default; }
+.noeud.n-parefeu { --bc: var(--opn); }
+.noeud.n-exterieur { --bc: var(--ext); }
+.noeud .ancre { fill: none; stroke: none; pointer-events: none; }
+.noeud .ombre { fill: var(--ombre); }
+.noeud .bloc { transition: transform .25s var(--ease-out); }
+.noeud .cadre, .noeud .face { stroke: color-mix(in srgb, var(--bc) 85%, transparent); stroke-width: 1.1; stroke-linejoin: round; transition: stroke-width .3s, fill .3s; }
+.noeud .cadre { fill: color-mix(in srgb, var(--bc) 20%, var(--surface-2)); }
+.noeud .face-avant { fill: color-mix(in srgb, var(--bc) 42%, var(--surface)); }
+.noeud .face-cote { fill: color-mix(in srgb, var(--bc) 26%, var(--bg)); }
+.noeud.n-parefeu .cadre { stroke-width: 2; fill: color-mix(in srgb, var(--opn) 28%, var(--surface-2)); }
+.noeud.n-exterieur .cadre, .noeud.n-exterieur .face { stroke-dasharray: 4 3; }
+.noeud .rainure { stroke: color-mix(in srgb, var(--bc) 30%, var(--bg)); stroke-width: 1.6; stroke-linecap: round; }
+.noeud .voyant { fill: var(--ok); }
+.noeud.n-parefeu .voyant:nth-of-type(2) { fill: var(--warn); }
+.noeud-nom { fill: var(--fg); font-size: 12.5px; font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
 .noeud.n-parefeu .noeud-nom { font-size: 15px; letter-spacing: .06em; }
 .noeud-ip { fill: var(--muted); font-size: 10px; }
-.noeud:hover .cadre, .noeud:focus .cadre { stroke-width: 2.6; }
+.noeud-ip.sur-face { fill: color-mix(in srgb, var(--fg) 85%, var(--bc)); font-size: 9.5px; font-weight: 600; pointer-events: none; }
+.noeud.n-exterieur .noeud-ip.sur-face { font-size: 8.5px; }
+.noeud.n-parefeu .noeud-ip.sur-face { font-size: 11px; }
+.noeud:hover .bloc, .noeud:focus .bloc { transform: translateY(-4px); }
+.noeud:hover .cadre, .noeud:focus .cadre { stroke-width: 2.2; }
 .noeud:focus { outline: none; }
 .noeud:focus-visible .cadre { stroke: var(--acc); stroke-width: 3; }
+@media (prefers-reduced-motion: reduce) { .noeud .bloc { transition: none; } }
 .temporaire { display: none; }
 
 .paquet-decor { stroke: var(--bg); stroke-width: 1.5; }
@@ -357,9 +384,15 @@ section.etape-texte { display: block; }
 .schema-svg.avec-ip .calque-ip { display: inline; }
 .schema-svg.sans-zones .calque-zones { display: none; }
 .noeud-adresse { fill: var(--muted); font-size: 8.5px; }
-.noeud.actif .cadre { stroke: var(--acc); stroke-width: 3; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--acc) 60%, transparent)); }
-.noeud.alerte .cadre { stroke: var(--ids); stroke-width: 3.4; }
-.noeud.etat-eteinte .cadre, .noeud.etat-suspendue .cadre { opacity: .45; stroke-dasharray: 3 3; }
+.noeud.actif { --bc: var(--acc); }
+.noeud.actif .bloc { transform: translateY(-5px); filter: drop-shadow(0 0 7px color-mix(in srgb, var(--acc) 55%, transparent)); }
+.noeud.actif .cadre { stroke-width: 2.4; }
+.noeud.alerte { --bc: var(--ids); }
+.noeud.alerte .cadre { stroke-width: 3; }
+.noeud.etat-eteinte .bloc, .noeud.etat-suspendue .bloc { opacity: .45; }
+.noeud.etat-eteinte .cadre, .noeud.etat-suspendue .cadre, .noeud.etat-eteinte .face, .noeud.etat-suspendue .face { stroke-dasharray: 3 3; }
+.noeud.etat-eteinte .voyant { fill: var(--bad); }
+.noeud.etat-suspendue .voyant { fill: var(--warn); }
 .paquet { stroke: var(--bg); stroke-width: 1.5; }
 .paquet.p-https { fill: var(--p-https); }
 .paquet.p-http { fill: var(--p-http); }
@@ -369,6 +402,90 @@ section.etape-texte { display: block; }
 .paquet.p-ssh { fill: var(--mgmt); }
 .paquet.p-icmp { fill: var(--fg); }
 .paquet.p-autre { fill: var(--acc); }
+.paquet.p-reponse { fill: var(--p-reponse); }
+
+/* Lecteur : caméra (bouton de retour), mise au point, paquets étiquetés, câbles allumés, onde, chute. */
+.btn-vue { position: absolute; top: 1rem; right: 1rem; font: 600 .72rem var(--f-mono); letter-spacing: .04em; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--line-fort); border-radius: var(--rayon); padding: .3rem .6rem; cursor: pointer; }
+.btn-vue:hover, .btn-vue:focus-visible { border-color: var(--acc); color: var(--acc); }
+.btn-vue[hidden] { display: none; }
+.schema-svg .noeud, .schema-svg .lien { transition: opacity .4s var(--ease-out); }
+.schema-svg.mise-au-point .noeud:not(.implique):not(.actif) { opacity: .3; }
+.schema-svg.mise-au-point .lien:not(.implique):not(.parcouru) { opacity: .22; }
+.lien.parcouru { stroke: var(--pcol); stroke-width: 3.6; opacity: 1; filter: drop-shadow(0 0 3px var(--pcol)); }
+.lien.parcouru.en-cours { stroke-dasharray: 8 5; animation: flux-lien .5s linear infinite; }
+@keyframes flux-lien { to { stroke-dashoffset: -13; } }
+.paquet-etiquette { animation: apparaitre .25s var(--ease-out); }
+.paquet-etiquette rect { stroke: var(--bg); stroke-width: 1.2; }
+.paquet-etiquette text { fill: var(--bg); font-size: 10px; font-weight: 700; }
+.paquet-etiquette .cadenas { fill: none; stroke: var(--bg); stroke-width: 1.3; stroke-linejoin: round; }
+@keyframes apparaitre { from { opacity: 0; } }
+.paquet-trainee { stroke: none; pointer-events: none; }
+.onde { fill: none; stroke-width: 2.2; transform-box: fill-box; transform-origin: center; pointer-events: none; }
+.chute-croix { fill: none; stroke: var(--bad); stroke-width: 2.8; stroke-linecap: round; }
+.legende-paquets { display: inline-flex; flex-wrap: wrap; gap: .2rem .7rem; font: 600 .7rem var(--f-mono); color: var(--muted); margin-right: .8rem; }
+.legende-paquets i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: -1px; background: var(--c); }
+@media (prefers-reduced-motion: reduce) { .lien.parcouru.en-cours, .paquet-etiquette { animation: none; } }
+
+/* Couleur d'un paquet dans le tableau et la séquence (même code que sur le schéma). */
+.flux .p-https, .sequence .p-https { --c: var(--p-https); } .flux .p-http, .sequence .p-http { --c: var(--p-http); }
+.flux .p-dns, .sequence .p-dns { --c: var(--dmz); } .flux .p-ssh, .sequence .p-ssh { --c: var(--mgmt); }
+.flux .p-syslog, .sequence .p-syslog { --c: var(--p-syslog); } .flux .p-ntp, .sequence .p-ntp { --c: var(--p-ntp); }
+.flux .p-icmp, .sequence .p-icmp { --c: var(--fg); } .flux .p-autre, .sequence .p-autre { --c: var(--acc); }
+.flux .p-reponse, .sequence .p-reponse { --c: var(--p-reponse); }
+
+/* Onglets Réseau / Séquence, sur le cadre du schéma. */
+.vues-lecteur { position: absolute; top: 1rem; left: 1rem; z-index: 1; display: flex; border: 1px solid var(--line-fort); border-radius: var(--rayon); overflow: hidden; background: var(--surface); }
+.vues-lecteur button { font: 600 .72rem var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: none; border: 0; padding: .32rem .7rem; cursor: pointer; }
+.vues-lecteur button[aria-selected="true"] { background: var(--acc); color: var(--on-acc); }
+.vues-lecteur button:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
+.schema.en-sequence .btn-vue { display: none; }
+
+/* Vue Séquence. */
+.sequence { overflow: auto; margin-top: 2.5rem; }
+.seq-entete { display: block; font-family: var(--f-mono); position: sticky; top: 0; z-index: 1; background: var(--surface); border-bottom: 1px solid var(--line); }
+.sequence:focus-visible { outline: 2px solid var(--acc); }
+.seq-svg { display: block; font-family: var(--f-mono); }
+.seq-ligne { stroke: var(--line-fort); stroke-width: 1; stroke-dasharray: 3 4; }
+.seq-machine rect { fill: color-mix(in srgb, var(--zc, var(--ext)) 18%, var(--surface-2)); stroke: var(--zc, var(--ext)); stroke-width: 1.2; }
+.seq-machine.z-trunk { --zc: var(--opn); }
+.seq-machine text { fill: var(--fg); font-size: 11px; font-weight: 700; }
+.seq-entree { cursor: pointer; transition: opacity .3s var(--ease-out); }
+.seq-entree.a-venir { opacity: .2; }
+.seq-entree.passe { opacity: .7; }
+.seq-fleche { stroke: var(--c); stroke-width: 2; }
+.seq-pointe { fill: var(--c); }
+.seq-entree.courant .seq-fleche { stroke-width: 3; filter: drop-shadow(0 0 3px var(--c)); }
+.seq-etiquette { fill: var(--c); }
+.seq-etiquette-texte { fill: var(--bg); font-size: 10px; font-weight: 700; }
+.seq-num { fill: var(--c); stroke: var(--bg); stroke-width: 1.5; }
+.seq-num-texte { fill: var(--bg); font-size: 10px; font-weight: 700; }
+.seq-entree.inspecte .seq-num { stroke: var(--fg); stroke-width: 2.5; }
+.seq-verdict { fill: var(--muted); font-size: 10px; font-weight: 600; }
+.seq-verdict.v-passe { fill: var(--ok); } .seq-verdict.v-bloque, .seq-verdict.v-injoignable { fill: var(--bad); } .seq-verdict.v-refuse { fill: var(--warn); }
+.seq-croix { stroke: var(--bad); stroke-width: 2.6; stroke-linecap: round; }
+
+/* Tableau « Flux de paquets ». */
+.flux { background: var(--surface); border: 1px solid var(--line); border-radius: var(--rayon); }
+.flux-tete { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; padding: .55rem .8rem; border-bottom: 1px solid var(--line); }
+.flux-tete h3 { margin: 0; font: 700 .85rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; }
+.flux-note { color: var(--muted); font: 400 .72rem var(--f-texte); }
+.flux-defilement { max-height: 15.5rem; overflow: auto; }
+.flux-vide { margin: 0; padding: .7rem .8rem; color: var(--muted); font-size: .82rem; }
+.flux-table { width: 100%; border-collapse: collapse; font: 400 .74rem/1.35 var(--f-mono); }
+.flux-table th { position: sticky; top: 0; z-index: 1; background: var(--surface); text-align: left; font-weight: 700; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: .4rem .5rem; border-bottom: 1px solid var(--line); }
+.flux-table td { padding: .34rem .5rem; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); vertical-align: top; }
+.flux-table tr { cursor: pointer; transition: opacity .3s var(--ease-out), background-color .2s; }
+.flux-table tbody tr:hover, .flux-table tbody tr:focus-visible { background: var(--surface-2); outline: none; }
+.flux-table tr.a-venir { opacity: .38; }
+.flux-table tr.courant { background: color-mix(in srgb, var(--acc) 13%, transparent); box-shadow: inset 3px 0 0 var(--acc); }
+.flux-table tr.inspecte { box-shadow: inset 3px 0 0 var(--fg); background: var(--surface-2); }
+.flux-table tr.deduite .flux-info { font-style: italic; }
+.flux-num { display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--c, var(--acc)); color: var(--bg); font-weight: 700; font-size: .68rem; }
+.flux-adresse { display: block; color: var(--muted); font-size: .68rem; }
+.flux-info { min-width: 14rem; }
+.flux-taille { white-space: nowrap; color: var(--muted); }
+@media (max-width: 720px) { .flux-table th:nth-child(6), .flux-table td:nth-child(6) { display: none; } }
 .bulle rect { fill: var(--surface); stroke: var(--line-fort); }
 .bulle text { fill: var(--fg); font-size: 10.5px; }
 .bulle.nat rect { stroke: var(--opn); }
