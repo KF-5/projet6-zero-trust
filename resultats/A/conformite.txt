@@ -1,0 +1,11 @@
+# test_flux - etat A - 2026-11-24 17:40 - tests.csv etat A (8 tests)
+ID     SOURCE      DESTINATION     PROTO PORT  ATTENDU OBTENU VERDICT
+T001   client-ext  203.0.113.1     tcp  80    pass   pass   CONFORME
+T002   client-ext  203.0.113.1     tcp  22    block  block  CONFORME
+T003   client-ext  203.0.113.1     tcp  53    pass   pass   CONFORME
+T004   client-ext  203.0.113.1     tcp  22    block  block  CONFORME
+T005   nginx       10.10.0.70      tcp  5432  pass   pass   CONFORME
+T006   nginx       10.10.0.70      tcp  22    block  block  CONFORME
+T007   client-01   10.20.0.10      tcp  443   pass   pass   CONFORME
+T008   client-ext  10.10.0.10      tcp  22    block  block  CONFORME
+Conformes : 8 · Écarts : 0
