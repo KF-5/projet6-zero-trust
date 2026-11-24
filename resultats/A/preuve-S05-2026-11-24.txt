@@ -1,0 +1,40 @@
+Preuve S-05 - etat A - mouvement lateral client-03 -> postgres
+Role 2 (pare-feu) - 2026-11-24
+
+OBJECTIF
+Montrer qu'en etat A, la connexion client-03 -> postgres (10.10.0.12 -> 10.10.0.70, TCP 5432)
+ne laisse AUCUNE ligne dans le journal du pare-feu : les deux machines sont dans le meme
+segment (LAN 10.10.0.0/24), le paquet ne traverse pas OPNsense.
+
+1) CONNEXION (lancee par le role 1 sur p6-docker, horloge de p6-docker)
+   23:37:28
+   Connection to 10.10.0.70 5432 port [tcp/postgresql] succeeded!
+   23:37:28
+   commande : docker exec client-03 nc -zv -w 2 10.10.0.70 5432
+
+2) CONTROLE POSITIF (le journal sait enregistrer un flux qui traverse le pare-feu)
+   Test T005 du 2026-11-24 a 17:40 (test_flux, etat A) : nginx -> postgres:5432, FA3.
+   Le journal contient les lignes du paquet : "pass in" sur vlan02 (DMZ) et "pass out"
+   sur vlan01 (LAN) a 17:40:40. Les tests "mauvais port" (port 22) y laissent aussi
+   des lignes "block in" (17:40:40 et 17:40:41).
+
+3) PREUVE (collecteur, /var/log/p6/10.99.0.1.log, fenetre 2026-11-24T23:30 a 23:39)
+   P="2026-11-24T23:3"
+   # temoin : nombre total de lignes du journal dans la fenetre
+   grep -F "$P" /var/log/p6/10.99.0.1.log | grep -c .
+   -> 774
+   # S-05 : lignes qui contiennent a la fois client-03 (10.10.0.12) et postgres (10.10.0.70)
+   grep -F "$P" /var/log/p6/10.99.0.1.log | grep -F "10.10.0.12" | grep -F "10.10.0.70" | grep -c .
+   -> 0
+
+NOTES
+- L'horloge du pare-feu avance d'environ 11 s sur celle du collecteur (constate le 2026-11-24
+  a 23:03 : ligne du pare-feu a 23:04:00 pour un date du collecteur a 23:03:49). La fenetre de
+  10 minutes absorbe cet ecart ; la connexion (23:37:28) y est au milieu.
+- Le temoin (774 lignes) prouve que le journal enregistrait pendant la fenetre ; le resultat
+  0 n'est donc pas du a un journal arrete.
+
+CONCLUSION
+Etat A : S-05 = 0 ligne. Le pare-feu ne voit pas le mouvement lateral dans un meme segment.
+A refaire a l'identique en etat B (client-03 et postgres dans deux segments differents :
+la connexion doit etre bloquee et journalisee).
