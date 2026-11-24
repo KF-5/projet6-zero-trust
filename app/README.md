@@ -82,7 +82,7 @@ Huit plans de la vidéo d'installation et de tests, **P-1 à P-8**, se filment d
 | P-7 | `/Video/P-7` | 20 s | Résultats A contre B (`resultats/synthese/synthese.csv`) |
 | P-8 | `/Video/P-8` | 15 s | Conclusion : A contre B, l'équipe, la phrase de fin |
 
-**Touches** (aucune ne fait apparaître quoi que ce soit à l'image) : **Espace** lecture / pause · **R** recommencer la scène · **→** scène suivante · **←** précédente. À l'ouverture, la scène reste immobile au moins 2 s, puis attend Espace. Le curseur disparaît après 2 s sans bouger la souris.
+**Touches** (aucune ne fait apparaître quoi que ce soit à l'image) : **Espace** (ou un clic sur la scène) lecture / pause · **R** recommencer la scène · **→** scène suivante · **←** précédente. À l'ouverture, la scène reste immobile au moins 2 s, puis attend Espace. Le curseur disparaît après 2 s sans bouger la souris.
 
 **Prise finale** : ajouter `?propre=1` (par exemple `/Video/P-5?propre=1`) retire le petit « P-5 » du coin en haut à gauche ; il est conservé en passant d'une scène à l'autre avec → et ←.
 

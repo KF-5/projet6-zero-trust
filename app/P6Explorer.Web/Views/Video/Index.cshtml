@@ -35,7 +35,7 @@
                         <td>@s.DureeS.ToString("0.#", fr) s</td>
                         <td>@s.Etat</td>
                         <td><span class="statut-scene statut-@(s.Statut == "prête" ? "prete" : s.Statut)">@s.Statut</span></td>
-                        <td><a href="/Video/@s.Id">Ouvrir en mode tournage</a> · <a href="/Video/@s.Id?propre=1" title="Sans le coin « @s.Id », pour la prise finale">prise propre</a></td>
+                        <td><a href="/Video/@s.Id">Ouvrir en mode tournage</a> · <a href="/Video/@s.Id?propre=1" title="Sans le coin « @s.Id », pour la prise finale">prise propre</a> · <a href="/Video/@s.Id?lecture=auto" title="Démarre seule après 2 s, pour vérifier la scène (pas pour le tournage)">aperçu</a></td>
                     </tr>
                 }
             </tbody>
@@ -51,7 +51,8 @@
     <section class="aide-tournage">
         <h2>Pendant le tournage</h2>
         <ul>
-            <li><kbd>Espace</kbd> lecture / pause · <kbd>R</kbd> recommencer la scène · <kbd>→</kbd> scène suivante · <kbd>←</kbd> précédente.</li>
+            <li><kbd>Espace</kbd> (ou un clic sur la scène) lecture / pause · <kbd>R</kbd> recommencer la scène · <kbd>→</kbd> scène suivante · <kbd>←</kbd> précédente.</li>
+            <li>Rien ne se passe à l'ouverture : c'est voulu, la scène attend <kbd>Espace</kbd> pour que l'enregistrement commence sur une image fixe. Le lien « aperçu » la lance seul.</li>
             <li>La scène reste immobile 2 s après l'ouverture, puis attend <kbd>Espace</kbd>. À la fin, la dernière image reste figée.</li>
             <li>Navigateur en plein écran (<kbd>F11</kbd>), zoom 100 % ; le curseur disparaît après 2 s d'immobilité.</li>
             <li>Statuts : <strong>prête</strong> (données réelles), <strong>illustration</strong> (valeurs d'exemple, bandeau rouge à l'image), <strong>cible</strong> (état pas encore construit, bandeau « Ce qui suit est la cible »).</li>

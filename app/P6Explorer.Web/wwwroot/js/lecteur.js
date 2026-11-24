@@ -1123,6 +1123,9 @@
       else if (e.key === "ArrowLeft" && donnees.precedente) { e.preventDefault(); location.href = "/Video/" + encodeURIComponent(donnees.precedente) + location.search; }
     });
 
+    // Un clic sur la scène fait comme Espace (utile si le clavier n'atteint pas la page : aperçu intégré, focus ailleurs).
+    scene.addEventListener("click", () => { window.focus(); basculer(); });
+
     function basculer() {
       if (etat === "pret") demarrer();
       else if (etat === "lecture") {
