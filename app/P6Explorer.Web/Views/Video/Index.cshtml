@@ -1,0 +1,60 @@
+@model VideoIndexVM
+@using System.Globalization
+@{
+    var fr = CultureInfo.GetCultureInfo("fr-FR");
+}
+<div class="page-video">
+    <header>
+        <p class="surtitre">Vidéo d'installation et de tests</p>
+        <h1>Plans à filmer dans P6 Explorer</h1>
+        <p class="chapeau">Chaque plan est une scène prête à filmer : ouvre-la, appuie sur <kbd>Espace</kbd>, elle se joue seule puis s'arrête sur sa dernière image.
+            Les scènes sont décrites dans <code>donnees/video/scenes.json</code> (modifiable sans recompiler).</p>
+    </header>
+
+    @if (Model.Erreurs.Count > 0)
+    {
+        <section class="erreurs-scenes" role="alert">
+            <h2>scenes.json contient @Model.Erreurs.Count erreur@(Model.Erreurs.Count > 1 ? "s" : "")</h2>
+            <ul>@foreach (var e in Model.Erreurs) { <li>@e</li> }</ul>
+        </section>
+    }
+
+    @if (Model.Scenes.Count > 0)
+    {
+        <table class="tableau-scenes">
+            <thead>
+                <tr><th scope="col">Plan</th><th scope="col">Titre</th><th scope="col">Séquence</th><th scope="col">Durée</th><th scope="col">État de départ</th><th scope="col">Statut</th><th scope="col">Tournage</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Scenes)
+                {
+                    <tr>
+                        <th scope="row">@s.Id</th>
+                        <td>@s.Titre</td>
+                        <td>@s.Sequence</td>
+                        <td>@s.DureeS.ToString("0.#", fr) s</td>
+                        <td>@s.Etat</td>
+                        <td><span class="statut-scene statut-@(s.Statut == "prête" ? "prete" : s.Statut)">@s.Statut</span></td>
+                        <td><a href="/Video/@s.Id">Ouvrir en mode tournage</a> · <a href="/Video/@s.Id?propre=1" title="Sans le coin « @s.Id », pour la prise finale">prise propre</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (Model.ResultatsIllustration)
+    {
+        <p class="note">P-7 et P-8 sont en <strong>illustration</strong> : <code>resultats/synthese/synthese.csv</code> est absent ou invalide (format : <code>resultats/synthese/FORMAT.md</code>).
+            @foreach (var r in Model.RemarquesResultats) { <span class="remarque">@r</span> }</p>
+    }
+
+    <section class="aide-tournage">
+        <h2>Pendant le tournage</h2>
+        <ul>
+            <li><kbd>Espace</kbd> lecture / pause · <kbd>R</kbd> recommencer la scène · <kbd>→</kbd> scène suivante · <kbd>←</kbd> précédente.</li>
+            <li>La scène reste immobile 2 s après l'ouverture, puis attend <kbd>Espace</kbd>. À la fin, la dernière image reste figée.</li>
+            <li>Navigateur en plein écran (<kbd>F11</kbd>), zoom 100 % ; le curseur disparaît après 2 s d'immobilité.</li>
+            <li>Statuts : <strong>prête</strong> (données réelles), <strong>illustration</strong> (valeurs d'exemple, bandeau rouge à l'image), <strong>cible</strong> (état pas encore construit, bandeau « Ce qui suit est la cible »).</li>
+        </ul>
+    </section>
+</div>

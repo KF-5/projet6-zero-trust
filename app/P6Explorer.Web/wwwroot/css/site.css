@@ -613,3 +613,64 @@ dfn.terme:focus { outline: 2px solid var(--acc); outline-offset: 1px; }
   .logo-sous { display: none; }
   .carte-chiffres { flex-direction: column; gap: .2rem; }
 }
+
+/* ---------- Section « Vidéo » (liste des plans) et page « Politique » ---------- */
+.page-video, .page-politique { display: flex; flex-direction: column; gap: 1.2rem; }
+.page-video kbd, .page-politique kbd { font: 600 .78rem var(--f-mono); border: 1px solid var(--line-fort); border-bottom-width: 2px; border-radius: 3px; padding: 0 .35rem; background: var(--surface-2); }
+.tableau-scenes { width: 100%; border-collapse: collapse; font-size: .92rem; background: var(--surface); border: 1px solid var(--line); }
+.tableau-scenes th, .tableau-scenes td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tableau-scenes thead th { font: 700 .7rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tableau-scenes tbody th { font: 700 .95rem var(--f-mono); }
+.statut-scene { font: 700 .72rem var(--f-mono); text-transform: uppercase; letter-spacing: .06em; padding: .1rem .45rem; border-radius: 2px; }
+.statut-prete { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.statut-illustration { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.statut-cible { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.erreurs-scenes { border: 1px solid var(--bad); border-left-width: 4px; background: color-mix(in srgb, var(--bad) 8%, var(--surface)); padding: .7rem 1rem; border-radius: var(--rayon); }
+.erreurs-scenes h2 { margin: 0 0 .4rem; font-size: 1rem; color: var(--bad); }
+.remarque { display: block; font-family: var(--f-mono); font-size: .78rem; }
+.aide-tournage ul { margin: 0; padding-left: 1.2rem; }
+.bascule-politique { display: flex; gap: .5rem; margin-top: .8rem; }
+.bascule-politique a { font: 600 .78rem var(--f-mono); text-transform: uppercase; letter-spacing: .06em; padding: .35rem .7rem; border: 1px solid var(--line-fort); border-radius: var(--rayon); color: var(--fg); text-decoration: none; }
+.bascule-politique a[aria-current="page"] { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+
+/* Matrice des flux (partagée : /Politique et scène P-4). */
+.matrice { background: var(--surface); border: 1px solid var(--line); border-radius: var(--rayon); padding: 1rem; }
+.matrice-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem 1rem; margin-bottom: .8rem; }
+.matrice-tete h2 { margin: 0; font: 700 1rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+.matrice-legende { margin: 0; color: var(--muted); font-size: .8rem; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.case-exemple { display: inline-block; width: .9rem; height: .9rem; border-radius: 2px; }
+.case-exemple.autorise { background: color-mix(in srgb, var(--ok) 35%, var(--surface-2)); border: 1px solid var(--ok); }
+.case-exemple.refus { background: var(--surface-2); border: 1px solid var(--line-fort); margin-left: .6rem; }
+.matrice-corps { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.matrice-grille-cadre { overflow-x: auto; }
+.matrice-grille { border-collapse: separate; border-spacing: 3px; font: 400 .8rem var(--f-mono); width: 100%; }
+.matrice-grille th { font-weight: 700; padding: .35rem .5rem; text-align: center; color: var(--fg); }
+.matrice-grille thead th { font-size: .74rem; color: var(--muted); }
+.matrice-grille tbody th { text-align: right; white-space: nowrap; }
+.matrice-coin { font-weight: 400 !important; font-size: .68rem !important; text-align: right !important; }
+.matrice-grille td { text-align: center; padding: .35rem .3rem; border-radius: 2px; min-width: 4.6rem; }
+.case-flux { background: color-mix(in srgb, var(--ok) 26%, var(--surface-2)); border: 1px solid color-mix(in srgb, var(--ok) 70%, transparent); }
+.case-refus { background: var(--surface-2); color: var(--muted); font-size: .66rem; }
+.case-id { display: block; font-weight: 700; color: var(--fg); }
+.case-port { display: block; font-size: .7rem; color: var(--muted); }
+.matrice-compteurs { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: .8rem 0 .2rem; font-size: .9rem; }
+.matrice-compteurs strong { font: 700 1.15rem var(--f-mono); color: var(--acc); }
+.matrice-fichiers { margin: 0; color: var(--muted); font: 400 .74rem var(--f-mono); }
+.matrice-details { display: flex; flex-direction: column; gap: .7rem; }
+.flux-detail { border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: var(--rayon); padding: .6rem .8rem; background: var(--surface-2); }
+.flux-detail.defaut { border-left-color: var(--line-fort); }
+.flux-detail h3 { margin: 0 0 .4rem; font-size: .9rem; display: flex; gap: .5rem; align-items: baseline; }
+.flux-detail .case-id { display: inline; }
+.detail-titre { margin: .5rem 0 .2rem; font: 700 .66rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ligne-csv { display: block; font: 400 .76rem var(--f-mono); background: var(--bg); border: 1px solid var(--line); border-radius: 2px; padding: .3rem .5rem; overflow-x: auto; white-space: pre; }
+.detail-champs { display: grid; grid-template-columns: auto 1fr; gap: .1rem .7rem; margin: .4rem 0 0; font-size: .82rem; }
+.detail-champs dt { color: var(--muted); font-family: var(--f-mono); font-size: .74rem; }
+.detail-champs dd { margin: 0; }
+.detail-tests { list-style: none; margin: 0; padding: 0; font: 400 .78rem var(--f-mono); }
+.detail-tests li { padding: .15rem 0; }
+.test-id { color: var(--muted); }
+.attendu { font-weight: 700; text-transform: uppercase; font-size: .7rem; padding: 0 .3rem; border-radius: 2px; }
+.attendu-pass { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.attendu-block { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.detail-vide { margin: 0; color: var(--muted); font-size: .8rem; }
+@media (max-width: 900px) { .matrice-corps { grid-template-columns: minmax(0, 1fr); } }

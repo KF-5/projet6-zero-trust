@@ -45,6 +45,12 @@ public static class DependencyInjection
         // Auteur des modifications : remplacé par la version web (compte connecté) dans Program.cs.
         services.TryAddSingleton<IUtilisateurCourant, AucunUtilisateur>();
 
+        // Fichiers du dépôt lus en direct : scènes de la vidéo, politique (flows, tests), synthèse des résultats.
+        services.AddSingleton<P6Explorer.Infrastructure.Fichiers.DossiersDepot>();
+        services.AddSingleton<ISourcePolitique, P6Explorer.Infrastructure.Fichiers.SourcePolitique>();
+        services.AddSingleton<ISourceScenes, P6Explorer.Infrastructure.Fichiers.SourceScenes>();
+        services.AddSingleton<ISourceSynthese, P6Explorer.Infrastructure.Fichiers.SourceSynthese>();
+
         services.Configure<OptionsAmorcage>(configuration.GetSection(OptionsAmorcage.Section));
         services.AddScoped<IServiceAmorcage, ServiceAmorcage>();
         return services;

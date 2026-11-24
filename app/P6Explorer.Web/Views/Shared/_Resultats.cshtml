@@ -1,0 +1,44 @@
+@model ResultatsVM
+@using System.Globalization
+@{
+    // Résultats A contre B (P-7) : une paire de barres par indicateur du fichier, en SVG généré ici (pas de bibliothèque).
+    var fr = CultureInfo.GetCultureInfo("fr-FR");
+    string V(double v, string unite) => (v.ToString("0.##", fr) + " " + unite).Trim();
+    string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+    const double Largeur = 1180, X0 = 150, Long = 860;
+}
+<section class="resultats" data-illustration="@(Model.Illustration ? "1" : "0")" aria-label="Résultats, état A contre état B">
+    @if (Model.Illustration)
+    {
+        <div class="bandeau-illustration" role="note">ILLUSTRATION — données fictives</div>
+    }
+    <header class="resultats-tete">
+        <h2>Résultats · état A contre état B</h2>
+    </header>
+    @if (Model.Indicateurs.Count == 0)
+    {
+        <p class="resultats-vide">Aucun indicateur lisible.</p>
+    }
+    <div class="resultats-indicateurs">
+        @for (var i = 0; i < Model.Indicateurs.Count; i++)
+        {
+            var ind = Model.Indicateurs[i];
+            <div class="indicateur" data-i="@i">
+                <h3>@ind.Libelle</h3>
+                <svg class="barres" viewBox="0 0 @F(Largeur) 118" role="img" aria-label="@ind.Libelle : état A @V(ind.ValeurA, ind.Unite), état B @V(ind.ValeurB, ind.Unite)">
+                    @foreach (var (etat, valeur, y) in new[] { ("A", ind.ValeurA, 8.0), ("B", ind.ValeurB, 64.0) })
+                    {
+                        var l = Long * valeur / ind.Maximum;
+                        <g class="barre barre-@etat.ToLowerInvariant()">
+                            <text class="barre-etat" x="0" y="@F(y + 33)">État @etat</text>
+                            <rect class="barre-fond" x="@F(X0)" y="@F(y)" width="@F(Long)" height="46" rx="3" />
+                            <rect class="barre-valeur" x="@F(X0)" y="@F(y)" width="@F(Math.Max(l, 2))" height="46" rx="3" />
+                            <text class="barre-texte" x="@F(X0 + Math.Max(l, 2) + 14)" y="@F(y + 33)">@V(valeur, ind.Unite)</text>
+                        </g>
+                    }
+                </svg>
+            </div>
+        }
+    </div>
+    <p class="resultats-source">Source : @Model.Source</p>
+</section>

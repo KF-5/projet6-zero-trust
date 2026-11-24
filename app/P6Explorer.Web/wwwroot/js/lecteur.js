@@ -8,8 +8,9 @@
   if (!racine) return;
   const mode = racine.dataset.mode || "etape";
   const reduit = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const svg = racine.querySelector("svg.schema-svg");
-  const anim = svg ? svg.querySelector(".calque-anim") : null;
+  // « let » : le mode vidéo change de schéma (bascule A ↔ B) avec utiliserSchema() ; les autres modes n'en ont qu'un.
+  let svg = racine.querySelector("svg.schema-svg");
+  let anim = svg ? svg.querySelector(".calque-anim") : null;
   const NS = "http://www.w3.org/2000/svg";
   const $ = (id) => document.getElementById(id);
 
@@ -18,7 +19,21 @@
 
   // ------------------------------------------------------------------ outils
 
-  const attendre = (ms) => new Promise((ok) => setTimeout(ok, reduit ? 0 : ms / vitesse));
+  // Mode vidéo : attentes suspendues pendant la pause (Espace). Les autres modes gardent setTimeout tel quel.
+  let enPauseVideo = false;
+  function sommeil(ms) {
+    return new Promise((ok) => {
+      let reste = ms, avant = performance.now();
+      (function tic() {
+        const t = performance.now();
+        if (!enPauseVideo) reste -= t - avant;
+        avant = t;
+        if (reste <= 0) ok(); else setTimeout(tic, Math.min(50, Math.max(4, reste)));
+      })();
+    });
+  }
+  const minuterie = (ms) => (mode === "video" ? sommeil(ms) : new Promise((ok) => setTimeout(ok, ms)));
+  const attendre = (ms) => minuterie(reduit ? 0 : ms / vitesse);
   const enCours = (g) => g === generation;
 
   function el(nom, attributs, texte) {
@@ -53,7 +68,7 @@
   // La caméra anime le viewBox du schéma pour cadrer les machines de la commande (ou du paquet simulé),
   // puis la mise au point estompe tout ce qui ne participe pas.
 
-  const vueComplete = svg ? svg.getAttribute("viewBox").trim().split(/\s+/).map(Number) : null;
+  let vueComplete = svg ? svg.getAttribute("viewBox").trim().split(/\s+/).map(Number) : null;
   let vueActuelle = vueComplete ? vueComplete.slice() : null;
   let jetonCamera = 0;
   const adoucir = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -74,19 +89,23 @@
     const duree = Math.max(320, 760 / vitesse);
     return new Promise((ok) => {
       let t0 = null;                                       // horodatage de la première image (même horloge que t)
+      let precedent = null;
       let fini = false;
       const terminer = () => { if (!fini) { fini = true; ok(); } };
       function image(t) {
         if (fini) return;
         if (jeton !== jetonCamera) return terminer();
         if (t0 === null) t0 = t;
+        // Pause vidéo : la caméra s'arrête ; le départ est décalé d'autant (enPauseVideo reste faux dans les autres modes).
+        if (enPauseVideo && precedent !== null) { t0 += t - precedent; precedent = t; requestAnimationFrame(image); return; }
+        precedent = t;
         const p = Math.min(1, Math.max(0, (t - t0) / duree)), e = adoucir(p);
         poserVue(depart.map((d, i) => d + (cible[i] - d) * e));
         if (p < 1) requestAnimationFrame(image); else terminer();
       }
       requestAnimationFrame(image);
       // Sans images (onglet en arrière-plan, navigateur sans écran) : on pose la vue finale et on continue.
-      setTimeout(() => { if (!fini && jeton === jetonCamera) poserVue(cible); terminer(); }, duree + 80);
+      minuterie(duree + 80).then(() => { if (!fini && jeton === jetonCamera) poserVue(cible); terminer(); });
     });
   }
 
@@ -144,7 +163,18 @@
     return r.filterlog && r.equipement === "opnsense" && !svg.classList.contains("sans-journaux");
   }
 
-  if (svg) {
+  /** Mode vidéo : le schéma actif change (état A ou B) ; caméra et calque d'animation suivent. */
+  function utiliserSchema(nouveau) {
+    if (!nouveau || nouveau === svg) return;
+    jetonCamera++;
+    svg = nouveau;
+    anim = svg.querySelector(".calque-anim");
+    vueComplete = (svg.dataset.vueComplete || svg.getAttribute("viewBox")).trim().split(/\s+/).map(Number);
+    vueActuelle = vueComplete.slice();
+    svg.setAttribute("viewBox", vueComplete.join(" "));
+  }
+
+  if (svg && mode !== "video") {                       // pas de bouton « Vue d'ensemble » ni de double-clic à l'image
     const figure = svg.closest("figure");
     if (figure) {
       boutonVue = el("button", { type: "button", classe: "btn-vue", hidden: true, title: "Revenir à tout le schéma (double-clic sur le schéma)" }, "⤢ Vue d'ensemble");
@@ -221,7 +251,7 @@
 
   /** Attend la fin d'une animation, ou sa durée si le navigateur ne dessine pas (onglet en arrière-plan). */
   function finie(a, duree) {
-    return Promise.race([a.finished.catch(() => {}), new Promise((ok) => setTimeout(ok, duree + 120))]);
+    return Promise.race([a.finished.catch(() => {}), minuterie(duree + 120)]);
   }
 
   const NOMS_PROTO = { https: "HTTPS", http: "HTTP", dns: "DNS", ssh: "SSH", postgresql: "PostgreSQL", ntp: "NTP", syslog: "syslog", iperf3: "iperf3", smb: "SMB", rdp: "RDP", icmp: "ping" };
@@ -474,7 +504,7 @@
 
   const flux = (function () {
     const figure = svg ? svg.closest("figure") : null;
-    if (!figure) return { charger() {}, activer() {}, terminer() {} };
+    if (!figure || mode === "video") return { charger() {}, activer() {}, terminer() {} };   // rien de tout cela à l'image
 
     // Onglets Réseau / Séquence, posés sur le cadre du schéma.
     const onglets = el("div", { classe: "vues-lecteur", role: "tablist", "aria-label": "Vue du lecteur" });
@@ -1040,6 +1070,333 @@
       montrer(a === "suivante" ? i + 1 : i - 1, false);
     }));
     fetch("/api/simulation/demo").then((r) => r.json()).then((l) => { liste = l; if (l.length) montrer(0, false); });
+  }
+
+  // ------------------------------------------------------------------ mode vidéo (/Video/P-n : plans P-1 à P-8)
+  // Une scène de donnees/video/scenes.json, jouée étape par étape sur une scène fixe de 1920 × 1080.
+  // Rien ne bouge avant Espace (et pas avant 2 s d'image immobile). Espace : lecture / pause ; R : recommencer ;
+  // → / ← : scène suivante / précédente. La dernière image reste figée. Les verdicts viennent de /api/simulation.
+
+  if (mode === "video") lancerVideo();
+
+  function lancerVideo() {
+    const donnees = JSON.parse($("scene-donnees").textContent);
+    const scene = $("scene");
+    const boiteLegende = $("legende-video"), boiteTitre = $("titre-plein");
+    const IMMOBILE_MS = 2000;
+    const charge = performance.now();
+    vitesse = 1;
+    let etat = "pret";                                     // pret → attente → lecture ⇄ pause → fini
+    let debut = 0, pauses = 0, debutPause = 0;
+    let animationsSuspendues = [];
+    let dernierResultat = null;
+    let etatAffiche = donnees.etat;
+
+    // Chaque schéma garde son cadrage complet (la caméra modifie le viewBox).
+    document.querySelectorAll(".schema-etat svg.schema-svg").forEach((s) => { s.dataset.vueComplete = s.getAttribute("viewBox"); });
+    const conteneur = (e) => document.querySelector('.schema-etat[data-etat="' + e + '"]');
+    utiliserSchema(conteneur(etatAffiche).querySelector("svg.schema-svg"));
+
+    // Scène fixe 1920 × 1080, mise à l'échelle de la fenêtre (bandes noires si le rapport diffère).
+    function ajuster() { scene.style.setProperty("--echelle", String(Math.min(innerWidth / 1920, innerHeight / 1080))); }
+    addEventListener("resize", ajuster);
+    ajuster();
+
+    // Le curseur disparaît après 2 s d'immobilité.
+    let minuterieCurseur = 0;
+    function curseur() {
+      document.body.classList.remove("sans-curseur");
+      clearTimeout(minuterieCurseur);
+      minuterieCurseur = setTimeout(() => document.body.classList.add("sans-curseur"), 2000);
+    }
+    addEventListener("mousemove", curseur);
+    curseur();
+
+    const horloge = () => (etat === "pause" ? debutPause : performance.now()) - debut - pauses;
+    const jusqua = (t) => sommeil(Math.max(0, t - horloge()));
+
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.code === "Space" || e.key === " ") { e.preventDefault(); basculer(); }
+      else if (e.key === "r" || e.key === "R") { e.preventDefault(); location.reload(); }
+      else if (e.key === "ArrowRight" && donnees.suivante) { e.preventDefault(); location.href = "/Video/" + encodeURIComponent(donnees.suivante) + location.search; }
+      else if (e.key === "ArrowLeft" && donnees.precedente) { e.preventDefault(); location.href = "/Video/" + encodeURIComponent(donnees.precedente) + location.search; }
+    });
+
+    function basculer() {
+      if (etat === "pret") demarrer();
+      else if (etat === "lecture") {
+        etat = "pause"; debutPause = performance.now(); enPauseVideo = true;
+        animationsSuspendues = document.getAnimations().filter((a) => a.playState === "running");
+        animationsSuspendues.forEach((a) => a.pause());
+      } else if (etat === "pause") {
+        pauses += performance.now() - debutPause; etat = "lecture"; enPauseVideo = false;
+        animationsSuspendues.forEach((a) => a.play());
+        animationsSuspendues = [];
+      }
+    }
+
+    async function demarrer() {
+      etat = "attente";
+      const reste = IMMOBILE_MS - (performance.now() - charge);
+      if (reste > 0) await new Promise((ok) => setTimeout(ok, reste));
+      etat = "lecture"; debut = performance.now(); pauses = 0;
+      document.body.dataset.lecture = "en-cours";
+      try {
+        for (const e of donnees.etapes) await jouerEtape(e);
+      } catch (err) {
+        console.error("Scène " + donnees.id + " : " + (err && err.message ? err.message : err));
+      }
+      const duree = horloge() / 1000;
+      etat = "fini";
+      document.body.dataset.lecture = "finie";
+      document.body.dataset.dureeMesuree = duree.toFixed(1);
+      console.info("Scène " + donnees.id + " terminée en " + duree.toFixed(1) + " s (prévu : " + donnees.duree + " s).");
+    }
+    if (donnees.lectureAuto) demarrer();
+
+    // ---- étapes
+
+    async function jouerEtape(e) {
+      const t0 = horloge();
+      if (e.legende && e.type !== "simulation" && e.type !== "surligner_zone") montrerLegende(e.legende);
+      switch (e.type) {
+        case "pause": break;
+        case "legende": montrerLegende(e.texte); break;
+        case "titre": await montrerTitre(e.texte, (e.dureeS || 3) * 1000); break;
+        case "cadrer":
+          if (e.zones.length) surligner(e.zones);
+          mettreAuPoint([...e.noeuds, ...noeudsDesZones(e.zones)]);
+          if (e.zones.includes("TRUNK")) allumerTrunk();
+          await cadrer(e.noeuds);
+          break;
+        case "allumer":
+          enleverBulles();
+          e.noeuds.forEach(allumer);
+          if (e.texte) bulle(e.noeuds[0], e.texte, "info");
+          break;
+        case "surligner_zone":
+          if (e.etat && e.etat !== etatAffiche) await basculerEtat(e.etat);
+          surligner(e.zones);
+          if (e.legende) montrerLegende(e.legende);
+          await vueEnsemble();
+          break;
+        case "simulation": await simuler(e); break;
+        case "bascule_etat": await basculerEtat(e.etat); break;
+        case "cote_a_cote": coteACote(e); break;
+        case "matrice": await jouerMatrice(e, t0); break;
+        case "resultats": await jouerResultats(e, t0); break;
+        case "resume": await jouerResume(e, t0); break;
+        default: console.warn("Étape inconnue : " + e.type);
+      }
+      const action = horloge() - t0;                       // temps réellement pris par l'action (animation comprise)
+      if (e.type === "pause" && e.jusquAS != null) await jusqua(e.jusquAS * 1000);
+      else if (e.dureeS) await jusqua(t0 + e.dureeS * 1000);
+      // Aide au réglage des durées dans scenes.json (console du navigateur, jamais à l'image).
+      console.debug(donnees.id + " · " + e.type + " : action " + (action / 1000).toFixed(1) + " s, étape " + ((horloge() - t0) / 1000).toFixed(1) +
+        " s" + (e.dureeS && action > e.dureeS * 1000 + 100 ? " — dépasse duree_s (" + e.dureeS + " s)" : ""));
+    }
+
+    /** Marqueurs remplacés par le résultat du moteur de la dernière simulation (jamais écrits en dur). */
+    function remplacer(texte) {
+      const r = dernierResultat;
+      return (texte || "")
+        .replaceAll("{lignes_journal}", r ? String(aFilterlog(r) ? 1 : 0) : "?")
+        .replaceAll("{regle}", r && r.regle ? r.regle : "aucune")
+        .replaceAll("{verdict}", r ? r.verdictTexte : "?");
+    }
+
+    /** Courte animation décorative, toujours annulée à la fin de sa durée (même si le navigateur ne dessine pas). */
+    function effet(element, images, ms, easing) {
+      if (reduit) return;
+      const a = element.animate(images, { duration: ms, easing: easing || "ease-out" });
+      finie(a, ms).then(() => a.cancel());
+    }
+
+    function montrerLegende(texte) {
+      boiteLegende.querySelector("p").textContent = remplacer(texte);
+      if (boiteLegende.hidden) {
+        boiteLegende.hidden = false;
+        effet(boiteLegende, [{ opacity: 0, transform: "translate(-50%, 12px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], 350, "cubic-bezier(.16,1,.3,1)");
+      } else effet(boiteLegende.querySelector("p"), [{ opacity: 0 }, { opacity: 1 }], 300);
+    }
+    const masquerLegende = () => { boiteLegende.hidden = true; };
+
+    async function montrerTitre(texte, ms) {
+      const t0 = horloge();
+      boiteTitre.querySelector("p").textContent = texte;
+      boiteTitre.hidden = false;
+      if (!reduit) await finie(boiteTitre.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, fill: "forwards" }), 400);
+      await jusqua(t0 + ms - 400);                         // le fondu de sortie finit à l'instant prévu
+      if (!reduit) await finie(boiteTitre.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }), 400);
+      boiteTitre.hidden = true;
+    }
+
+    function enleverBulles() { if (anim) anim.querySelectorAll(".bulle").forEach((b) => b.remove()); }
+
+    function noeudsDesZones(zones) {
+      const table = (donnees.zones && donnees.zones[etatAffiche]) || {};
+      const ids = new Set();
+      zones.forEach((z) => (table[z] ? table[z].noeuds : []).forEach((n) => ids.add(n)));
+      if (zones.includes("TRUNK")) ids.add("opnsense");
+      return [...ids];
+    }
+
+    function allumerTrunk() { svg.querySelectorAll(".lien.l-trunk").forEach((l) => l.classList.add("implique", "trunk-en-avant")); }
+
+    /** Met des zones en avant (cadres et machines), atténue le reste. */
+    function surligner(zones) {
+      const table = (donnees.zones && donnees.zones[etatAffiche]) || {};
+      const reseaux = new Set();
+      zones.forEach((z) => (table[z] ? table[z].reseaux : []).forEach((r) => reseaux.add(r)));
+      enleverBulles();
+      svg.querySelectorAll(".noeud.actif").forEach((n) => n.classList.remove("actif"));
+      svg.classList.add("zones-en-avant");
+      svg.querySelectorAll(".zone").forEach((z) => z.classList.toggle("en-avant", reseaux.has(z.dataset.reseau)));
+      mettreAuPoint(noeudsDesZones(zones));
+      if (zones.includes("TRUNK")) allumerTrunk();
+    }
+
+    function enleverSurlignage() {
+      if (!svg) return;
+      svg.classList.remove("zones-en-avant");
+      svg.querySelectorAll(".zone.en-avant").forEach((z) => z.classList.remove("en-avant"));
+      svg.querySelectorAll(".trunk-en-avant").forEach((l) => l.classList.remove("implique", "trunk-en-avant"));
+    }
+
+    async function simuler(e) {
+      const etatSim = e.etat || donnees.etat;
+      if (etatSim !== etatAffiche) await basculerEtat(etatSim);
+      const reponse = await fetch("/api/simulation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ source: e.source, destination: e.destination, protocole: e.protocole, port: e.port, etat: etatSim }),
+      });
+      if (!reponse.ok) throw new Error("simulation refusée (" + reponse.status + ") : " + e.source + " → " + e.destination);
+      const r = await reponse.json();
+      dernierResultat = r;
+      if (e.legende) montrerLegende(e.legende);
+      const g = ++generation;
+      nettoyer();
+      enleverSurlignage();
+      mettreAuPoint(noeudsPaquet(r));
+      vitesse = e.vitesse || 1;                            // accélère seulement l'animation de ce paquet
+      try {
+        await cadrer(noeudsPaquet(r));
+        await animerPaquet(r, g, false);
+      } finally { vitesse = 1; }
+    }
+
+    async function fondu(element, de, a, ms) {
+      if (reduit) return;
+      await finie(element.animate([{ opacity: de }, { opacity: a }], { duration: ms, fill: "forwards" }), ms);
+    }
+
+    /** Remplace le schéma par celui de l'autre état : fondu de 0,5 s en tout. */
+    async function basculerEtat(nouvelEtat) {
+      if (nouvelEtat === etatAffiche) return;
+      const ancien = conteneur(etatAffiche), nouveau = conteneur(nouvelEtat);
+      ++generation;
+      nettoyer();
+      enleverSurlignage();
+      await fondu(ancien, 1, 0, 250);
+      ancien.hidden = true;
+      nouveau.hidden = false;
+      utiliserSchema(nouveau.querySelector("svg.schema-svg"));
+      etatAffiche = nouvelEtat;
+      await fondu(nouveau, 0, 1, 250);
+      ancien.getAnimations().forEach((a) => a.cancel());
+      nouveau.getAnimations().forEach((a) => a.cancel());
+    }
+
+    function montrerVue(nom) {
+      document.querySelectorAll("#lecteur .vue").forEach((v) => { v.hidden = v.dataset.vue !== nom; });
+    }
+
+    /** États A et B côte à côte, chacun en entier, avec son titre. */
+    function coteACote(e) {
+      ++generation;
+      nettoyer();
+      enleverSurlignage();
+      masquerLegende();
+      montrerVue("schemas");
+      const vue = document.querySelector(".vue-schemas");
+      vue.classList.add("cote-a-cote");
+      [["A", e.gauche], ["B", e.droite]].forEach(([x, titre]) => {
+        const c = conteneur(x);
+        c.hidden = false;
+        c.querySelector(".schema-etat-titre").textContent = titre || "État " + x;
+        const s = c.querySelector("svg.schema-svg");
+        s.setAttribute("viewBox", s.dataset.vueComplete);
+        effet(c, [{ opacity: 0, transform: "scale(.96)" }, { opacity: 1, transform: "none" }], 600, "cubic-bezier(.16,1,.3,1)");
+      });
+    }
+
+    /** P-4 : la grille apparaît ligne par ligne, puis la ligne choisie s'allume avec sa ligne de flows.csv et ses tests. */
+    async function jouerMatrice(e) {
+      masquerLegende();
+      montrerVue("matrice-" + e.etat);
+      const vue = document.querySelector('[data-vue="matrice-' + e.etat + '"]');
+      const lignes = [...vue.querySelectorAll(".matrice-ligne")];
+      vue.querySelector(".matrice").classList.remove("focus");
+      vue.querySelectorAll(".en-avant").forEach((x) => x.classList.remove("en-avant"));
+      vue.querySelectorAll(".flux-detail").forEach((d) => { d.hidden = true; });
+      vue.querySelectorAll(".matrice-compteurs, .matrice-fichiers").forEach((x) => x.classList.remove("visible"));
+      lignes.forEach((l) => l.classList.remove("visible"));
+      for (const l of lignes) { l.classList.add("visible"); await sommeil(300); }
+      vue.querySelectorAll(".matrice-compteurs, .matrice-fichiers").forEach((x) => x.classList.add("visible"));
+      await sommeil(500);
+      if (!e.ligne) return;
+      const id = e.ligne;
+      const contient = (x) => (x.dataset.flux || "").split(" ").includes(id);
+      vue.querySelector(".matrice").classList.add("focus");
+      lignes.filter(contient).forEach((l) => l.classList.add("en-avant"));
+      vue.querySelectorAll(".case-flux").forEach((c) => { if (contient(c)) c.classList.add("en-avant"); });
+      await sommeil(600);
+      const detail = vue.querySelector('.flux-detail[data-flux="' + CSS.escape(id) + '"]');
+      if (!detail) return;
+      const tests = [...detail.querySelectorAll(".detail-tests li")];
+      tests.forEach((t) => t.classList.remove("visible"));
+      detail.hidden = false;
+      effet(detail, [{ opacity: 0, transform: "translateX(24px)" }, { opacity: 1, transform: "none" }], 450, "cubic-bezier(.16,1,.3,1)");
+      await sommeil(700);
+      for (const t of tests) { t.classList.add("visible"); await sommeil(350); }
+    }
+
+    /** P-7 : une paire de barres A / B par indicateur, l'une après l'autre (≈ 5 s chacune). */
+    async function jouerResultats(e, t0) {
+      masquerLegende();
+      montrerVue("resultats");
+      const indicateurs = [...document.querySelectorAll(".vue-resultats .indicateur")];
+      indicateurs.forEach((i) => i.classList.remove("visible"));
+      const total = (e.dureeS || 20) * 1000;
+      const pas = indicateurs.length ? Math.min(5000, (total - 1500) / indicateurs.length) : 0;
+      for (let i = 0; i < indicateurs.length; i++) {
+        indicateurs[i].classList.add("visible");
+        await jusqua(t0 + (i + 1) * pas);
+      }
+    }
+
+    /** P-8 : A contre B (6 s), l'équipe (5 s), la phrase de fin (4 s) ; proportions gardées si la durée change. */
+    async function jouerResume(e, t0) {
+      masquerLegende();
+      montrerVue("resume");
+      const total = (e.dureeS || 15) * 1000;
+      const [t1, t2] = [total * 6 / 15, total * 11 / 15];
+      const temps = (n) => document.querySelector('.vue-resume [data-temps="' + n + '"]');
+      [1, 2, 3].forEach((n) => temps(n).classList.remove("visible", "parti"));
+      const lignes = [...document.querySelectorAll(".vue-resume .resume-ligne")];
+      lignes.forEach((l) => l.classList.remove("visible"));
+      temps(1).classList.add("visible");
+      const pas = lignes.length ? Math.min(900, (t1 - 1200) / lignes.length) : 0;
+      for (const l of lignes) { await sommeil(pas); l.classList.add("visible"); }
+      await jusqua(t0 + t1);
+      temps(1).classList.add("parti");
+      temps(2).classList.add("visible");
+      await jusqua(t0 + t2);
+      temps(2).classList.add("parti");
+      temps(3).classList.add("visible");
+    }
   }
 
   // ------------------------------------------------------------------ calques du schéma

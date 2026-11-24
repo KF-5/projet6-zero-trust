@@ -1,0 +1,29 @@
+@model ResumeVM
+@* Écran de fin (P-8) en trois temps : A contre B (valeurs calculées), l'équipe, la phrase de fin. *@
+<section class="resume" aria-label="Conclusion">
+    <div class="resume-temps resume-comparaison" data-temps="1">
+        <h2>État A contre état B</h2>
+        <table>
+            <thead><tr><th scope="col"></th><th scope="col">État A · périmétrique</th><th scope="col">État B · Zero Trust</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i < Model.Lignes.Count; i++)
+                {
+                    <tr class="resume-ligne" data-i="@i"><th scope="row">@Model.Lignes[i].Libelle</th><td>@Model.Lignes[i].A</td><td>@Model.Lignes[i].B</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="resume-temps resume-equipe" data-temps="2">
+        <h2>L'équipe</h2>
+        <ul>
+            @foreach (var c in Model.Equipe)
+            {
+                <li class="carte-equipe" style="--role: var(--r@(c.Numero ?? 0), var(--acc))"><span class="carte-titre">@c.Titre</span>@if (c.Prenoms is not null) { <span class="carte-prenoms">@c.Prenoms</span> }</li>
+            }
+        </ul>
+    </div>
+    <div class="resume-temps resume-fin" data-temps="3">
+        <p class="resume-phrase">@Model.Phrase</p>
+        <p class="resume-reproduire">@Model.Reproduire</p>
+    </div>
+</section>

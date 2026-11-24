@@ -6,6 +6,8 @@
     // ViewData["Decor"] = true : quelques paquets décoratifs circulent (accueil). Le lecteur (lecteur.js) anime les vrais effets :
     // il lit le premier <rect> de chaque machine (ancre invisible, déjà projetée) et les points des câbles (déjà projetés).
     var decor = ViewData["Decor"] as bool? == true;
+    // ViewData["NomsZonesCourts"] = true (pages de tournage) : nom de zone sans le préfixe réseau, lisible sur les petits segments de l'état B.
+    var nomsCourts = ViewData["NomsZonesCourts"] as bool? == true;
     var idSchema = $"schema-{Model.Etat.ToLowerInvariant()}";
     string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
 
@@ -142,7 +144,7 @@
             {
                 var auFond = z.Zone == "exterieur";
                 var ancre = auFond ? P(z.X + 12, z.Y - 6) : P(z.X + 10, z.Y + z.Hauteur - 7);
-                @:<text class="zone-nom z-@z.Zone" transform="@Peint(ancre)">@z.Nom@(z.Prefixe is null ? "" : $" · {z.Prefixe}")</text>
+                @:<text class="zone-nom z-@z.Zone" transform="@Peint(ancre)">@z.Nom@(z.Prefixe is null || nomsCourts ? "" : $" · {z.Prefixe}")</text>
             }
         </g>
 

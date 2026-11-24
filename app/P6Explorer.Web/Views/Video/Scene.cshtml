@@ -1,0 +1,72 @@
+@model SceneTournageVM
+@{
+    Layout = "_LayoutTournage";
+    var etats = new[] { ("A", Model.SchemaA), ("B", Model.SchemaB) };
+    // Données jouées par lecteur.js (mode video). Json.Serialize échappe < et > : rien ne peut fermer la balise script.
+    var donnees = new
+    {
+        id = Model.Id,
+        duree = Model.DureeS,
+        etat = Model.Etat,
+        precedente = Model.Precedente,
+        suivante = Model.Suivante,
+        lectureAuto = Model.LectureAuto,
+        etapes = Model.Etapes,
+        zones = Model.Zones,
+    };
+}
+<div class="tournage-fond">
+    <div class="scene-video" id="scene" data-scene="@Model.Id">
+        @if (Model.Erreurs.Count > 0)
+        {
+            <section class="scene-erreurs" role="alert">
+                <h1>@Model.Id ne peut pas être jouée</h1>
+                <p>donnees/video/scenes.json contient des erreurs ; la liste complète est sur la page /Video.</p>
+                <ul>@foreach (var e in Model.Erreurs.Take(8)) { <li>@e</li> }</ul>
+            </section>
+        }
+        else
+        {
+            <div class="lecteur mode-video" id="lecteur" data-mode="video" data-etat="@Model.Etat">
+                <div class="vue vue-schemas" data-vue="schemas">
+                    @foreach (var (etat, schema) in etats)
+                    {
+                        <div class="schema-etat" data-etat="@etat" hidden="@(etat == Model.Etat ? null : "hidden")">
+                            <p class="schema-etat-titre"></p>
+                            <partial name="_Schema" model="schema" view-data='new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { ["NomsZonesCourts"] = true }' />
+                        </div>
+                    }
+                </div>
+                @foreach (var m in Model.Matrices.Values)
+                {
+                    <div class="vue vue-matrice" data-vue="matrice-@m.Etat" hidden>
+                        <partial name="_Matrice" model="m" view-data='new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { ["Anime"] = true }' />
+                    </div>
+                }
+                @if (Model.Resultats is not null)
+                {
+                    <div class="vue vue-resultats" data-vue="resultats" hidden><partial name="_Resultats" model="Model.Resultats" /></div>
+                }
+                @if (Model.Resume is not null)
+                {
+                    <div class="vue vue-resume" data-vue="resume" hidden><partial name="_Resume" model="Model.Resume" /></div>
+                }
+                <div class="titre-plein" id="titre-plein" hidden><p></p></div>
+                <div class="legende-video" id="legende-video" aria-live="polite" hidden><p></p></div>
+            </div>
+            <script type="application/json" id="scene-donnees">@Html.Raw(Json.Serialize(donnees))</script>
+        }
+        @if (Model.Cible)
+        {
+            <div class="bandeau-cible">Ce qui suit est la cible</div>
+        }
+        @if (!Model.Propre)
+        {
+            <div class="coin-scene" aria-hidden="true">@Model.Id</div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/lecteur.js" asp-append-version="true" defer></script>
+}

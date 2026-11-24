@@ -1,0 +1,87 @@
+@model MatriceVM
+@{
+    // Matrice de flux d'un état : lignes = sources, colonnes = destinations, telles qu'écrites dans flows.csv.
+    // ViewData["Anime"] = true (scène P-4) : lignes et détails cachés, révélés par lecteur.js ; sinon tout est visible (/Politique).
+    var anime = ViewData["Anime"] as bool? == true;
+    var defaut = Model.IdRefusDefaut ?? "refus par défaut";
+}
+<section class="matrice@(anime ? " matrice-animee" : "")" data-matrice="@Model.Etat" aria-label="Matrice des flux, état @Model.Etat">
+    <header class="matrice-tete">
+        <h2>Matrice des flux · état @Model.Etat</h2>
+        <p class="matrice-legende"><span class="case-exemple autorise"></span> flux autorisé (identifiant, port)
+            <span class="case-exemple refus"></span> refus par défaut (@defaut)</p>
+    </header>
+    <div class="matrice-corps">
+        <div class="matrice-grille-cadre">
+            <table class="matrice-grille">
+                <thead>
+                    <tr>
+                        <th scope="col" class="matrice-coin">source ↓ · destination →</th>
+                        @foreach (var d in Model.Destinations) { <th scope="col">@d</th> }
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Sources.Count; i++)
+                    {
+                        var flux = string.Join(" ", Model.Cases[i].SelectMany(c => c).Select(c => c.FluxId).Distinct());
+                        <tr class="matrice-ligne" data-ligne="@i" data-flux="@flux">
+                            <th scope="row">@Model.Sources[i]</th>
+                            @foreach (var cas in Model.Cases[i])
+                            {
+                                if (cas.Count == 0)
+                                {
+                                    <td class="case-refus" title="Aucun flux : refus par défaut (@defaut)"><span>refus par défaut</span></td>
+                                }
+                                else
+                                {
+                                    <td class="case-flux" data-flux="@string.Join(" ", cas.Select(c => c.FluxId))">
+                                        @foreach (var c in cas)
+                                        {
+                                            <span class="case-id">@c.FluxId</span><span class="case-port">@c.Proto @c.Ports</span>
+                                        }
+                                    </td>
+                                }
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <p class="matrice-compteurs">
+                <span><strong>@Model.NbFlux</strong> flux autorisés</span>
+                <span><strong>@Model.NbTests</strong> tests générés</span>
+                <span>dont <strong>@Model.NbPass</strong> « pass » et <strong>@Model.NbBlock</strong> « block »</span>
+            </p>
+            <p class="matrice-fichiers">Fichiers : politique/flows.csv → c2.py → règles + tests.csv</p>
+        </div>
+
+        <div class="matrice-details">
+            @foreach (var f in Model.Flux)
+            {
+                <article class="flux-detail@(f.RefusParDefaut ? " defaut" : "")" data-flux="@f.Id" hidden="@(anime ? "hidden" : null)">
+                    <h3><span class="case-id">@f.Id</span> @f.Justification</h3>
+                    <p class="detail-titre">Ligne de flows.csv</p>
+                    <code class="ligne-csv">@f.LigneCsv</code>
+                    <dl class="detail-champs">
+                        <dt>source</dt><dd>@f.Source</dd>
+                        <dt>destination</dt><dd>@f.Destination</dd>
+                        <dt>proto · port</dt><dd>@f.Proto · @f.Ports</dd>
+                    </dl>
+                    <p class="detail-titre">Tests qui la vérifient · @Model.FichierTests (flux_ref = @f.Id)</p>
+                    @if (f.Tests.Count == 0)
+                    {
+                        <p class="detail-vide">Aucun test ne référence ce flux.</p>
+                    }
+                    else
+                    {
+                        <ul class="detail-tests">
+                            @foreach (var t in f.Tests)
+                            {
+                                <li><span class="test-id">@t.Id</span> @t.SourceHote → @t.IpDestination @t.Proto/@t.Port <span class="attendu attendu-@t.Attendu">@t.Attendu</span></li>
+                            }
+                        </ul>
+                    }
+                </article>
+            }
+        </div>
+    </div>
+</section>

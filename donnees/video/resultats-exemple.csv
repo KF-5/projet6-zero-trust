@@ -1,0 +1,7 @@
+indicateur,libelle,etat,valeur,unite
+taux_detection,Taux de détection,A,40,%
+taux_detection,Taux de détection,B,90,%
+temps_detection,Temps moyen de détection,A,12.5,s
+temps_detection,Temps moyen de détection,B,3.2,s
+effet_debit,Débit avec la sécurité active,A,940,Mbit/s
+effet_debit,Débit avec la sécurité active,B,610,Mbit/s

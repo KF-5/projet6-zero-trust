@@ -1,0 +1,137 @@
+{
+  "scenes": [
+    {
+      "id": "P-1",
+      "titre": "Ouverture : le problème",
+      "sequence": 1,
+      "duree_s": 25,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "titre", "texte": "Un seul pare-feu à l'entrée", "duree_s": 3 },
+        { "type": "surligner_zone", "zones": ["WAN", "DMZ", "LAN"], "legende": "Une PME : un pare-feu périmétrique protège l'entrée", "duree_s": 4 },
+        { "type": "simulation", "source": "kali", "destination": "203.0.113.1", "protocole": "Http", "port": 80, "etat": "A", "legende": "L'attaquant entre par la DMZ", "vitesse": 1.5, "duree_s": 5 },
+        { "type": "simulation", "source": "dmz-pivot", "destination": "10.10.0.70", "protocole": "PostgreSql", "port": 5432, "etat": "A", "legende": "Depuis la DMZ, il atteint la base de données", "vitesse": 1.5, "duree_s": 7.5 },
+        { "type": "simulation", "source": "client-03", "destination": "10.10.0.70", "protocole": "PostgreSql", "port": 5432, "etat": "A", "legende": "À l'intérieur, il circule librement", "vitesse": 1.5, "duree_s": 3.5 },
+        { "type": "pause", "jusqu_a_s": 25 }
+      ]
+    },
+    {
+      "id": "P-2",
+      "titre": "L'architecture",
+      "sequence": 2,
+      "duree_s": 30,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "legende", "texte": "Quatre machines virtuelles sur un seul PC", "duree_s": 4 },
+        { "type": "allumer", "noeuds": ["opnsense"], "texte": "p6-opnsense · pare-feu", "duree_s": 2.5 },
+        { "type": "allumer", "noeuds": ["docker"], "texte": "p6-docker · 10 services", "duree_s": 2.5 },
+        { "type": "allumer", "noeuds": ["collecteur"], "texte": "p6-collecteur · journaux", "duree_s": 2.5 },
+        { "type": "allumer", "noeuds": ["kali"], "texte": "p6-kali · attaquant", "duree_s": 2.5 },
+        { "type": "surligner_zone", "zones": ["WAN", "LAN", "DMZ", "MGMT"], "legende": "Quatre réseaux : WAN, LAN, DMZ, MGMT", "duree_s": 4 },
+        { "type": "cote_a_cote", "gauche": "État A — pare-feu périmétrique", "droite": "État B — micro-segmentation + IPS", "duree_s": 12 }
+      ]
+    },
+    {
+      "id": "P-3",
+      "titre": "VLAN et services par zone",
+      "sequence": 4,
+      "duree_s": 15,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "cadrer", "noeuds": ["opnsense", "docker"], "zones": ["TRUNK"], "legende": "Un seul câble, deux VLAN : 10 (LAN) et 20 (DMZ)", "duree_s": 4 },
+        { "type": "surligner_zone", "zones": ["DMZ"] },
+        { "type": "allumer", "noeuds": ["nginx", "bind9", "api", "dmz-pivot"], "legende": "DMZ · 10.20.0.0/24 : site web, DNS, API", "duree_s": 5 },
+        { "type": "surligner_zone", "zones": ["LAN"] },
+        { "type": "allumer", "noeuds": ["client-01", "client-03", "postgres", "admin"], "legende": "LAN · 10.10.0.0/24 : postes et base de données", "duree_s": 5 },
+        { "type": "pause", "jusqu_a_s": 15 }
+      ]
+    },
+    {
+      "id": "P-4",
+      "titre": "La politique comme donnée",
+      "sequence": 5,
+      "duree_s": 20,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "matrice", "etat": "A", "ligne_mise_en_avant": "FA3", "duree_s": 8 },
+        { "type": "matrice", "etat": "B", "ligne_mise_en_avant": "F04", "duree_s": 10 },
+        { "type": "legende", "texte": "Un fichier décrit la politique ; les règles et les tests en sont déduits", "duree_s": 2 }
+      ]
+    },
+    {
+      "id": "P-5",
+      "titre": "S-05 en état A",
+      "sequence": 6,
+      "duree_s": 15,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "cadrer", "noeuds": ["client-03", "postgres"], "duree_s": 2 },
+        { "type": "simulation", "source": "client-03", "destination": "10.10.0.70", "protocole": "PostgreSql", "port": 5432, "etat": "A", "legende": "S-05 : un poste compromis atteint la base", "duree_s": 8 },
+        { "type": "legende", "texte": "Même réseau : le paquet ne traverse pas le pare-feu — lignes dans ses journaux : {lignes_journal}", "duree_s": 5 }
+      ]
+    },
+    {
+      "id": "P-6",
+      "titre": "Passage à six segments ; S-05 arrêté",
+      "sequence": 7,
+      "duree_s": 25,
+      "etat": "A",
+      "cible": true,
+      "etapes": [
+        { "type": "pause", "duree_s": 2 },
+        { "type": "bascule_etat", "etat": "B", "legende": "État B : chaque service dans son propre segment", "duree_s": 2 },
+        { "type": "surligner_zone", "zones": ["DMZ-WEB"], "segment": true, "etat": "B", "duree_s": 1.3 },
+        { "type": "surligner_zone", "zones": ["DMZ-DNS"], "segment": true, "etat": "B", "duree_s": 1.3 },
+        { "type": "surligner_zone", "zones": ["DMZ-APP"], "segment": true, "etat": "B", "duree_s": 1.3 },
+        { "type": "surligner_zone", "zones": ["LAN-USERS"], "segment": true, "etat": "B", "duree_s": 1.3 },
+        { "type": "surligner_zone", "zones": ["LAN-DB"], "segment": true, "etat": "B", "duree_s": 1.3 },
+        { "type": "surligner_zone", "zones": ["LAN-ADMIN"], "segment": true, "etat": "B", "duree_s": 1.3 },
+        { "type": "simulation", "source": "client-03", "destination": "10.10.0.70", "protocole": "PostgreSql", "port": 5432, "etat": "B", "legende": "Le même mouvement latéral est bloqué et journalisé (règle {regle})", "duree_s": 8 },
+        { "type": "pause", "jusqu_a_s": 25 }
+      ]
+    },
+    {
+      "id": "P-7",
+      "titre": "Lecture des résultats A contre B",
+      "sequence": 8,
+      "duree_s": 20,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "resultats", "duree_s": 20 }
+      ]
+    },
+    {
+      "id": "P-8",
+      "titre": "Conclusion",
+      "sequence": 9,
+      "duree_s": 15,
+      "etat": "A",
+      "cible": false,
+      "etapes": [
+        { "type": "resume", "duree_s": 15 }
+      ]
+    }
+  ],
+  "resume": {
+    "detection_a": "IDS : signale",
+    "detection_b": "IPS : bloque",
+    "phrase": "Le Zero Trust ne se décrète pas, il se prouve.",
+    "reproduire": "Tout pour reproduire le labo : README.md",
+    "s05": { "source": "client-03", "destination": "10.10.0.70", "protocole": "PostgreSql", "port": 5432 }
+  },
+  "equipe": {
+    "1": "",
+    "2": "",
+    "3": "",
+    "4": "",
+    "5": "",
+    "6": "",
+    "plateforme": ""
+  }
+}

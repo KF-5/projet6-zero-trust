@@ -41,6 +41,8 @@
                 }
             </span>
             <a asp-controller="Simulation" asp-action="Index" aria-current="@(Actif("Simulation"))">Et si ?</a>
+            <a href="/Politique" aria-current="@(Actif("Politique"))">Politique</a>
+            <a href="/Video" aria-current="@(Actif("Video"))">Vidéo</a>
             <a asp-controller="Discussions" asp-action="Index" aria-current="@(Actif("Discussions"))">Questions</a>
             <a asp-controller="Glossaire" asp-action="Index" aria-current="@(Actif("Glossaire"))">Glossaire</a>
             @if (User.IsInRole("Admin"))
@@ -55,7 +57,11 @@
                 <button type="submit" name="etat" value="A" class="@(etat == "A" ? "actif" : "")" aria-pressed="@(etat == "A" ? "true" : "false")" title="État A : pare-feu périmétrique">État A</button>
                 <button type="submit" name="etat" value="B" class="@(etat == "B" ? "actif" : "")" aria-pressed="@(etat == "B" ? "true" : "false")" title="État B : Zero Trust, microsegmentation">État B</button>
             </form>
-            @if (User.Identity?.IsAuthenticated == true)
+            @if (ViewData["MasquerCompte"] as bool? == true)
+            {
+                @* Pages /Video et /Politique : filmées ou projetées, jamais de nom de compte ni de connexion à l'image. *@
+            }
+            else if (User.Identity?.IsAuthenticated == true)
             {
                 <a class="compte" asp-controller="Compte" asp-action="MotDePasse" title="@User.Identity.Name · changer de mot de passe">@User.NomAffiche()</a>
                 <form method="post" asp-controller="Compte" asp-action="Deconnexion">
@@ -84,7 +90,7 @@
     <footer class="pied">
         <span>Projet 6 · Architecture Zero Trust · GL3 INSAT</span>
         <span>Laboratoire isolé : aucune commande de cette page n'est exécutée, elles sont rejouées.</span>
-        <span><a asp-controller="Simulation" asp-action="Demonstration">Démonstration</a> · <a href="/swagger">API</a></span>
+        <span><a asp-controller="Simulation" asp-action="Demonstration">Démonstration</a> · <a href="/Video">Vidéo</a> · <a href="/swagger">API</a></span>
     </footer>
 
     <script>

@@ -1,0 +1,14 @@
+@model MatriceVM
+<div class="page-politique">
+    <header>
+        <p class="surtitre">La politique comme donnée · état @Model.Etat</p>
+        <h1>Qui a le droit de parler à qui</h1>
+        <p class="chapeau">Un tableau, <code>donnees/politique/flows.csv</code>, décrit chaque flux autorisé. Le script <code>c2.py</code> du rôle 2 en déduit
+            les règles du pare-feu et les tests de <code>@Model.FichierTests</code>. Tout ce qui n'est pas dans le tableau tombe dans le refus par défaut (@Model.IdRefusDefaut).</p>
+        <nav class="bascule-politique" aria-label="État affiché">
+            <a href="/Politique?etat=A" aria-current="@(Model.Etat == "A" ? "page" : "false")">État A · périmétrique</a>
+            <a href="/Politique?etat=B" aria-current="@(Model.Etat == "B" ? "page" : "false")">État B · Zero Trust</a>
+        </nav>
+    </header>
+    <partial name="_Matrice" model="Model" />
+</div>

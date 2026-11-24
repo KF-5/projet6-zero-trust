@@ -1,0 +1,21 @@
+@{
+    // Mode tournage (/Video/P-n) : ni en-tête, ni navigation, ni pied de page, ni compte. Thème sombre imposé.
+    // Rien dans cette page ne doit afficher d'adresse e-mail ni d'adresse réservée : elle est filmée.
+    var titre = ViewData["Title"] as string;
+}
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="noindex" />
+    <title>@(string.IsNullOrEmpty(titre) ? "Tournage · P6 Explorer" : $"{titre} · tournage")</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tournage.css" asp-append-version="true" />
+</head>
+<body class="tournage">
+    @RenderBody()
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

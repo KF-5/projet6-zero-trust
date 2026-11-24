@@ -19,6 +19,8 @@ public static class DependencyInjection
         services.AddScoped<IProgressionService, ProgressionService>();
         services.AddScoped<IDiscussionService, DiscussionService>();
         services.AddScoped<IGlossaireService, GlossaireService>();
+        services.AddScoped<IPolitiqueService, PolitiqueService>();
+        services.AddScoped<IVideoService, VideoService>();
         return services;
     }
 }
