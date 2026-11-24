@@ -1,14 +1,54 @@
 @model SchemaVM
 @using System.Globalization
 @{
-    // Schéma produit côté serveur à partir du ViewModel de topologie (prompt, section 7 « Le rendu graphique »).
-    // ViewData["Decor"] = true : quelques paquets décoratifs circulent (accueil). Le lecteur (jalon 4) animera les vrais effets.
+    // Schéma produit côté serveur à partir du ViewModel de topologie (prompt, section 7 « Le rendu graphique »),
+    // dessiné en vue isométrique : le plan 2D de la topologie (x, y) est posé au sol et chaque machine devient un bloc.
+    // ViewData["Decor"] = true : quelques paquets décoratifs circulent (accueil). Le lecteur (lecteur.js) anime les vrais effets :
+    // il lit le premier <rect> de chaque machine (ancre invisible, déjà projetée) et les points des câbles (déjà projetés).
     var decor = ViewData["Decor"] as bool? == true;
     var idSchema = $"schema-{Model.Etat.ToLowerInvariant()}";
     string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
-    var liens = Model.Liens.ToDictionary(l => l.Id);
 
-    // Chemin SVG (« M x,y L … ») qui suit une suite de liens ; « ! » devant un identifiant = parcours à l'envers.
+    // ---- Projection isométrique : rotation du plan puis écrasement vertical ; z monte vers le haut de l'écran.
+    const double Angle = 30 * Math.PI / 180, Ecrasement = 0.6;
+    double A = Math.Cos(Angle), B = Math.Sin(Angle), C = Math.Sin(Angle) * Ecrasement, D = Math.Cos(Angle) * Ecrasement;
+    double ox = 0, oy = 0;                                    // décalage fixé plus bas pour que tout tienne dans le viewBox
+    (double X, double Y) P(double x, double y, double z = 0) => (x * A - y * B + ox, x * C + y * D - z + oy);
+    string Pt(double x, double y, double z = 0) { var p = P(x, y, z); return F(p.X) + "," + F(p.Y); }
+    string Poly(params (double X, double Y)[] pts) => string.Join(" ", pts.Select(p => F(p.X) + "," + F(p.Y)));
+    double Profondeur(double x, double y) => x * C + y * D;  // plus grand = plus près de l'observateur
+
+    double HauteurBloc(NoeudVM n) => n.Type switch
+    {
+        "parefeu" => 34, "hote" => 24, "vm" => 22, "exterieur" => 15, _ => 16,
+    };
+    const double EpaisseurZone = 7, EpaisseurSol = 14, MargeSol = 18;
+
+    List<(double x, double y)> PointsBruts(LienVM l) => l.Points.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Select(p => p.Split(',')).Select(p => (double.Parse(p[0], CultureInfo.InvariantCulture), double.Parse(p[1], CultureInfo.InvariantCulture))).ToList();
+
+    // ---- Cadrage : on projette tout sans décalage, puis on recale le viewBox sur l'ensemble.
+    var coins = new List<(double X, double Y)>();
+    foreach (var (x, y) in new[] { (-MargeSol, -MargeSol), (Model.Largeur + MargeSol, -MargeSol), (Model.Largeur + MargeSol, Model.Hauteur + MargeSol), (-MargeSol, Model.Hauteur + MargeSol) })
+    {
+        coins.Add(P(x, y, -EpaisseurZone)); coins.Add(P(x, y, -EpaisseurZone - EpaisseurSol));
+    }
+    foreach (var n in Model.Noeuds)
+        foreach (var (x, y) in new[] { (n.Gauche, n.Haut), (n.Gauche + n.Largeur, n.Haut), (n.Gauche + n.Largeur, n.Haut + n.Hauteur), (n.Gauche, n.Haut + n.Hauteur) })
+            coins.Add(P(x, y, HauteurBloc(n)));
+    foreach (var l in Model.Liens) coins.AddRange(PointsBruts(l).Select(p => P(p.x, p.y)));
+    const double Marge = 10, MargeHaut = 40;                  // place pour les bulles du lecteur au-dessus des machines du fond
+    ox = Marge - coins.Min(c => c.X);
+    oy = MargeHaut - coins.Min(c => c.Y);
+    var largeurVue = coins.Max(c => c.X) - coins.Min(c => c.X) + 2 * Marge;
+    var hauteurVue = coins.Max(c => c.Y) - coins.Min(c => c.Y) + MargeHaut + Marge;
+    var matrice = $"matrix({F(A)} {F(C)} {F(-B)} {F(D)} {F(ox)} {F(oy)})";
+    // Texte « peint » parallèlement à l'axe x (bord avant d'une zone, face avant d'un bloc).
+    var inclinaison = F(Math.Atan2(C, A) * 180 / Math.PI);
+    string Peint((double X, double Y) p) => $"translate({F(p.X)} {F(p.Y)}) skewY({inclinaison})";
+
+    // Câbles projetés au sol, et chemin SVG (« M x,y L … ») qui suit une suite de câbles ; « ! » devant un identifiant = à l'envers.
+    var liens = Model.Liens.ToDictionary(l => l.Id, l => PointsBruts(l).Select(p => Pt(p.x, p.y)).ToList());
     string Trajet(params string[] ids)
     {
         var points = new List<string>();
@@ -16,31 +56,66 @@
         {
             var envers = brut.StartsWith('!');
             if (!liens.TryGetValue(envers ? brut[1..] : brut, out var l)) continue;
-            var p = l.Points.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-            if (envers) p.Reverse();
+            var p = envers ? Enumerable.Reverse(l).ToList() : l;
             foreach (var x in p) if (points.Count == 0 || points[^1] != x) points.Add(x);
         }
         return points.Count == 0 ? "" : "M" + string.Join(" L", points);
     }
+
+    // Géométrie de chaque bloc : dessus, face avant (+y), face de côté (+x), ombre, et cadre englobant à l'écran.
+    var blocs = Model.Noeuds.ToDictionary(n => n.Id, n =>
+    {
+        double x0 = n.Gauche, x1 = n.Gauche + n.Largeur, y0 = n.Haut, y1 = n.Haut + n.Hauteur, h = HauteurBloc(n);
+        var pts = new[] { P(x0, y0, h), P(x1, y0, h), P(x1, y1, h), P(x0, y1, h), P(x0, y1), P(x1, y1), P(x1, y0) };
+        var g = pts.Min(p => p.X); var d = pts.Max(p => p.X); var haut = pts.Min(p => p.Y); var bas = pts.Max(p => p.Y);
+        return new
+        {
+            Dessus = Poly(P(x0, y0, h), P(x1, y0, h), P(x1, y1, h), P(x0, y1, h)),
+            Avant = Poly(P(x0, y1), P(x1, y1), P(x1, y1, h), P(x0, y1, h)),
+            Cote = Poly(P(x1, y0), P(x1, y1), P(x1, y1, h), P(x1, y0, h)),
+            Ombre = Poly(P(x0 + 7, y0 + 9), P(x1 + 7, y0 + 9), P(x1 + 7, y1 + 9), P(x0 + 7, y1 + 9)),
+            Rainure = (De: P(x0 + 10, y1, h * .5), A: P(x1 - 10, y1, h * .5)),
+            Voyants = Enumerable.Range(0, n.Type == "parefeu" ? 3 : 1).Select(i => P(x1, y1 - 9 - i * 9, h * .5)).ToList(),
+            SommetCentre = P(n.X, n.Y, h),
+            FaceCentre = P(n.X, y1, h / 2),
+            Gauche = g, Droite = d, Haut = haut, Bas = bas,
+        };
+    });
+    var noeudsTries = Model.Noeuds.OrderBy(n => Profondeur(n.X, n.Y)).ToList();
+    var zonesTriees = Model.Zones.OrderBy(z => Profondeur(z.X + z.Largeur / 2, z.Y + z.Hauteur / 2)).ToList();
+    double sx0 = -MargeSol, sy0 = -MargeSol, sx1 = Model.Largeur + MargeSol, sy1 = Model.Hauteur + MargeSol;
 }
 <figure class="schema" aria-labelledby="@idSchema-titre">
-    <svg class="schema-svg" viewBox="0 0 @F(Model.Largeur) @F(Model.Hauteur)" role="img"
+    <svg class="schema-svg"viewBox="0 0 @F(largeurVue) @F(hauteurVue)" role="img"
          aria-labelledby="@idSchema-titre @idSchema-desc" data-etat="@Model.Etat" id="@idSchema">
         <title id="@idSchema-titre">@Model.Titre</title>
         <desc id="@idSchema-desc">@Model.Description Machines : @string.Join(", ", Model.Noeuds.Where(n => n.Id != "conteneur-test").Select(n => n.Nom)).</desc>
         <defs>
             <pattern id="@idSchema-grille" width="20" height="20" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r="0.9" class="grille-point" />
+                <circle cx="1" cy="1" r="1.1" class="grille-point" />
             </pattern>
         </defs>
-        <rect class="fond" x="0" y="0" width="@F(Model.Largeur)" height="@F(Model.Hauteur)" fill="url(#@idSchema-grille)" />
+
+        @* Sol : une dalle épaisse, quadrillée (le motif suit la projection). *@
+        <g class="calque calque-sol" aria-hidden="true">
+            <polygon class="sol-tranche avant" points="@Poly(P(sx0, sy1, -EpaisseurZone), P(sx1, sy1, -EpaisseurZone), P(sx1, sy1, -EpaisseurZone - EpaisseurSol), P(sx0, sy1, -EpaisseurZone - EpaisseurSol))" />
+            <polygon class="sol-tranche cote" points="@Poly(P(sx1, sy0, -EpaisseurZone), P(sx1, sy1, -EpaisseurZone), P(sx1, sy1, -EpaisseurZone - EpaisseurSol), P(sx1, sy0, -EpaisseurZone - EpaisseurSol))" />
+            <g transform="translate(0 @F(EpaisseurZone)) @matrice">
+                <rect class="sol-plaque" x="@F(sx0)" y="@F(sy0)" width="@F(sx1 - sx0)" height="@F(sy1 - sy0)" vector-effect="non-scaling-stroke" />
+                <rect class="fond" x="@F(sx0)" y="@F(sy0)" width="@F(sx1 - sx0)" height="@F(sy1 - sy0)" fill="url(#@idSchema-grille)" />
+            </g>
+        </g>
 
         <g class="calque calque-zones">
-            @foreach (var z in Model.Zones)
+            @foreach (var z in zonesTriees)
             {
+                double x0 = z.X, x1 = z.X + z.Largeur, y0 = z.Y, y1 = z.Y + z.Hauteur;
                 <g class="zone z-@z.Zone" data-reseau="@z.Code">
-                    <rect x="@F(z.X)" y="@F(z.Y)" width="@F(z.Largeur)" height="@F(z.Hauteur)" rx="6" />
-                    <text class="zone-nom" x="@F(z.X + 10)" y="@F(z.Y + 17)">@z.Nom@(z.Prefixe is null ? "" : $" · {z.Prefixe}")</text>
+                    <polygon class="tranche avant" points="@Poly(P(x0, y1), P(x1, y1), P(x1, y1, -EpaisseurZone), P(x0, y1, -EpaisseurZone))" />
+                    <polygon class="tranche cote" points="@Poly(P(x1, y0), P(x1, y1), P(x1, y1, -EpaisseurZone), P(x1, y0, -EpaisseurZone))" />
+                    <g transform="@matrice">
+                        <rect class="dalle" x="@F(x0)" y="@F(y0)" width="@F(z.Largeur)" height="@F(z.Hauteur)" rx="6" vector-effect="non-scaling-stroke" />
+                    </g>
                 </g>
             }
         </g>
@@ -49,41 +124,74 @@
             @foreach (var l in Model.Liens)
             {
                 <polyline class="lien l-@l.Zone@(l.Branche ? "" : " debranche")@(l.Id.StartsWith("conteneur-test") ? " temporaire" : "")"
-                          points="@l.Points" data-lien="@l.Id" data-de="@l.De" data-vers="@l.Vers">
+                          points="@string.Join(" ", liens[l.Id])" data-lien="@l.Id" data-de="@l.De" data-vers="@l.Vers">
                     <title>@(l.Libelle ?? $"{l.De} ↔ {l.Vers}")@(l.Branche ? "" : " (débranché)")</title>
                 </polyline>
             }
             @foreach (var l in Model.Liens.Where(l => !l.Branche))
             {
-                var dernier = l.Points.Split(' ')[^1].Split(',');
+                var dernier = liens[l.Id][^1].Split(',');
                 @:<text class="croix" x="@dernier[0]" y="@dernier[1]" dy="4" text-anchor="middle" aria-hidden="true">✕</text>
             }
         </g>
 
-        <g class="calque calque-noeuds">
-            @foreach (var n in Model.Noeuds)
+        @* Noms des zones peints au sol le long du bord avant, que les blocs ne cachent pas ; la zone « Hors du laboratoire »,
+           remplie jusqu'à son bord avant, a le sien juste derrière elle (rien n'y est dessiné). Au-dessus des câbles, sous les blocs. *@
+        <g class="calque calque-zones-noms">
+            @foreach (var z in zonesTriees)
             {
+                var auFond = z.Zone == "exterieur";
+                var ancre = auFond ? P(z.X + 12, z.Y - 6) : P(z.X + 10, z.Y + z.Hauteur - 7);
+                @:<text class="zone-nom z-@z.Zone" transform="@Peint(ancre)">@z.Nom@(z.Prefixe is null ? "" : $" · {z.Prefixe}")</text>
+            }
+        </g>
+
+        <g class="calque calque-noeuds">
+            @foreach (var n in noeudsTries)
+            {
+                var b = blocs[n.Id];
                 var adresses = n.Adresses.Concat(Model.MembreConnecte ? n.AdressesReservees : []).ToList();
                 <g class="noeud n-@n.Type z-@n.Zone@(n.Id == "conteneur-test" ? " temporaire" : "")" data-noeud="@n.Id" tabindex="0"
                    aria-label="@n.Nom@(n.SousTitre is null ? "" : $", {n.SousTitre}")">
                     <title>@n.Nom&#10;@n.Description@(adresses.Count > 0 ? "\n" + string.Join("\n", adresses) : "")@(n.MembresSeulement && !Model.MembreConnecte ? "\n(Adresse Tailscale réservée aux membres connectés.)" : "")</title>
-                    <rect class="cadre" x="@F(n.Gauche)" y="@F(n.Haut)" width="@F(n.Largeur)" height="@F(n.Hauteur)" rx="4" />
-                    <text class="noeud-nom" x="@F(n.X)" y="@F(n.Y - (n.Hauteur > 30 ? 4 : -4))" text-anchor="middle">@n.Nom</text>
-                    @if (n.SousTitre is not null && n.Hauteur > 30)
-                    {
-                        @:<text class="noeud-ip" x="@F(n.X)" y="@F(n.Y + 13)" text-anchor="middle">@n.SousTitre</text>
-                    }
+                    @* Ancre lue par lecteur.js (centre, bulles, verdicts) : le cadre du bloc à l'écran. Doit rester le premier rect. *@
+                    <rect class="ancre" x="@F(b.Gauche)" y="@F(b.Haut)" width="@F(b.Droite - b.Gauche)" height="@F(b.Bas - b.Haut)" />
+                    <polygon class="ombre" points="@b.Ombre" />
+                    <g class="bloc">
+                        <polygon class="face face-avant" points="@b.Avant" />
+                        <polygon class="face face-cote" points="@b.Cote" />
+                        <polygon class="cadre" points="@b.Dessus" />
+                        @if (n.SousTitre is not null && n.Hauteur > 30)
+                        {
+                            @* Sous-titre (adresse, rôle) écrit sur la face avant du bloc. *@
+                            @:<text class="noeud-ip sur-face" transform="@Peint(b.FaceCentre)" y="3.4" text-anchor="middle">@n.SousTitre</text>
+                        }
+                        else if (n.Type != "exterieur")
+                        {
+                            <line class="rainure" x1="@F(b.Rainure.De.X)" y1="@F(b.Rainure.De.Y)" x2="@F(b.Rainure.A.X)" y2="@F(b.Rainure.A.Y)" />
+                        }
+                        @if (n.Type != "exterieur")
+                        {
+                            @foreach (var v in b.Voyants)
+                            {
+                                <circle class="voyant" cx="@F(v.X)" cy="@F(v.Y)" r="1.9" />
+                            }
+                        }
+                        <text class="noeud-nom" x="@F(b.SommetCentre.X)" y="@F(b.SommetCentre.Y + 4.5)" text-anchor="middle">@n.Nom</text>
+                    </g>
                 </g>
             }
         </g>
 
         <g class="calque calque-ip" aria-hidden="true">
-            @foreach (var n in Model.Noeuds.Where(n => n.Id != "conteneur-test"))
+            @foreach (var n in noeudsTries.Where(n => n.Id != "conteneur-test"))
             {
+                var b = blocs[n.Id];
+                var depart = b.Bas + 11;
                 var lignes = n.Adresses.Concat(Model.MembreConnecte ? n.AdressesReservees : []).ToList();
                 for (var i = 0; i < lignes.Count; i++)
                 {
-                    @:<text class="noeud-adresse" x="@F(n.X)" y="@F(n.Y + n.Hauteur / 2 + 11 + i * 10)" text-anchor="middle">@lignes[i]</text>
+                    @:<text class="noeud-adresse" x="@F((b.Gauche + b.Droite) / 2)" y="@F(depart + i * 10)" text-anchor="middle">@lignes[i]</text>
                 }
             }
         </g>
@@ -99,11 +207,11 @@
             {
                 (Trajet("client-ext-eth0", "opnsense-em1", "!nginx-vlan20"), "p-https", "7s", "0s"),
                 (Trajet("client-01-vlan10", "!opnsense-em1", "opnsense-em1", "!api-vlan20"), "p-http", "8s", "2.5s"),
-                (Trajet("opnsense-em2") + " L820,568 L820,600", "p-syslog", "6s", "1s"),         // syslog vers le collecteur
-                (Trajet("docker-ens32") + " L820,568 L820,600", "p-ntp", "5s", "3.5s"),          // NTP vers le collecteur
+                (Trajet("opnsense-em2") + $" L{Pt(820, 568)} L{Pt(820, 600)}", "p-syslog", "6s", "1s"),   // syslog vers le collecteur
+                (Trajet("docker-ens32") + $" L{Pt(820, 568)} L{Pt(820, 600)}", "p-ntp", "5s", "3.5s"),    // NTP vers le collecteur
             };
             <g class="calque calque-decor" aria-hidden="true">
-                @foreach (var t in trajets.Where(t => t.Chemin.Length > 0))
+                @foreach (var t in trajets.Where(t => t.Chemin.Length > 0 && !t.Chemin.StartsWith(" ")))
                 {
                     <circle r="5" class="paquet-decor @t.Classe" visibility="hidden">
                         <set attributeName="visibility" to="visible" begin="@t.Debut" />
@@ -115,6 +223,12 @@
     </svg>
     <figcaption class="schema-legende">
         <zone nom="WAN" /> <zone nom="DMZ" /> <zone nom="LAN" /> <zone nom="MGMT" /> <zone nom="TRUNK" /> <zone nom="OPNSENSE" />
+        <span class="legende-paquets" aria-label="Couleur des paquets">
+            <span><i style="--c: var(--p-https)"></i>HTTPS</span><span><i style="--c: var(--p-http)"></i>HTTP</span>
+            <span><i style="--c: var(--dmz)"></i>DNS</span><span><i style="--c: var(--mgmt)"></i>SSH</span>
+            <span><i style="--c: var(--p-syslog)"></i>journaux</span><span><i style="--c: var(--p-ntp)"></i>NTP</span>
+            <span><i style="--c: var(--p-reponse)"></i>réponse</span>
+        </span>
         <span class="legende-note">Survole une machine pour voir son rôle et ses adresses. Pointillés barrés : câble débranché.</span>
     </figcaption>
 </figure>
