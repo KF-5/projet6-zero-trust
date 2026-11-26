@@ -24,24 +24,32 @@ def objectif_atteint(sc, sortie, sla_fenetre):
     if sc in ("S-02", "P-01"):
         return bool(len(sla_fenetre)) and sla_fenetre["succes"].mean() < 0.99
     if sc == "S-03":
-        return "secret" in sortie
+        # Injection SQL numérique : réussie si la réponse contient plus d'un produit (8 en état A)
+        return sortie.count('"nom"') > 1
     if sc in ("S-04", "S-05"):
         return re.search(r"\(1 (row|ligne)\)", sortie) is not None
     return None  # S-06 : détection seulement
 
 
 def synack_dans_pcap(fichier, cible, attaquant):
-    """« PCAP côté cible » : la base a-t-elle répondu À L'ATTAQUANT ?"""
-    filtre = f"ip.src=={cible} && ip.dst=={attaquant} && tcp.flags.syn==1 && tcp.flags.ack==1"
+    """« PCAP côté cible » : la base a-t-elle répondu À L'ATTAQUANT (port 5432) ?"""
+    # Filtre tshark ou tcpdump équivalent :
+    # "tcp[13] & 18 == 18 and src host 10.10.0.70 and src port 5432 and dst host <src_ip>"
+    filtre_tshark = f"ip.src=={cible} && tcp.srcport==5432 && ip.dst=={attaquant} && tcp.flags.syn==1 && tcp.flags.ack==1"
+    filtre_tcpdump = f"tcp[13] & 18 == 18 and src host {cible} and src port 5432 and dst host {attaquant}"
+    
+    # 1. Essai avec tcpdump (présent par défaut)
     try:
-        r = subprocess.run(
-            ["tshark", "-r", fichier, "-Y", filtre],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
+        r = subprocess.run(["tcpdump", "-nnr", fichier, filtre_tcpdump], capture_output=True, text=True, timeout=120)
         return bool(r.stdout.strip())
-    except (OSError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, OSError):
+        pass
+        
+    # 2. Repli vers tshark si tcpdump n'est pas trouvé
+    try:
+        r = subprocess.run(["tshark", "-r", fichier, "-Y", filtre_tshark], capture_output=True, text=True, timeout=120)
+        return bool(r.stdout.strip())
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
         return None
 
 
