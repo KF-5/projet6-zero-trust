@@ -1,0 +1,104 @@
+{
+  "version": "2026-11-26-role1",
+  "graine": 2026,
+  "n": 10,
+  "pause_s": 30,
+  "scenarios": [
+    {
+      "id": "S-01",
+      "description": "Scan SYN depuis le WAN",
+      "machine": "kali",
+      "commande": "sudo -n nmap -sS -Pn -p 1-1024 -T4 -oG - 203.0.113.1",
+      "cible": "203.0.113.1",
+      "duree_max_s": 240,
+      "objectif_atteint": "au moins une ligne '/open/' dans la sortie",
+      "captures": [
+        "kali-wan",
+        "nginx"
+      ]
+    },
+    {
+      "id": "S-02",
+      "description": "SYN flood sur le web",
+      "machine": "kali",
+      "commande": "timeout 30 sudo -n hping3 -S --flood -p 443 203.0.113.1",
+      "cible": "203.0.113.1",
+      "duree_max_s": 45,
+      "objectif_atteint": "disponibilité de la sonde < 99 % entre t0 et t1 (sla.csv)",
+      "captures": [
+        "kali-wan"
+      ]
+    },
+    {
+      "id": "S-03",
+      "description": "Scan de vulnérabilités web et injection SQL",
+      "machine": "kali",
+      "commande": "nikto -h https://203.0.113.1 -maxtime 60s -nointeractive\ncurl -sk -G https://203.0.113.1/api/produit --data-urlencode \"id=1 OR 1=1\"\n",
+      "cible": "203.0.113.1",
+      "duree_max_s": 120,
+      "objectif_atteint": "la réponse contient plus d'un produit",
+      "captures": [
+        "kali-wan",
+        "api"
+      ]
+    },
+    {
+      "id": "S-04",
+      "description": "Pivot de la DMZ vers la base",
+      "machine": "dmz-pivot",
+      "commande": "nc -zv -w 5 10.10.0.70 5432\nPGCONNECT_TIMEOUT=5 psql -h 10.10.0.70 -U lecteur -d catalogue -c \"select count(*) from produits\"\n",
+      "cible": "10.10.0.70",
+      "duree_max_s": 60,
+      "objectif_atteint": "la base répond (TCP établi, même si pg_hba refuse) : SYN-ACK de 10.10.0.70:5432 dans le PCAP postgres",
+      "captures": [
+        "postgres"
+      ]
+    },
+    {
+      "id": "S-05",
+      "description": "Mouvement latéral du LAN vers la base",
+      "machine": "client-03",
+      "commande": "nc -zv -w 5 10.10.0.70 5432\nPGCONNECT_TIMEOUT=5 psql -h 10.10.0.70 -U lecteur -d catalogue -c \"select count(*) from produits\"\n",
+      "cible": "10.10.0.70",
+      "duree_max_s": 120,
+      "objectif_atteint": "la base répond (TCP établi, même si pg_hba refuse) : SYN-ACK de 10.10.0.70:5432 dans le PCAP postgres",
+      "captures": [
+        "postgres"
+      ]
+    },
+    {
+      "id": "S-06",
+      "description": "Trafic fragmenté anormal",
+      "machine": "kali",
+      "commande": "sudo -n nmap -f -sS -Pn -p 443 -oG - 203.0.113.1\nsudo -n hping3 -f -S -p 443 -c 20 203.0.113.1\n",
+      "cible": "203.0.113.1",
+      "duree_max_s": 60,
+      "objectif_atteint": "aucun objectif de blocage : on mesure la détection",
+      "captures": [
+        "kali-wan"
+      ]
+    },
+    {
+      "id": "P-01",
+      "description": "Panne de l'IPS pendant un SYN flood",
+      "machine": "kali",
+      "commande": "timeout 60 sudo -n hping3 -S --flood -p 443 203.0.113.1",
+      "cible": "203.0.113.1",
+      "duree_max_s": 75,
+      "objectif_atteint": "mesure : disponibilité avant, pendant, après ; temps de reprise",
+      "captures": [
+        "kali-wan"
+      ],
+      "actions": [
+        {
+          "a_s": 10,
+          "commande": "configctl ids stop"
+        },
+        {
+          "a_s": 40,
+          "commande": "configctl ids start"
+        }
+      ]
+    }
+  ]
+}
