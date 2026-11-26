@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Rejoue chaque capture dans Suricata et compare les sid obtenus aux sid attendus.
 cd ~/projet6/ids
-declare -A ATTENDU=([s01]="9000001" [s02]="9000003" [s03]="9000010" [s05]="9000020" [s06]="9000030" [legitime]="")
-for cap in s01 s02 s03 s05 s06 legitime; do
+declare -A ATTENDU=([s01]="9000001" [s02]="9000003" [s03]="9000010" [s03n]="9000010" [s05]="9000020" [s06]="9000030" [legitime]="")
+for cap in s01 s02 s03 s03n s05 s06 legitime; do
   [ -f pcap/${cap}.pcap ] || { echo "${cap} : capture absente"; continue; }
   rm -rf out/${cap} && mkdir -p out/${cap}
   suricata -r pcap/${cap}.pcap -S rules/local.rules -k none -l out/${cap} \

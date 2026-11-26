@@ -13,8 +13,10 @@ alert tcp any any -> 203.0.113.1 443 (msg:"LOCAL S-02 SYN flood > 100/s"; flow:s
 # produire d'alerte (rev 1 : une alerte toutes les 20 s par client légitime, soit ~180 faux positifs par heure).
 alert tcp any any -> 203.0.113.1 443 (msg:"LOCAL S-02 compteur de blocage"; flow:stateless; flags:S,12; noalert; classtype:attempted-dos; sid:9000004; rev:2;)
 
-# S-03 · injection SQL sur le saut nginx -> API, en clair (em1). http.uri est décodée ; « + » accepté comme séparateur.
-alert http any any -> 10.20.0.70 5000 (msg:"LOCAL S-03 injection SQL sur /api/"; flow:established,to_server; http.uri; content:"/api/"; startswith; pcre:"/'(\s|\+)*or(\s|\+)*'?\d+'?(\s|\+)*=(\s|\+)*'?\d+/i"; classtype:web-application-attack; sid:9000010; rev:2;)
+# S-03 · injection SQL sur le saut nginx -> API, en clair (em1, état B). rev 3 (26/11) : couvre aussi l'injection
+# numérique sans apostrophe (« 1 OR 1=1 », forme utilisée par le rôle 5), « + » ou %20 comme séparateur, « = » ou %3D.
+# Vérifié hors ligne (Suricata 7) : 5 variantes détectées, 0 alerte sur /api/produits et /api/produit?id=12.
+alert http any any -> 10.20.0.70 5000 (msg:"LOCAL S-03 injection SQL sur /api/"; flow:established,to_server; http.uri; content:"/api/"; startswith; pcre:"/(?:'(?:\s|\+)*|\d(?:\s|\+)+)or(?:\s|\+)+'?\d+'?(?:\s|\+)*(?:=|%3d)(?:\s|\+)*'?\d+/i"; classtype:web-application-attack; sid:9000010; rev:3;)
 
 # S-05 · un poste utilisateur tente de joindre la base (em1)
 alert tcp 10.10.0.0/26 any -> 10.10.0.70 5432 (msg:"LOCAL S-05 LAN-USERS vers PostgreSQL"; flow:stateless; flags:S,12; classtype:policy-violation; sid:9000020; rev:1;)

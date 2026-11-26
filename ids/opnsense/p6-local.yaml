@@ -1,0 +1,10 @@
+%YAML 1.1
+---
+# /usr/local/etc/suricata/conf.d/p6-local.yaml — inclus automatiquement par OPNsense 26.7
+# (modèle templates/OPNsense/IDS/suricata.yaml, ligne 429), APRÈS installed_rules.yaml :
+# cette liste REMPLACE donc celle d'OPNsense. Elle doit reprendre OPNsense.rules et,
+# quand ET Open sera activé, les fichiers listés dans installed_rules.yaml.
+rule-files:
+  - OPNsense.rules
+  - /usr/local/etc/suricata/p6/p6-local.rules
+threshold-file: /usr/local/etc/suricata/p6/p6-threshold.config
