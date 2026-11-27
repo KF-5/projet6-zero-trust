@@ -1,0 +1,30 @@
+# Nmap 7.991 scan initiated Thu Nov 26 22:25:29 2026 as: /usr/lib/nmap/nmap -f -sS -Pn -p 443 -oG - 203.0.113.1
+Host: 203.0.113.1 ()	Status: Up
+Host: 203.0.113.1 ()	Ports: 443/open/tcp//https///
+# Nmap done at Thu Nov 26 22:25:29 2026 -- 1 IP address (1 host up) scanned in 0.09 seconds
+HPING 203.0.113.1 (eth0 203.0.113.1): S set, 40 headers + 0 data bytes
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=0 win=64240 rtt=1.4 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=1 win=64240 rtt=1.9 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=2 win=64240 rtt=1.5 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=3 win=64240 rtt=1.9 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=4 win=64240 rtt=1.5 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=5 win=64240 rtt=1.0 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=6 win=64240 rtt=0.6 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=7 win=64240 rtt=2.1 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=8 win=64240 rtt=1.1 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=9 win=64240 rtt=1.9 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=10 win=64240 rtt=1.4 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=11 win=64240 rtt=1.0 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=12 win=64240 rtt=1.5 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=13 win=64240 rtt=1.5 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=14 win=64240 rtt=2.0 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=15 win=64240 rtt=1.5 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=16 win=64240 rtt=1.0 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=17 win=64240 rtt=1.5 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=18 win=64240 rtt=1.9 ms
+len=46 ip=203.0.113.1 ttl=63 DF id=0 sport=443 flags=SA seq=19 win=64240 rtt=1.5 ms
+Unable to determine any DNS servers. . Falling back to --system-dns. Specify valid servers with --dns-servers
+
+--- 203.0.113.1 hping statistic ---
+20 packets transmitted, 20 packets received, 0% packet loss
+round-trip min/avg/max = 0.6/1.5/2.1 ms

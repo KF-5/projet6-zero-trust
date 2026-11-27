@@ -1,0 +1,10 @@
+Campagne A : 26/11/2026, 22:00-22:46 (heure locale), 60 executions (6 scenarios x n=10), graine 2026, pause 30 s
+Lancee par karim@collecteur (cle orchestrateur). Depot : branche role-5-attaques, commit 7c84406 (campagne/VERSION-CAMPAGNE.md)
+ec3829d950d1bc1a0894b709e561f5bded32599fffb6f11e36a2984ede85c60f  /home/karim/campagne-A/orchestrateur.py
+71c02cf25255c0d7976e2833b244b3098cac45e7ef8550f6e77a4eae645b22be  /home/karim/campagne-A/scenarios.json
+Suricata : arrete (etat A mesure sans inspection). p6-capture : version du 25/11. NTP : p6-docker corrige le 26/11 a 20:16 (timesyncd vers 10.99.0.10)
+Prerequis : cloisonnement 19/19 (20:18), test_flux A 8/8 (20:19), NTP < 1 s sur les 4 VM
+Sonde : 7558 mesures, 14 echecs. Controles : runs 60, sorties 60, pcap 80 (0 vide), S-01 10x3 ports, S-03 10x8 produits, S-04/S-05 2 SYN-ACK vers l'attaquant par execution (+ ~6 vers l'API 10.20.0.70, trafic de la sonde)
+Empreintes des resultats :
+4afc094adf869e23936707c7e674359f254904eb416a7f2a81baf4fb1f86bd90  runs.csv
+e5a14ab643719bdf3fbac084872f0aca853907bcb4f87ec82a9fd4fdd8a8b1f5  sla.csv

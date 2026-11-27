@@ -1,0 +1,2 @@
+Connection to 10.10.0.70 5432 port [tcp/postgresql] succeeded!
+psql: error: connection to server at "10.10.0.70", port 5432 failed: FATAL:  pg_hba.conf rejects connection for host "10.10.0.12", user "lecteur", database "catalogue", no encryption
