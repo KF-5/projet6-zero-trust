@@ -121,9 +121,9 @@ Le scénario de panne **P-01** analyse la résilience du pare-feu OPNsense en ca
 * **Constat :** Les paquets `[SYN, ACK]` cessent brutalement après l'émission de la 20e sonde dans la fenêtre glissante de 5 secondes. La table d'adresses dynamiques d'OPNsense bannit temporairement l'adresse source `203.0.113.66`.
 
 ### Capture D.5 — Scénario S-03 en État A (Injection SQL en clair sur le relais interne)
-* **Fichier analysé :** `resultats/A/2026-11-20/pcap/A-S03-01_api.pcap`
+* **Fichier analysé :** `resultats/A/2026-11-20/pcap/A-S03-01_api.pcap` (et `resultats/A/2026-11-26/`)
 * **Décodage :** `tcp.port == 5000` $\to$ HTTP. Filtre : `http.request.uri contains "OR"`
-* **Constat :** La charge utile `' OR '1'='1` est transmise en clair par le reverse proxy Nginx (`10.20.0.10`) à l'API interne (`10.20.0.70`). Le serveur renvoie un code HTTP 200 contenant le jeton `secret`.
+* **Constat :** La charge utile numérique `id=1 OR 1=1` est transmise en clair par le reverse proxy Nginx (`10.20.0.10`) à l'API interne (`10.20.0.70`). Le serveur API renvoie un code HTTP 200 contenant le tableau JSON complet des 8 produits de la base, confirmant le succès de l'injection SQL relayée.
 
 ### Capture D.6 — Scénario S-06 en État B (Détection de paquets fragmentés)
 * **Fichier analysé :** `resultats/B/2026-11-25/pcap/B-S06-01_kali-wan.pcap`
