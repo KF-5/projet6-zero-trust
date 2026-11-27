@@ -1,0 +1,5 @@
+PORT     STATE SERVICE
+80/tcp   open  http
+443/tcp  open  https
+53/udp   open  domain
+/open/

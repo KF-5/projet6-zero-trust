@@ -1,0 +1,111 @@
+ts_utc,source,src_ip,dst_ip,dst_port,proto,action,sid,message
+2026-11-25T09:00:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:00:00.406Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:00:40.398Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:01:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:01:20.431Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:02:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:02:00.404Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:02:40.393Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:03:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:03:20.396Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:04:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:04:00.416Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:04:40.377Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:05:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:05:20.401Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:06:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:06:00.434Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-01)
+2026-11-25T09:06:40.361Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:07:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:07:25.339Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:08:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:08:10.387Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:08:55.343Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:09:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:09:40.322Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:10:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:10:25.332Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:11:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:11:10.338Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:11:55.340Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:12:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:12:40.391Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:13:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:13:25.314Z,suricata,203.0.113.66,203.0.113.1,80,tcp,drop,9000010,SURICATA Scan or Flood detected (S-02)
+2026-11-25T09:14:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:14:11.364Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:14:46.439Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:15:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:15:21.475Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:15:56.532Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:16:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:16:31.314Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:17:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:17:06.442Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:17:41.303Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:18:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:18:16.485Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:18:51.392Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:19:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:19:26.370Z,suricata,10.20.0.10,10.20.0.70,5000,tcp,drop,9000030,ET WEB_SPECIFIC_APPS Possible SQL Injection Attempt
+2026-11-25T09:20:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:20:00.020Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:20:00.020Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:20:30.022Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:20:30.022Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:21:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:21:00.026Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:21:00.026Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:21:30.027Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:21:30.027Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:22:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:22:00.026Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:22:00.026Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:22:30.024Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:22:30.024Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:23:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:23:00.030Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:23:00.030Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:23:30.025Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:23:30.025Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:24:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:24:00.024Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:24:00.024Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:24:30.027Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:24:30.027Z,suricata,10.10.0.12,10.10.0.70,5000,tcp,drop,9000025,SURICATA Unauthorized lateral database access
+2026-11-25T09:25:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:25:00.017Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:25:00.017Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:25:33.019Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:25:33.019Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:26:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:26:06.018Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:26:06.018Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:26:39.017Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:26:39.017Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:27:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:27:12.021Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:27:12.021Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:27:45.015Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:27:45.015Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:28:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:28:18.021Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:28:18.021Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:28:51.019Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:28:51.019Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:29:00.000Z,nginx,203.0.113.66,10.20.0.10,443,tcp,200,,GET /api/produits
+2026-11-25T09:29:24.018Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:29:24.018Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:29:57.017Z,pf,10.10.0.12,10.10.0.70,5432,tcp,block,,règle 82 fae55933 em1
+2026-11-25T09:29:57.017Z,suricata,10.10.0.12,10.10.0.70,5432,tcp,drop,9000020,SURICATA Unauthorized lateral database access
+2026-11-25T09:30:30.120Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:31:07.127Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:31:44.100Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:32:21.106Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:32:58.123Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:33:35.107Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:34:12.112Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:34:49.122Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:35:26.112Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)
+2026-11-25T09:36:03.115Z,suricata,203.0.113.66,203.0.113.1,80,tcp,alert,9000010,SURICATA Scan or Flood detected (S-06)

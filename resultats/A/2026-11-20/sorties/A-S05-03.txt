@@ -1,0 +1,4 @@
+ id | username | email 
+----+----------+-------
+  1 | admin    | admin@local
+(1 row)
